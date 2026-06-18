@@ -1,13 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Search, Bell, Settings } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DashboardContent from './DashboardContent';
+import Marketplace from './Marketplace';
 import './Dashboard.css';
+import './Marketplace.css';
 
 const Dashboard = ({ user, onLogout }) => {
+  const [activeView, setActiveView] = useState('dashboard');
+
   return (
     <div className="dashboard-container">
-      <Sidebar user={user} onLogout={onLogout} />
+      <Sidebar 
+        user={user} 
+        onLogout={onLogout} 
+        activeView={activeView}
+        onViewChange={setActiveView}
+      />
       
       <main className="dashboard-main">
         {/* Dashboard Header */}
@@ -31,8 +40,9 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
         </header>
 
-        {/* Dashboard Content */}
-        <DashboardContent user={user} />
+        {/* Dashboard Content Area */}
+        {activeView === 'dashboard' && <DashboardContent user={user} />}
+        {activeView === 'marketplace' && <Marketplace />}
       </main>
     </div>
   );
