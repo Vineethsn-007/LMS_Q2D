@@ -3,6 +3,7 @@ import { Search, Bell, Settings } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DashboardContent from './DashboardContent';
 import Marketplace from './Marketplace';
+import MyLearning from './MyLearning';
 import './Dashboard.css';
 import './Marketplace.css';
 
@@ -43,6 +44,7 @@ const Dashboard = ({ user, onLogout }) => {
         {/* Dashboard Content Area */}
         {activeView === 'dashboard' && <DashboardContent user={user} />}
         {activeView === 'marketplace' && <Marketplace />}
+        {activeView === 'mylearning' && <MyLearning />}
       </main>
     </div>
   );
