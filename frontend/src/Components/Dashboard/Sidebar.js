@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import './Dashboard.css';
 
-const Sidebar = ({ user, onLogout }) => {
+const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
   return (
     <aside className="dashboard-sidebar">
       <div className="sidebar-logo">
@@ -23,13 +23,19 @@ const Sidebar = ({ user, onLogout }) => {
       <div className="sidebar-section">
         <div className="sidebar-section-title">Learn</div>
         <nav className="sidebar-nav">
-          <div className="sidebar-link active">
+          <div 
+            className={`sidebar-link ${activeView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => onViewChange('dashboard')}
+          >
             <div className="sidebar-link-content">
               <LayoutDashboard size={18} />
               <span>Dashboard</span>
             </div>
           </div>
-          <div className="sidebar-link">
+          <div 
+            className={`sidebar-link ${activeView === 'marketplace' ? 'active' : ''}`}
+            onClick={() => onViewChange('marketplace')}
+          >
             <div className="sidebar-link-content">
               <ShoppingBag size={18} />
               <span>Marketplace</span>
