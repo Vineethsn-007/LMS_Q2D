@@ -6,6 +6,8 @@ import CoursesGrid from './Components/CoursesGrid';
 import ExpertsList from './Components/ExpertsList';
 import Footer from './Components/Footer';
 import AuthModal from './Components/AuthModal';
+import Dashboard from './Components/Dashboard/Dashboard';
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -149,6 +151,7 @@ function App() {
     setUser(userData);
     localStorage.setItem('sf_token', token);
     localStorage.setItem('sf_user', JSON.stringify(userData));
+    setIsAuthOpen(false);
   };
 
   const handleLogout = () => {
@@ -186,32 +189,38 @@ function App() {
 
   return (
     <div className="App skillforge-gradient-bg">
-      <Header 
-        user={user} 
-        onLogout={handleLogout} 
-        onOpenAuth={() => setIsAuthOpen(true)} 
-      />
-      
-      <main style={{ flexGrow: 1 }}>
-        <Hero 
-          stats={stats} 
-          onStartFree={handleStartFree} 
-          onBrowseCourses={handleBrowseCourses} 
-        />
-        
-        <CoursesGrid 
-          courses={courses}
-          activeCategory={activeCategory}
-          setActiveCategory={setActiveCategory}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onEnrollCourse={handleEnrollCourse}
-        />
-        
-        <ExpertsList experts={experts} />
-      </main>
+      {user ? (
+        <Dashboard user={user} onLogout={handleLogout} />
+      ) : (
+        <>
+          <Header 
+            user={user} 
+            onLogout={handleLogout} 
+            onOpenAuth={() => setIsAuthOpen(true)} 
+          />
+          
+          <main style={{ flexGrow: 1 }}>
+            <Hero 
+              stats={stats} 
+              onStartFree={handleStartFree} 
+              onBrowseCourses={handleBrowseCourses} 
+            />
+            
+            <CoursesGrid 
+              courses={courses}
+              activeCategory={activeCategory}
+              setActiveCategory={setActiveCategory}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onEnrollCourse={handleEnrollCourse}
+            />
+            
+            <ExpertsList experts={experts} />
+          </main>
 
-      <Footer />
+          <Footer />
+        </>
+      )}
 
       <AuthModal 
         isOpen={isAuthOpen} 
