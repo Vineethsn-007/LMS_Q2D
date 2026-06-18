@@ -41,7 +41,10 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
               <span>Marketplace</span>
             </div>
           </div>
-          <div className="sidebar-link">
+          <div 
+            className={`sidebar-link ${activeView === 'mylearning' ? 'active' : ''}`}
+            onClick={() => onViewChange('mylearning')}
+          >
             <div className="sidebar-link-content">
               <BookOpen size={18} />
               <span>My Learning</span>
