@@ -4,8 +4,11 @@ import Sidebar from './Sidebar';
 import DashboardContent from './DashboardContent';
 import Marketplace from './Marketplace';
 import MyLearning from './MyLearning';
+import Certifications from './Certifications';
 import './Dashboard.css';
 import './Marketplace.css';
+import './MyLearning.css';
+import './Certifications.css';
 
 const Dashboard = ({ user, onLogout }) => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -45,6 +48,7 @@ const Dashboard = ({ user, onLogout }) => {
         {activeView === 'dashboard' && <DashboardContent user={user} />}
         {activeView === 'marketplace' && <Marketplace />}
         {activeView === 'mylearning' && <MyLearning />}
+        {activeView === 'certifications' && <Certifications />}
       </main>
     </div>
   );
