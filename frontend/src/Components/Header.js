@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, LogOut, User as UserIcon } from 'lucide-react';
+import logoImg from '../logo.png';
 
 export default function Header({ user, onLogout, onOpenAuth }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,12 +38,7 @@ export default function Header({ user, onLogout, onOpenAuth }) {
         {/* Logo */}
         <div style={styles.logoContainer} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <div style={styles.logoIcon}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" fill="#2563EB" />
-              <path d="M12 17C14.7614 17 17 14.7614 17 12C17 9.23858 14.7614 7 12 7C9.23858 7 7 9.23858 7 12C7 14.7614 9.23858 17 12 17Z" fill="#60A5FA" />
-              <path d="M11 10H13V14H11V10Z" fill="white" />
-              <path d="M9.5 11.5H14.5V12.5H9.5V11.5Z" fill="white" />
-            </svg>
+            <img src={logoImg} alt="SkillForge Logo" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
           </div>
           <span style={styles.logoText}>SkillForge</span>
         </div>

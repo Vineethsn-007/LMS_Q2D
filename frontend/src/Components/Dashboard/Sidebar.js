@@ -10,13 +10,14 @@ import {
 
   LogOut
 } from 'lucide-react';
+import logoImg from '../../logo.png';
 import './Dashboard.css';
 
 const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
   return (
     <aside className="dashboard-sidebar">
       <div className="sidebar-logo">
-        <div className="logo-icon">S</div>
+        <img src={logoImg} alt="SkillForge Logo" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
         SkillForge
       </div>
 
