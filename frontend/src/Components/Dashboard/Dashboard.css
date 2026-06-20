@@ -152,13 +152,13 @@
 
 /* Dashboard Header */
 .dashboard-header {
-  height: 72px;
+  min-height: 80px;
   background-color: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
+  padding: 1.25rem 2rem;
 }
 
 .header-search {

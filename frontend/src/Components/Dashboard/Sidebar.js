@@ -72,7 +72,10 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
       <div className="sidebar-section">
         <div className="sidebar-section-title">Create</div>
         <nav className="sidebar-nav">
-          <div className="sidebar-link">
+          <div 
+            className={`sidebar-link ${activeView === 'proposals' ? 'active' : ''}`}
+            onClick={() => onViewChange('proposals')}
+          >
             <div className="sidebar-link-content">
               <FileEdit size={18} />
               <span>Proposals & Voting</span>
