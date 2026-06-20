@@ -5,6 +5,7 @@ import DashboardContent from './DashboardContent';
 import Marketplace from './Marketplace';
 import MyLearning from './MyLearning';
 import Certifications from './Certifications';
+import ProposalsVoting from './ProposalsVoting';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
@@ -49,6 +50,7 @@ const Dashboard = ({ user, onLogout }) => {
         {activeView === 'marketplace' && <Marketplace />}
         {activeView === 'mylearning' && <MyLearning />}
         {activeView === 'certifications' && <Certifications />}
+        {activeView === 'proposals' && <ProposalsVoting />}
       </main>
     </div>
   );

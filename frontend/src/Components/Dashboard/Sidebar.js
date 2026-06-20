@@ -10,13 +10,14 @@ import {
 
   LogOut
 } from 'lucide-react';
+import logoImg from '../../logo.png';
 import './Dashboard.css';
 
 const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
   return (
     <aside className="dashboard-sidebar">
       <div className="sidebar-logo">
-        <div className="logo-icon">S</div>
+        <img src={logoImg} alt="SkillForge Logo" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
         SkillForge
       </div>
 
@@ -71,7 +72,10 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
       <div className="sidebar-section">
         <div className="sidebar-section-title">Create</div>
         <nav className="sidebar-nav">
-          <div className="sidebar-link">
+          <div 
+            className={`sidebar-link ${activeView === 'proposals' ? 'active' : ''}`}
+            onClick={() => onViewChange('proposals')}
+          >
             <div className="sidebar-link-content">
               <FileEdit size={18} />
               <span>Proposals & Voting</span>
