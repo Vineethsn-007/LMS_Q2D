@@ -7,7 +7,7 @@ import ExpertsList from './Components/ExpertsList';
 import Footer from './Components/Footer';
 import AuthModal from './Components/AuthModal';
 import Dashboard from './Components/Dashboard/Dashboard';
-
+import CourseSuggestionOrb from './Components/CourseSuggestionOrb';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -227,6 +227,7 @@ function App() {
         onClose={() => setIsAuthOpen(false)} 
         onAuthSuccess={handleAuthSuccess}
       />
+      <CourseSuggestionOrb user={user} />
     </div>
   );
 }

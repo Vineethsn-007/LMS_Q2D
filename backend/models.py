@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime
+from sqlalchemy.sql import func
 from database import Base
 
 class User(Base):
@@ -8,6 +9,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
+    role = Column(String, default="learner")
     is_active = Column(Boolean, default=True)
 
 class Course(Base):
@@ -41,3 +43,65 @@ class Stat(Base):
     key = Column(String, unique=True, index=True, nullable=False)
     value = Column(String, nullable=False)
     label = Column(String, nullable=False)
+
+class CourseProposal(Base):
+    __tablename__ = "course_proposals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_name = Column(String, nullable=False)
+    reason_to_learn = Column(String, nullable=False)
+    skill_level = Column(String, nullable=False)
+    preferred_learning_style = Column(Text, nullable=False)
+    expected_outcome = Column(Text, nullable=False)
+    additional_notes = Column(Text, nullable=True)
+    public_voting = Column(Boolean, default=False)
+    status = Column(String, default="pending")
+    learner_id = Column(Integer, nullable=True)
+    learner_name = Column(String, nullable=True)
+    profile_image = Column(String, nullable=True)
+    
+    # AI Preprocessing fields
+    ai_summary = Column(Text, nullable=True)
+    ai_category = Column(String, nullable=True)
+    risk_level = Column(String, nullable=True)
+    demand_score = Column(Integer, nullable=True)
+    ai_recommendation = Column(String, nullable=True)
+    duplicate_status = Column(Boolean, default=False)
+    ai_flagged_reason = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    rejection_reason = Column(String, nullable=True)
+    reviewer_feedback = Column(Text, nullable=True)
+    upvotes = Column(Integer, default=0)
+    downvotes = Column(Integer, default=0)
+    comment_count = Column(Integer, default=0)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    action_url = Column(String, nullable=True)
+    action_label = Column(String, nullable=True)
+
+class ProposalVote(Base):
+    __tablename__ = "proposal_votes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    proposal_id = Column(Integer, index=True, nullable=False)
+    user_id = Column(Integer, index=True, nullable=False)
+    vote_type = Column(String, nullable=False)
+
+class ProposalComment(Base):
+    __tablename__ = "proposal_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    proposal_id = Column(Integer, index=True, nullable=False)
+    user_id = Column(Integer, index=True, nullable=False)
+    parent_comment_id = Column(Integer, index=True, nullable=True)
+    content = Column(Text, nullable=False)
+    likes = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
