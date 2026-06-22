@@ -27,7 +27,7 @@ const ReviewCenter = ({ user }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('sf_token');
-      const url = `http://localhost:8000/api/reviewer/proposals${activeTab !== 'all' ? `?status_filter=${activeTab}` : ''}`;
+      const url = `${process.env.REACT_APP_API_URL }/api/reviewer/proposals${activeTab !== 'all' ? `?status_filter=${activeTab}` : ''}`;
       
       const res = await fetch(url, {
         headers: {
@@ -53,7 +53,7 @@ const ReviewCenter = ({ user }) => {
   const handleStatusUpdate = async (id, newStatus, extraPayload = {}) => {
     try {
       const token = localStorage.getItem('sf_token');
-      const res = await fetch(`http://localhost:8000/api/reviewer/proposals/${id}/status`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL }/api/reviewer/proposals/${id}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

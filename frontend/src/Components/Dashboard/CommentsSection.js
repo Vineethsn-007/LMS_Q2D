@@ -87,7 +87,7 @@ const CommentsSection = ({ proposalId }) => {
 
   const fetchComments = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/community/proposals/${proposalId}/comments`);
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/community/proposals/${proposalId}/comments`);
       if (res.ok) {
         setComments(await res.json());
       }
@@ -105,7 +105,7 @@ const CommentsSection = ({ proposalId }) => {
   const handlePost = async (parentId, content) => {
     try {
       const token = localStorage.getItem('sf_token');
-      const res = await fetch(`http://localhost:8000/api/community/proposals/${proposalId}/comment`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL }/api/community/proposals/${proposalId}/comment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -125,7 +125,7 @@ const CommentsSection = ({ proposalId }) => {
   const handleLike = async (commentId) => {
     try {
       const token = localStorage.getItem('sf_token');
-      const res = await fetch(`http://localhost:8000/api/community/comments/${commentId}/like`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL }/api/community/comments/${commentId}/like`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

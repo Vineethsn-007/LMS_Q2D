@@ -24,13 +24,13 @@ function App() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const statsRes = await fetch('http://localhost:8000/api/stats');
+        const statsRes = await fetch(`${process.env.REACT_APP_API_URL }/api/stats`);
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats(statsData);
         }
 
-        const expertsRes = await fetch('http://localhost:8000/api/experts');
+        const expertsRes = await fetch(`${process.env.REACT_APP_API_URL }/api/experts`);
         if (expertsRes.ok) {
           const expertsData = await expertsRes.json();
           setExperts(expertsData);
@@ -55,7 +55,7 @@ function App() {
           queryParams.append('search', searchQuery);
         }
 
-        const url = `http://localhost:8000/api/courses?${queryParams.toString()}`;
+        const url = `${process.env.REACT_APP_API_URL }/api/courses?${queryParams.toString()}`;
         const res = await fetch(url);
         if (res.ok) {
           const coursesData = await res.json();
