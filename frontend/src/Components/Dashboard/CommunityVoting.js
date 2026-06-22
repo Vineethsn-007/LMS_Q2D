@@ -13,7 +13,7 @@ const CommunityVoting = () => {
   const fetchProposals = async () => {
     try {
       setLoading(true);
-      const url = new URL('http://localhost:8000/api/community/proposals');
+      const url = new URL(`${process.env.REACT_APP_API_URL }/api/community/proposals`);
       url.searchParams.append('sort_by', sortBy);
       if (category) url.searchParams.append('category', category);
       
@@ -40,7 +40,7 @@ const CommunityVoting = () => {
   const handleVote = async (id, type) => {
     try {
       const token = localStorage.getItem('sf_token');
-      const res = await fetch(`http://localhost:8000/api/community/proposals/${id}/vote`, {
+      const res = await fetch(`${process.env.REACT_APP_API_URL }/api/community/proposals/${id}/vote`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
