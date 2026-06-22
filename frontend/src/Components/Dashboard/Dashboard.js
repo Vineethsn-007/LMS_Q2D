@@ -6,13 +6,16 @@ import Marketplace from './Marketplace';
 import MyLearning from './MyLearning';
 import Certifications from './Certifications';
 import ProposalsVoting from './ProposalsVoting';
+import ReviewCenter from './ReviewCenter';
+import CommunityVoting from './CommunityVoting';
+import ReviewerProtectedRoute from '../ReviewerProtectedRoute';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
 import './Certifications.css';
 
 const Dashboard = ({ user, onLogout }) => {
-  const [activeView, setActiveView] = useState('dashboard');
+  const [activeView, setActiveView] = useState(user?.role === 'reviewer' ? 'review-center' : 'dashboard');
 
   return (
     <div className="dashboard-container">
@@ -50,7 +53,12 @@ const Dashboard = ({ user, onLogout }) => {
         {activeView === 'marketplace' && <Marketplace />}
         {activeView === 'mylearning' && <MyLearning />}
         {activeView === 'certifications' && <Certifications />}
-        {activeView === 'proposals' && <ProposalsVoting />}
+        {activeView === 'community-voting' && <CommunityVoting />}
+        {activeView === 'review-center' && (
+          <ReviewerProtectedRoute user={user}>
+            <ReviewCenter user={user} />
+          </ReviewerProtectedRoute>
+        )}
       </main>
     </div>
   );
