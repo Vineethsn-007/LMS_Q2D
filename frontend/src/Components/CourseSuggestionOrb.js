@@ -6,6 +6,10 @@ import CourseProposalModal from './CourseProposalModal';
 export default function CourseSuggestionOrb({ user }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  if (user?.role === 'reviewer' || user?.role === 'admin') {
+    return null;
+  }
+
   return (
     <>
       <div className="suggestion-orb-container">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, AlertTriangle, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Sparkles, AlertTriangle, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw, BarChart2, ArrowUp, ArrowDown, MessageSquare } from 'lucide-react';
 import './ReviewCenter.css';
 
 const ReviewCenter = ({ user }) => {
@@ -199,6 +199,28 @@ const ReviewCenter = ({ user }) => {
                   </div>
                 )}
               </div>
+
+              {(p.public_voting || p.upvotes > 0 || p.downvotes > 0 || p.comment_count > 0) && (
+                <div className="community-response-box">
+                  <div className="community-response-header">
+                    <BarChart2 size={14} /> Community Feedback
+                  </div>
+                  <div className="community-metrics">
+                    <div className="community-metric">
+                      <ArrowUp size={14} className="upvote-icon" />
+                      <span>{p.upvotes} Upvotes</span>
+                    </div>
+                    <div className="community-metric">
+                      <ArrowDown size={14} className="downvote-icon" />
+                      <span>{p.downvotes} Downvotes</span>
+                    </div>
+                    <div className="community-metric">
+                      <MessageSquare size={14} className="comments-icon" />
+                      <span>{p.comment_count} Comments</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Show actions only for pending or flagged items */}
               {['pending', 'ai_flagged'].includes(p.status) && (
