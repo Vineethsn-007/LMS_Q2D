@@ -95,7 +95,7 @@ const styles = {
   section: {
     padding: '6rem 0',
     backgroundColor: 'var(--bg-deep)',
-    borderTop: '1px solid rgba(255, 255, 255, 0.02)',
+    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
   },
   header: {
     textAlign: 'center',
@@ -117,13 +117,13 @@ const styles = {
   badgeText: {
     fontSize: '0.75rem',
     fontWeight: '600',
-    color: '#d8b4fe',
+    color: '#7c3aed',
     letterSpacing: '0.05em',
     textTransform: 'uppercase',
   },
   title: {
     fontSize: '2.25rem',
-    color: '#ffffff',
+    color: '#0f172a',
     marginBottom: '1rem',
   },
   subtitle: {
@@ -139,6 +139,7 @@ const styles = {
     gap: '2.5rem',
   },
   card: {
+    backgroundColor: '#ffffff',
     borderRadius: '1rem',
     padding: '2rem',
     border: '1px solid var(--border-color)',
@@ -163,7 +164,7 @@ const styles = {
     height: '100%',
     borderRadius: '50%',
     objectFit: 'cover',
-    border: '2px solid rgba(255, 255, 255, 0.1)',
+    border: '2px solid rgba(0, 0, 0, 0.08)',
     zIndex: 2,
     position: 'relative',
   },
@@ -190,7 +191,7 @@ const styles = {
   },
   name: {
     fontSize: '1.15rem',
-    color: '#fff',
+    color: '#0f172a',
     fontWeight: '700',
   },
   verifiedTag: {
@@ -213,7 +214,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+    borderTop: '1px solid rgba(0, 0, 0, 0.06)',
     paddingTop: '1rem',
     fontSize: '0.85rem',
   },
@@ -222,7 +223,7 @@ const styles = {
     fontWeight: '500',
   },
   statsCount: {
-    color: '#fff',
+    color: '#0f172a',
     fontWeight: '600',
   },
 };

@@ -1,31 +1,31 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* Color System */
-  --bg-dark: #07090e;
-  --bg-deep: #0a0d14;
-  --bg-card: rgba(25, 33, 49, 0.4);
-  --bg-card-hover: rgba(35, 47, 70, 0.65);
+  /* Color System (White & Cream Light Mode) */
+  --bg-dark: #FAF7F2;             /* Premium warm cream */
+  --bg-deep: #FFFFFF;             /* Pure white */
+  --bg-card: rgba(255, 255, 255, 0.75); /* Light frosted white card */
+  --bg-card-hover: rgba(255, 255, 255, 0.95);
   
   --color-primary: #1d4ed8;       /* Rich Blue */
   --color-accent-blue: #2563eb;   /* Vibrant Blue */
-  --color-accent-sky: #0ea5e9;    /* Sky Blue */
-  --color-accent-cyan: #06b6d4;   /* Cyan */
+  --color-accent-sky: #0284c7;    /* Dark Sky Blue for readability */
+  --color-accent-cyan: #0891b2;   /* Dark Cyan */
   --color-accent-indigo: #4f46e5; /* Indigo */
   
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-highlight: #38bdf8;
+  --text-primary: #0f172a;        /* Dark Slate primary */
+  --text-secondary: #475569;      /* Medium Slate secondary */
+  --text-muted: #64748b;          /* Muted Slate */
+  --text-highlight: #2563eb;      /* Highlight Blue */
   
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(56, 189, 248, 0.3);
+  --border-color: rgba(0, 0, 0, 0.08);  /* Subtly dark borders */
+  --border-hover: rgba(37, 99, 235, 0.25);
   
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-glow: 0 0 40px -10px rgba(37, 99, 235, 0.25);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-glow: 0 0 40px -10px rgba(37, 99, 235, 0.1);
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: 'Plus Jakarta Sans', sans-serif;
@@ -60,11 +60,11 @@ body {
   background: var(--bg-dark);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #94a3b8;
 }
 
 /* Typography */
@@ -85,10 +85,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Core SkillForge Gradient Background */
 .skillforge-gradient-bg {
-  background: radial-gradient(circle at 50% -20%, rgba(37, 99, 235, 0.15) 0%, rgba(79, 70, 229, 0.08) 35%, rgba(7, 9, 14, 0) 70%),
-              radial-gradient(circle at 10% 30%, rgba(6, 182, 212, 0.04) 0%, rgba(7, 9, 14, 0) 50%),
-              radial-gradient(circle at 90% 70%, rgba(79, 70, 229, 0.04) 0%, rgba(7, 9, 14, 0) 50%),
-              var(--bg-deep);
+  background: radial-gradient(circle at 50% -20%, rgba(37, 99, 235, 0.05) 0%, rgba(250, 247, 242, 0.3) 40%, rgba(255, 255, 255, 0) 80%),
+              radial-gradient(circle at 10% 30%, rgba(250, 247, 242, 1) 0%, rgba(255, 255, 255, 0) 70%),
+              radial-gradient(circle at 90% 70%, rgba(250, 247, 242, 0.8) 0%, rgba(255, 255, 255, 0) 70%),
+              var(--bg-dark);
 }
 
 /* Text Gradient Effect */
@@ -101,7 +101,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Glassmorphism Elements */
 .glass {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
@@ -160,7 +160,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Form Styles */
 .form-input {
-  background: rgba(15, 23, 42, 0.8);
+  background: #ffffff;
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   border-radius: 0.5rem;

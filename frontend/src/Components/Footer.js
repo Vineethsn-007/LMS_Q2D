@@ -117,8 +117,8 @@ export default function Footer() {
 
 const styles = {
   footer: {
-    backgroundColor: '#05070a',
-    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#faf7f2',
+    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
     padding: '5rem 0 3rem 0',
   },
   container: {
@@ -151,7 +151,7 @@ const styles = {
     fontFamily: 'var(--font-heading)',
     fontSize: '1.2rem',
     fontWeight: '800',
-    color: '#fff',
+    color: '#0f172a',
   },
   brandDesc: {
     fontSize: '0.875rem',
@@ -187,7 +187,7 @@ const styles = {
   colTitle: {
     fontSize: '0.9rem',
     fontWeight: '600',
-    color: '#fff',
+    color: '#0f172a',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
   },
@@ -279,7 +279,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
     paddingTop: '2rem',
     flexWrap: 'wrap',
     gap: '1rem',
@@ -308,7 +308,7 @@ if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.innerHTML = `
     footer a:hover {
-      color: #ffffff !important;
+      color: #0f172a !important;
     }
   `;
   document.head.appendChild(style);

@@ -29,8 +29,8 @@ export default function Header({ user, onLogout, onOpenAuth }) {
   return (
     <header style={{
       ...styles.header,
-      backgroundColor: scrolled ? 'rgba(7, 9, 14, 0.85)' : 'rgba(7, 9, 14, 0.4)',
-      borderBottomColor: scrolled ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+      backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(250, 247, 242, 0.4)',
+      borderBottomColor: scrolled ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.03)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
     }}>
@@ -45,10 +45,9 @@ export default function Header({ user, onLogout, onOpenAuth }) {
 
         {/* Desktop Nav Links */}
         <nav style={styles.desktopNav}>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={styles.navLink}>Home</button>
           <button onClick={() => scrollToSection('courses')} style={styles.navLink}>Courses</button>
-          <a href="#teams" style={styles.navLink}>For Teams</a>
           <button onClick={() => scrollToSection('experts')} style={styles.navLink}>Experts</button>
-          <a href="#pricing" style={styles.navLink}>Pricing</a>
         </nav>
 
         {/* Desktop Auth */}
@@ -83,10 +82,9 @@ export default function Header({ user, onLogout, onOpenAuth }) {
       {isOpen && (
         <div style={styles.mobileDrawer} className="glass">
           <nav style={styles.mobileNav}>
+            <button onClick={() => { setIsOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={styles.mobileNavLink}>Home</button>
             <button onClick={() => scrollToSection('courses')} style={styles.mobileNavLink}>Courses</button>
-            <a href="#teams" onClick={() => setIsOpen(false)} style={styles.mobileNavLink}>For Teams</a>
             <button onClick={() => scrollToSection('experts')} style={styles.mobileNavLink}>Experts</button>
-            <a href="#pricing" onClick={() => setIsOpen(false)} style={styles.mobileNavLink}>Pricing</a>
             <hr style={styles.divider} />
             {user ? (
               <div style={styles.mobileUserInfo}>
@@ -146,7 +144,7 @@ const styles = {
     fontFamily: "var(--font-heading)",
     fontSize: '1.25rem',
     fontWeight: '800',
-    color: '#fff',
+    color: '#0f172a',
     letterSpacing: '-0.02em',
   },
   desktopNav: {
@@ -210,7 +208,7 @@ const styles = {
   userName: {
     fontSize: '0.875rem',
     fontWeight: '600',
-    color: '#fff',
+    color: '#0f172a',
   },
   logoutBtn: {
     background: 'none',
@@ -227,7 +225,7 @@ const styles = {
   menuBtn: {
     background: 'none',
     border: 'none',
-    color: '#fff',
+    color: '#0f172a',
     cursor: 'pointer',
     display: 'none',
     '@media (max-width: 768px)': {

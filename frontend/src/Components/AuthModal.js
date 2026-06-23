@@ -51,7 +51,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
   return (
     <div style={styles.overlay}>
-      <div style={styles.modal} className="glass">
+      <div style={styles.modal}>
         {/* Header */}
         <div style={styles.header}>
           <div style={styles.titleContainer}>
@@ -172,7 +172,10 @@ const styles = {
     maxWidth: '440px',
     borderRadius: '1rem',
     padding: '2rem',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), var(--shadow-glow)',
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
     animation: 'modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   header: {
@@ -189,7 +192,7 @@ const styles = {
   title: {
     fontSize: '1.5rem',
     fontWeight: '700',
-    color: '#fff',
+    color: '#0f172a',
   },
   closeBtn: {
     background: 'none',
@@ -225,7 +228,7 @@ const styles = {
   label: {
     fontSize: '0.875rem',
     fontWeight: '500',
-    color: '#94a3b8',
+    color: '#475569',
   },
   inputWrapper: {
     position: 'relative',
@@ -254,7 +257,7 @@ const styles = {
   },
   footerText: {
     fontSize: '0.875rem',
-    color: '#64748b',
+    color: '#475569',
   },
   toggleBtn: {
     background: 'none',

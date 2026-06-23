@@ -92,13 +92,13 @@ const styles = {
   badgeText: {
     fontSize: '0.85rem',
     fontWeight: '600',
-    color: '#93c5fd',
+    color: '#0284c7',
     letterSpacing: '0.02em',
   },
   heading: {
     fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
     lineHeight: '1.15',
-    color: '#ffffff',
+    color: '#0f172a',
     fontWeight: '800',
     marginBottom: '1.5rem',
     letterSpacing: '-0.03em',
@@ -135,7 +135,7 @@ const styles = {
     gap: '6rem',
     width: '100%',
     maxWidth: '900px',
-    borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
     paddingTop: '3rem',
     flexWrap: 'wrap',
   },
@@ -149,7 +149,7 @@ const styles = {
     fontFamily: 'var(--font-heading)',
     fontSize: '2.5rem',
     fontWeight: '800',
-    color: '#ffffff',
+    color: '#0f172a',
     letterSpacing: '-0.02em',
   },
   statLabel: {

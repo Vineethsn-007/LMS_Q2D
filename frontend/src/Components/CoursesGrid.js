@@ -38,7 +38,7 @@ export default function CoursesGrid({
                 onClick={() => setActiveCategory(cat)}
                 style={{
                   ...styles.tabBtn,
-                  backgroundColor: activeCategory === cat ? 'var(--color-accent-blue)' : 'rgba(255, 255, 255, 0.03)',
+                  backgroundColor: activeCategory === cat ? 'var(--color-accent-blue)' : 'rgba(0, 0, 0, 0.03)',
                   borderColor: activeCategory === cat ? 'var(--color-accent-sky)' : 'var(--border-color)',
                   color: activeCategory === cat ? '#ffffff' : 'var(--text-secondary)',
                 }}
@@ -86,7 +86,7 @@ export default function CoursesGrid({
                   {/* Validation Badges */}
                   <div style={styles.badgeRow}>
                     {course.is_ai_generated && (
-                      <span style={{ ...styles.badge, backgroundColor: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8' }}>
+                      <span style={{ ...styles.badge, backgroundColor: 'rgba(2, 132, 199, 0.12)', color: '#0284c7' }}>
                         <Sparkles size={12} /> AI-Generated
                       </span>
                     )}
@@ -141,8 +141,8 @@ export default function CoursesGrid({
 const styles = {
   section: {
     padding: '5rem 0',
-    backgroundColor: '#090c12',
-    borderTop: '1px solid rgba(255, 255, 255, 0.02)',
+    backgroundColor: 'var(--bg-deep)',
+    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
   },
   header: {
     textAlign: 'center',
@@ -150,7 +150,7 @@ const styles = {
   },
   title: {
     fontSize: '2.25rem',
-    color: '#ffffff',
+    color: '#0f172a',
     marginBottom: '1rem',
   },
   subtitle: {
@@ -207,6 +207,7 @@ const styles = {
     gap: '2rem',
   },
   card: {
+    backgroundColor: '#ffffff',
     borderRadius: '1rem',
     overflow: 'hidden',
     border: '1px solid var(--border-color)',
@@ -236,10 +237,10 @@ const styles = {
     borderRadius: '0.25rem',
     fontSize: '0.75rem',
     fontWeight: '600',
-    color: '#fff',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    color: '#0f172a',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     backdropFilter: 'blur(4px)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(0, 0, 0, 0.08)',
   },
   cardBody: {
     padding: '1.5rem',
@@ -266,7 +267,7 @@ const styles = {
   },
   cardTitle: {
     fontSize: '1.25rem',
-    color: '#fff',
+    color: '#0f172a',
     marginBottom: '0.75rem',
     lineHeight: '1.35',
   },
@@ -282,7 +283,7 @@ const styles = {
     gap: '1.5rem',
     alignItems: 'center',
     marginBottom: '1.5rem',
-    borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+    borderTop: '1px solid rgba(0, 0, 0, 0.06)',
     paddingTop: '1rem',
   },
   metaItem: {
@@ -318,7 +319,7 @@ if (typeof document !== 'undefined') {
     div[class*="glass"]:hover {
       transform: translateY(-5px);
       border-color: var(--border-hover) !important;
-      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(56, 189, 248, 0.1) !important;
+      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.15), 0 0 20px -5px rgba(37, 99, 235, 0.05) !important;
     }
     div[class*="glass"]:hover img {
       transform: scale(1.05);
