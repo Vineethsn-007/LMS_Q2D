@@ -1,4 +1,5 @@
 import logging
+import hashlib
 from database import SessionLocal, engine, Base
 from models import Course, Expert, Stat, User
 
@@ -18,6 +19,36 @@ def seed_db():
         db.query(Course).delete()
         db.query(Expert).delete()
         db.query(Stat).delete()
+        
+        # 0. Seed Users
+        logger.info("Seeding users...")
+        admin_pwd = hashlib.sha256("admin123".encode()).hexdigest()
+        reviewer_pwd = hashlib.sha256("reviewer123".encode()).hexdigest()
+        expert_pwd = hashlib.sha256("expert123".encode()).hexdigest()
+        users = [
+            User(
+                email="admin@skillforge.com",
+                name="Admin User",
+                hashed_password=admin_pwd,
+                role="admin",
+                is_active=True
+            ),
+            User(
+                email="reviewer@skillforge.com",
+                name="Reviewer User",
+                hashed_password=reviewer_pwd,
+                role="reviewer",
+                is_active=True
+            ),
+            User(
+                email="expert@skillforge.com",
+                name="Expert User",
+                hashed_password=expert_pwd,
+                role="expert",
+                is_active=True
+            )
+        ]
+        db.add_all(users)
         
         # 1. Seed Stats
         logger.info("Seeding statistics...")

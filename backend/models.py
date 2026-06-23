@@ -105,3 +105,15 @@ class ProposalComment(Base):
     content = Column(Text, nullable=False)
     likes = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class CourseMaterial(Base):
+    __tablename__ = "course_materials"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, index=True, nullable=False)
+    title = Column(String, nullable=False)
+    type = Column(String, nullable=False)  # 'video', 'text', 'pdf', 'image'
+    content_url = Column(String, nullable=True)
+    text_content = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+

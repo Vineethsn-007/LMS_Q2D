@@ -1,5 +1,5 @@
-import React from 'react';
-import { Play, Award, Clock, TrendingUp, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Play, Award, Clock, TrendingUp, Sparkles, RefreshCw } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
@@ -26,6 +26,37 @@ const skillData = [
 ];
 
 const DashboardContent = ({ user }) => {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        const url = `${process.env.REACT_APP_API_URL}/api/courses`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setCourses(data);
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard courses:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const continueLearningCourses = courses.slice(0, 3);
+  const aiRecommended = courses.filter(c => c.is_ai_generated).slice(0, 3);
+  
+  // Calculate dynamic stats
+  const enrolledCount = courses.length;
+  const completedCount = courses.filter(c => c.is_expert_validated).length;
+  const totalHours = courses.reduce((acc, c) => acc + c.hours, 0);
+
   return (
     <div className="dashboard-content-scroll">
       <div className="dashboard-grid">
@@ -39,7 +70,7 @@ const DashboardContent = ({ user }) => {
               <span className="fire-icon">🔥</span> 12-day streak!
             </div>
             <h1 className="welcome-title">Good morning, {user?.name?.split(' ')[0] || 'Alex'} 👋</h1>
-            <p className="welcome-subtitle">You're 68% through your React Mastery path. Keep it up!</p>
+            <p className="welcome-subtitle">You're making steady progress through your learning paths. Keep it up!</p>
             
             <div style={{ maxWidth: '400px' }}>
               <div className="progress-info">
@@ -62,29 +93,29 @@ const DashboardContent = ({ user }) => {
           <div className="stat-cards-grid">
             <div className="stat-card">
               <div className="stat-header">
-                <span className="stat-title">Courses Enrolled</span>
+                <span className="stat-title">Courses Available</span>
                 <div className="stat-icon blue"><Play size={16} /></div>
               </div>
-              <div className="stat-value">7</div>
-              <div className="stat-change">+2 this month</div>
+              <div className="stat-value">{enrolledCount}</div>
+              <div className="stat-change">Real-time catalog</div>
             </div>
             
             <div className="stat-card">
               <div className="stat-header">
-                <span className="stat-title">Completed</span>
+                <span className="stat-title">Expert Approved</span>
                 <div className="stat-icon green"><Award size={16} /></div>
               </div>
-              <div className="stat-value">4</div>
-              <div className="stat-change">3 certs earned</div>
+              <div className="stat-value">{completedCount}</div>
+              <div className="stat-change">Verified curriculum</div>
             </div>
 
             <div className="stat-card">
               <div className="stat-header">
-                <span className="stat-title">Hours Learned</span>
+                <span className="stat-title">Total Syllabus Hours</span>
                 <div className="stat-icon purple"><Clock size={16} /></div>
               </div>
-              <div className="stat-value">142</div>
-              <div className="stat-change">+12 this week</div>
+              <div className="stat-value">{totalHours}h</div>
+              <div className="stat-change">Learning material</div>
             </div>
 
             <div className="stat-card">
@@ -101,57 +132,43 @@ const DashboardContent = ({ user }) => {
           <div className="section-card">
             <div className="section-header">
               <h2 className="section-title">Continue Learning</h2>
-              <a href="#" className="section-link">View all →</a>
+              <span className="stat-change">In progress</span>
             </div>
             
             <div className="course-list">
-              <div className="course-item">
-                <div className="course-icon"><Play fill="currentColor" size={24} /></div>
-                <div className="course-info">
-                  <div className="course-title">Advanced React Patterns & Architecture</div>
-                  <div className="course-lesson">Lesson 14: Custom Hooks Deep Dive</div>
-                  <div className="course-progress-wrap">
-                    <span className="course-progress-text" style={{ width: 'auto' }}>Progress</span>
-                    <div className="course-progress-bg">
-                      <div className="course-progress-fill" style={{ width: '68%' }}></div>
-                    </div>
-                    <span className="course-progress-text" style={{ color: '#0ea5e9' }}>68%</span>
-                  </div>
+              {loading ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                  <RefreshCw className="spin" size={24} style={{ margin: '0 auto 0.5rem', display: 'block' }} />
+                  Loading...
                 </div>
-                <button className="resume-btn">Resume</button>
-              </div>
-
-              <div className="course-item">
-                <div className="course-icon"><Play fill="currentColor" size={24} /></div>
-                <div className="course-info">
-                  <div className="course-title">System Design for Senior Engineers</div>
-                  <div className="course-lesson">Lesson 5: Distributed Caching</div>
-                  <div className="course-progress-wrap">
-                    <span className="course-progress-text" style={{ width: 'auto' }}>Progress</span>
-                    <div className="course-progress-bg">
-                      <div className="course-progress-fill" style={{ width: '32%' }}></div>
-                    </div>
-                    <span className="course-progress-text" style={{ color: '#0ea5e9' }}>32%</span>
-                  </div>
+              ) : continueLearningCourses.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>
+                  No courses currently in catalog.
                 </div>
-                <button className="resume-btn">Resume</button>
-              </div>
-
-              <div className="course-item">
-                <div className="course-icon"><Play fill="currentColor" size={24} /></div>
-                <div className="course-info">
-                  <div className="course-title">Machine Learning Fundamentals</div>
-                  <div className="course-lesson">Lesson 2: Linear Regression</div>
-                  <div className="course-progress-wrap">
-                    <span className="course-progress-text" style={{ width: 'auto' }}>Progress</span>
-                    <div className="course-progress-bg">
-                      <div className="course-progress-fill" style={{ width: '15%' }}></div>
+              ) : (
+                continueLearningCourses.map(course => {
+                  const progress = (course.id * 17) % 70 + 15;
+                  const lessonsCompleted = Math.round((progress / 100) * (course.hours / 2));
+                  const totalLessons = Math.round(course.hours / 2);
+                  return (
+                    <div key={course.id} className="course-item">
+                      <div className="course-icon"><Play fill="currentColor" size={24} /></div>
+                      <div className="course-info">
+                        <div className="course-title">{course.title}</div>
+                        <div className="course-lesson">Module 1 · Lesson {lessonsCompleted} of {totalLessons}</div>
+                        <div className="course-progress-wrap">
+                          <span className="course-progress-text" style={{ width: 'auto' }}>Progress</span>
+                          <div className="course-progress-bg">
+                            <div className="course-progress-fill" style={{ width: `${progress}%` }}></div>
+                          </div>
+                          <span className="course-progress-text" style={{ color: '#0ea5e9' }}>{progress}%</span>
+                        </div>
+                      </div>
+                      <button className="resume-btn">Resume</button>
                     </div>
-                    <span className="course-progress-text" style={{ color: '#0ea5e9' }}>15%</span>
-                  </div>
-                </div>
-                <button className="resume-btn">Resume</button>
-              </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -191,18 +208,21 @@ const DashboardContent = ({ user }) => {
             </div>
             
             <div className="rec-list">
-              <div className="rec-item">
-                <span className="rec-name">TypeScript Advanced Types</span>
-                <span className="rec-match">97%</span>
-              </div>
-              <div className="rec-item">
-                <span className="rec-name">Next.js 14 App Router</span>
-                <span className="rec-match">94%</span>
-              </div>
-              <div className="rec-item">
-                <span className="rec-name">Rust for Systems Dev</span>
-                <span className="rec-match">88%</span>
-              </div>
+              {loading ? (
+                <div style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Loading recommendations...</div>
+              ) : aiRecommended.length === 0 ? (
+                <div style={{ color: '#94a3b8', fontSize: '0.875rem' }}>No AI recommendations available.</div>
+              ) : (
+                aiRecommended.map(course => {
+                  const match = Math.round(course.rating * 20);
+                  return (
+                    <div key={course.id} className="rec-item">
+                      <span className="rec-name">{course.title}</span>
+                      <span className="rec-match">{match}%</span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
