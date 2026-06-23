@@ -7,11 +7,13 @@ import ExpertsList from './Components/ExpertsList';
 import Footer from './Components/Footer';
 import AuthModal from './Components/AuthModal';
 import Dashboard from './Components/Dashboard/Dashboard';
-import CourseSuggestionOrb from './Components/CourseSuggestionOrb';
+import CourseProposalModal from './Components/CourseProposalModal';
+import { Sparkles } from 'lucide-react';
 
 function App() {
   const [user, setUser] = useState(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isProposalOpen, setIsProposalOpen] = useState(false);
   const [stats, setStats] = useState([]);
   const [courses, setCourses] = useState([]);
   const [experts, setExperts] = useState([]);
@@ -227,7 +229,25 @@ function App() {
         onClose={() => setIsAuthOpen(false)} 
         onAuthSuccess={handleAuthSuccess}
       />
-      <CourseSuggestionOrb user={user} />
+
+      {user?.role !== 'admin' && user?.role !== 'reviewer' && (
+        <>
+          <button 
+            className="course-request-tag"
+            onClick={() => setIsProposalOpen(true)}
+            aria-label="Suggest a Course"
+          >
+            <Sparkles size={16} />
+            <span>Course Request</span>
+          </button>
+
+          <CourseProposalModal 
+            isOpen={isProposalOpen} 
+            onClose={() => setIsProposalOpen(false)} 
+            user={user}
+          />
+        </>
+      )}
     </div>
   );
 }

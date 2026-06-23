@@ -100,7 +100,7 @@ export default function CourseProposalModal({ isOpen, onClose, user }) {
 
   return (
     <div style={styles.overlay}>
-      <div style={styles.modal} className="glass">
+      <div style={styles.modal}>
         <div style={styles.header}>
           <div style={styles.titleContainer}>
             <Lightbulb size={24} color="#0ea5e9" />
@@ -253,11 +253,14 @@ const styles = {
   modal: {
     width: '100%',
     maxWidth: '600px',
-    maxHeight: '90vh',
+    maxHeight: '85vh',
     overflowY: 'auto',
     borderRadius: '1rem',
     padding: '2rem',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), var(--shadow-glow)',
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
     animation: 'modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
   },
   header: {
@@ -274,18 +277,18 @@ const styles = {
   title: {
     fontSize: '1.5rem',
     fontWeight: '700',
-    color: '#fff',
+    color: '#0f172a',
   },
   subtitle: {
     fontSize: '0.875rem',
-    color: '#94a3b8',
+    color: '#475569',
     marginBottom: '1.5rem',
     lineHeight: 1.5,
   },
   closeBtn: {
     background: 'none',
     border: 'none',
-    color: '#94a3b8',
+    color: '#64748b',
     cursor: 'pointer',
     padding: '0.25rem',
     borderRadius: '50%',
@@ -321,12 +324,17 @@ const styles = {
   label: {
     fontSize: '0.875rem',
     fontWeight: '500',
-    color: '#94a3b8',
+    color: '#475569',
   },
   input: {
     width: '100%',
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-    color: '#f8fafc',
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    border: '1px solid #cbd5e1',
+    borderRadius: '0.5rem',
+    padding: '0.75rem 1rem',
+    fontSize: '0.875rem',
+    outline: 'none',
   },
   checkboxGrid: {
     display: 'grid',
@@ -338,7 +346,7 @@ const styles = {
     alignItems: 'center',
     gap: '0.5rem',
     fontSize: '0.875rem',
-    color: '#cbd5e1',
+    color: '#334155',
     cursor: 'pointer',
   },
   checkbox: {
@@ -356,7 +364,7 @@ const styles = {
     gap: '0.5rem',
     fontSize: '0.875rem',
     fontWeight: '500',
-    color: '#f8fafc',
+    color: '#334155',
     cursor: 'pointer',
   },
   submitBtn: {
@@ -390,11 +398,11 @@ const styles = {
   successTitle: {
     fontSize: '1.5rem',
     fontWeight: '600',
-    color: '#fff',
+    color: '#0f172a',
     marginBottom: '0.5rem',
   },
   successText: {
-    color: '#94a3b8',
+    color: '#475569',
     fontSize: '1rem',
   }
 };

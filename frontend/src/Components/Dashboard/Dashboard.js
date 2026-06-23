@@ -5,7 +5,6 @@ import DashboardContent from './DashboardContent';
 import Marketplace from './Marketplace';
 import MyLearning from './MyLearning';
 import Certifications from './Certifications';
-import ProposalsVoting from './ProposalsVoting';
 import ReviewCenter from './ReviewCenter';
 import CommunityVoting from './CommunityVoting';
 import ReviewerProtectedRoute from '../ReviewerProtectedRoute';
