@@ -14,6 +14,7 @@ def seed_db():
     try:
         # Clear existing data to avoid duplicates
         logger.info("Cleaning up existing records...")
+        db.query(User).delete()
         db.query(Course).delete()
         db.query(Expert).delete()
         db.query(Stat).delete()
@@ -126,6 +127,20 @@ def seed_db():
             )
         ]
         db.add_all(courses)
+        
+        # 4. Seed Reviewer User
+        logger.info("Seeding reviewer user...")
+        import hashlib
+        hashed_pwd = hashlib.sha256("reviewer123".encode()).hexdigest()
+        reviewer = User(
+            email="reviewer@skillforge.com",
+            name="SkillForge Reviewer",
+            hashed_password=hashed_pwd,
+            role="reviewer",
+            is_active=True
+        )
+        db.add(reviewer)
+        
         db.commit()
         logger.info("Successfully seeded database with sample data!")
     except Exception as e:
