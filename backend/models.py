@@ -11,6 +11,10 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="learner")
     is_active = Column(Boolean, default=True)
+    streak = Column(Integer, default=0)
+    xp_points = Column(Integer, default=0)
+    weekly_goal_hours = Column(Float, default=8.0)
+    weekly_progress_hours = Column(Float, default=0.0)
 
 class Course(Base):
     __tablename__ = "courses"

@@ -57,6 +57,10 @@ const DashboardContent = ({ user }) => {
   const completedCount = courses.filter(c => c.is_expert_validated).length;
   const totalHours = courses.reduce((acc, c) => acc + c.hours, 0);
 
+  const progressPercent = user?.weekly_goal_hours 
+    ? Math.min(100, (user.weekly_progress_hours / user.weekly_goal_hours) * 100) 
+    : 0;
+
   return (
     <div className="dashboard-content-scroll">
       <div className="dashboard-grid">
@@ -67,23 +71,23 @@ const DashboardContent = ({ user }) => {
           {/* Welcome Banner */}
           <div className="welcome-banner">
             <div className="banner-streak">
-              <span className="fire-icon">🔥</span> 12-day streak!
+              <span className="fire-icon">🔥</span> {user?.streak || 0}-day streak!
             </div>
             <h1 className="welcome-title">Good morning, {user?.name?.split(' ')[0] || 'Alex'} 👋</h1>
             <p className="welcome-subtitle">You're making steady progress through your learning paths. Keep it up!</p>
             
             <div style={{ maxWidth: '400px' }}>
               <div className="progress-info">
-                <span>Weekly goal: 8 hrs</span>
-                <span>6.5 / 8 hrs</span>
+                <span>Weekly goal: {user?.weekly_goal_hours || 0} hrs</span>
+                <span>{user?.weekly_progress_hours || 0} / {user?.weekly_goal_hours || 0} hrs</span>
               </div>
               <div className="progress-bar-bg">
-                <div className="progress-bar-fill" style={{ width: '81.25%' }}></div>
+                <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }}></div>
               </div>
             </div>
 
             <div className="xp-badge">
-              <div className="xp-amount">2,840</div>
+              <div className="xp-amount">{user?.xp_points?.toLocaleString() || 0}</div>
               <div className="xp-label">XP Points</div>
               <div className="xp-rank">🏆 Top 8% this month</div>
             </div>

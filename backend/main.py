@@ -133,6 +133,36 @@ def login(user_in: schemas.UserLogin, db: Session = Depends(get_db)):
         "user": db_user
     }
 
+# Auth Google
+@app.post("/api/auth/google", response_model=schemas.TokenResponse)
+def google_auth(user_in: schemas.UserGoogleLogin, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == user_in.email).first()
+    if not db_user:
+        # Create new Google user with initial progress data
+        import uuid
+        random_pwd = hash_password(str(uuid.uuid4()))
+        db_user = models.User(
+            email=user_in.email,
+            name=user_in.name,
+            hashed_password=random_pwd,
+            role="learner",
+            streak=12,
+            xp_points=2840,
+            weekly_goal_hours=8.0,
+            weekly_progress_hours=6.5,
+            is_active=True
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        
+    access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": db_user
+    }
+
 # Course Proposal Create
 @app.post("/api/proposals/create", response_model=schemas.CourseProposalResponse, status_code=status.HTTP_201_CREATED)
 def create_proposal(

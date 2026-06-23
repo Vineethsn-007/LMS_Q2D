@@ -11,12 +11,20 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class UserGoogleLogin(BaseModel):
+    email: EmailStr
+    name: str
+
 class UserResponse(BaseModel):
     id: int
     email: str
     name: str
     is_active: bool
     role: str
+    streak: Optional[int] = 0
+    xp_points: Optional[int] = 0
+    weekly_goal_hours: Optional[float] = 8.0
+    weekly_progress_hours: Optional[float] = 0.0
 
     class Config:
         orm_mode = True
