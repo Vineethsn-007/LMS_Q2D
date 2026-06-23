@@ -9,13 +9,26 @@ import ProposalsVoting from './ProposalsVoting';
 import ReviewCenter from './ReviewCenter';
 import CommunityVoting from './CommunityVoting';
 import ReviewerProtectedRoute from '../ReviewerProtectedRoute';
+import AdminProtectedRoute from '../AdminProtectedRoute';
+import AdminPanel from './AdminPanel';
+import ExpertProtectedRoute from '../ExpertProtectedRoute';
+import ExpertPanel from './ExpertPanel';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
 import './Certifications.css';
+import './ExpertPanel.css';
 
 const Dashboard = ({ user, onLogout }) => {
-  const [activeView, setActiveView] = useState(user?.role === 'reviewer' ? 'review-center' : 'dashboard');
+  const [activeView, setActiveView] = useState(
+    user?.role === 'admin' 
+      ? 'admin-panel' 
+      : user?.role === 'expert'
+        ? 'expert-panel'
+        : user?.role === 'reviewer' 
+          ? 'review-center' 
+          : 'dashboard'
+  );
 
   return (
     <div className="dashboard-container">
@@ -49,7 +62,19 @@ const Dashboard = ({ user, onLogout }) => {
         </header>
 
         {/* Dashboard Content Area */}
-        {activeView === 'dashboard' && <DashboardContent user={user} />}
+        {activeView === 'dashboard' && (
+          user?.role === 'admin' ? (
+            <AdminProtectedRoute user={user}>
+              <AdminPanel user={user} />
+            </AdminProtectedRoute>
+          ) : user?.role === 'expert' ? (
+            <ExpertProtectedRoute user={user}>
+              <ExpertPanel user={user} />
+            </ExpertProtectedRoute>
+          ) : (
+            <DashboardContent user={user} />
+          )
+        )}
         {activeView === 'marketplace' && <Marketplace />}
         {activeView === 'mylearning' && <MyLearning />}
         {activeView === 'certifications' && <Certifications />}
@@ -58,6 +83,16 @@ const Dashboard = ({ user, onLogout }) => {
           <ReviewerProtectedRoute user={user}>
             <ReviewCenter user={user} />
           </ReviewerProtectedRoute>
+        )}
+        {activeView === 'admin-panel' && (
+          <AdminProtectedRoute user={user}>
+            <AdminPanel user={user} />
+          </AdminProtectedRoute>
+        )}
+        {activeView === 'expert-panel' && (
+          <ExpertProtectedRoute user={user}>
+            <ExpertPanel user={user} />
+          </ExpertProtectedRoute>
         )}
       </main>
     </div>

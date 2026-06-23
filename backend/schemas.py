@@ -132,3 +132,32 @@ class NotificationResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class RoleUpdate(BaseModel):
+    role: str
+
+class CourseCreateUpdate(BaseModel):
+    title: str
+    description: str
+    category: str
+    rating: float
+    students_count: int
+    hours: int
+    is_ai_generated: bool
+    is_expert_validated: bool
+    image_url: Optional[str] = None
+
+class CourseMaterialCreate(BaseModel):
+    title: str
+    type: str  # 'video', 'text', 'pdf', 'image'
+    content_url: Optional[str] = None
+    text_content: Optional[str] = None
+
+class CourseMaterialResponse(CourseMaterialCreate):
+    id: int
+    course_id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+

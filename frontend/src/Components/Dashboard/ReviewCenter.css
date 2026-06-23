@@ -4,6 +4,10 @@
   gap: 2rem;
   animation: fadeIn 0.4s ease-out;
   padding: 1rem;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .review-header {

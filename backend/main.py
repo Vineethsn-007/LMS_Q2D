@@ -1,5 +1,7 @@
 import hashlib
-from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
+import os
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, UploadFile, File, Form
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -9,7 +11,7 @@ import models
 import schemas
 from seed import seed_db
 from ai_service import AIProposalService
-from auth import create_access_token, verifyReviewerRole, get_current_user, get_current_user_optional
+from auth import create_access_token, verifyReviewerRole, get_current_user, get_current_user_optional, verifyAdminRole, verifyExpertRole
 
 # Initialize database tables and run seed if database is empty
 Base.metadata.create_all(bind=engine)
@@ -22,6 +24,10 @@ finally:
     db.close()
 
 app = FastAPI(title="SkillForge LMS API", version="1.0.0")
+
+# Mount static uploads serving
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Configure CORS to allow the React development server to communicate
 app.add_middleware(
@@ -350,3 +356,136 @@ def like_comment(
     comment.likes += 1
     db.commit()
     return {"likes": comment.likes}
+
+# Admin endpoints
+@app.get("/api/admin/users", response_model=List[schemas.UserResponse])
+def get_users(
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    return db.query(models.User).order_by(models.User.id.asc()).all()
+
+@app.put("/api/admin/users/{user_id}/role", response_model=schemas.UserResponse)
+def update_user_role(
+    user_id: int,
+    role_update: schemas.RoleUpdate,
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.role = role_update.role
+    db.commit()
+    db.refresh(user)
+    return user
+
+@app.post("/api/admin/courses", response_model=schemas.CourseResponse)
+def create_course(
+    course_in: schemas.CourseCreateUpdate,
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    course = models.Course(**course_in.dict())
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return course
+
+@app.put("/api/admin/courses/{course_id}", response_model=schemas.CourseResponse)
+def update_course(
+    course_id: int,
+    course_in: schemas.CourseCreateUpdate,
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    for key, value in course_in.dict().items():
+        setattr(course, key, value)
+    db.commit()
+    db.refresh(course)
+    return course
+
+@app.delete("/api/admin/courses/{course_id}")
+def delete_course(
+    course_id: int,
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    db.delete(course)
+    db.commit()
+    return {"message": "Course deleted successfully"}
+
+@app.delete("/api/admin/proposals/{proposal_id}")
+def delete_proposal(
+    proposal_id: int,
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    proposal = db.query(models.CourseProposal).filter(models.CourseProposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    db.delete(proposal)
+    db.commit()
+    return {"message": "Proposal deleted successfully"}
+
+# Expert endpoints
+@app.get("/api/expert/courses", response_model=List[schemas.CourseResponse])
+def get_expert_courses(
+    current_user: models.User = Depends(verifyExpertRole),
+    db: Session = Depends(get_db)
+):
+    return db.query(models.Course).order_by(models.Course.id.desc()).all()
+
+@app.get("/api/expert/courses/{course_id}/materials", response_model=List[schemas.CourseMaterialResponse])
+def get_course_materials(
+    course_id: int,
+    current_user: models.User = Depends(verifyExpertRole),
+    db: Session = Depends(get_db)
+):
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return db.query(models.CourseMaterial).filter(models.CourseMaterial.course_id == course_id).order_by(models.CourseMaterial.id.asc()).all()
+
+@app.post("/api/expert/courses/{course_id}/materials", response_model=schemas.CourseMaterialResponse)
+def create_course_material(
+    course_id: int,
+    title: str = Form(...),
+    type: str = Form(...),
+    text_content: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    current_user: models.User = Depends(verifyExpertRole),
+    db: Session = Depends(get_db)
+):
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    content_url = None
+    if file:
+        os.makedirs("uploads", exist_ok=True)
+        file_ext = os.path.splitext(file.filename)[1]
+        import uuid
+        filename = f"{uuid.uuid4()}{file_ext}"
+        filepath = os.path.join("uploads", filename)
+        with open(filepath, "wb") as buffer:
+            buffer.write(file.file.read())
+        content_url = f"/uploads/{filename}"
+
+    db_material = models.CourseMaterial(
+        course_id=course_id,
+        title=title,
+        type=type,
+        text_content=text_content,
+        content_url=content_url
+    )
+    db.add(db_material)
+    db.commit()
+    db.refresh(db_material)
+    return db_material
