@@ -130,12 +130,6 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '2fr 1fr 1fr 2fr',
     gap: '3rem',
-    '@media (max-width: 1024px)': {
-      gridTemplateColumns: '1fr 1fr',
-    },
-    '@media (max-width: 640px)': {
-      gridTemplateColumns: '1fr',
-    },
   },
   brandCol: {
     display: 'flex',

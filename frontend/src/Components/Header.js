@@ -153,9 +153,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '2rem',
-    '@media (max-width: 768px)': {
-      display: 'none',
-    },
   },
   navLink: {
     background: 'none',
@@ -172,9 +169,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '1.25rem',
-    '@media (max-width: 768px)': {
-      display: 'none',
-    },
   },
   loginBtn: {
     background: 'none',
@@ -230,9 +224,6 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     display: 'none',
-    '@media (max-width: 768px)': {
-      display: 'block',
-    },
   },
   mobileDrawer: {
     position: 'absolute',

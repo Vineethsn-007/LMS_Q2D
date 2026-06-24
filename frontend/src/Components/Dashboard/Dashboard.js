@@ -9,6 +9,7 @@ import ProposalsVoting from './ProposalsVoting';
 import ReviewCenter from './ReviewCenter';
 import CommunityVoting from './CommunityVoting';
 import ReviewerProtectedRoute from '../ReviewerProtectedRoute';
+import AIAssistant from './AIAssistant';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
@@ -52,6 +53,7 @@ const Dashboard = ({ user, onLogout }) => {
         {activeView === 'dashboard' && <DashboardContent user={user} />}
         {activeView === 'marketplace' && <Marketplace />}
         {activeView === 'mylearning' && <MyLearning />}
+        {activeView === 'ai-assistant' && <AIAssistant user={user} />}
         {activeView === 'certifications' && <Certifications />}
         {activeView === 'community-voting' && <CommunityVoting />}
         {activeView === 'review-center' && (

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class UserCreate(BaseModel):
@@ -132,3 +132,15 @@ class NotificationResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
+    context: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    response: str
+

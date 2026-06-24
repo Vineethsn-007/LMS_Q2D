@@ -9,6 +9,7 @@ import models
 import schemas
 from seed import seed_db
 from ai_service import AIProposalService
+import groq_service
 from auth import create_access_token, verifyReviewerRole, get_current_user, get_current_user_optional
 
 # Initialize database tables and run seed if database is empty
@@ -350,3 +351,28 @@ def like_comment(
     comment.likes += 1
     db.commit()
     return {"likes": comment.likes}
+
+# AI Assistant Endpoint
+@app.post("/api/ai/chat", response_model=schemas.ChatResponse)
+def ai_chat(
+    chat_req: schemas.ChatRequest,
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Fetch available courses to provide to AI
+        courses = db.query(models.Course).all()
+        course_list = [f"- {c.title} ({c.category})" for c in courses]
+        available_courses_text = "Available SkillForge Courses:\n" + "\n".join(course_list)
+        
+        # Combine existing context with course list
+        enriched_context = chat_req.context or ""
+        if enriched_context:
+            enriched_context += "\n\n"
+        enriched_context += available_courses_text
+
+        response_text = groq_service.generate_ai_response(chat_req.messages, enriched_context)
+        return {"response": response_text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

@@ -52,7 +52,10 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
                 <span>My Learning</span>
               </div>
             </div>
-            <div className="sidebar-link">
+            <div 
+              className={`sidebar-link ${activeView === 'ai-assistant' ? 'active' : ''}`}
+              onClick={() => onViewChange('ai-assistant')}
+            >
               <div className="sidebar-link-content">
                 <Bot size={18} />
                 <span>AI Assistant</span>

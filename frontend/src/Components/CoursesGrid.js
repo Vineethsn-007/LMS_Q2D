@@ -186,9 +186,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     minWidth: '280px',
-    '@media (max-width: 640px)': {
-      width: '100%',
-    },
   },
   searchIcon: {
     position: 'absolute',
