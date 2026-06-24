@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, BookOpen, FileEdit, Trash2, Edit, Plus, Star, Clock, 
+import {
+  Users, BookOpen, FileEdit, Trash2, Edit, Plus, Star, Clock,
   Shield, RefreshCw, X, Check, AlertTriangle, ShieldAlert
 } from 'lucide-react';
 import './AdminPanel.css';
@@ -9,7 +9,7 @@ export default function AdminPanel({ user }) {
   const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Data lists
   const [usersList, setUsersList] = useState([]);
   const [coursesList, setCoursesList] = useState([]);
@@ -29,6 +29,11 @@ export default function AdminPanel({ user }) {
     is_expert_validated: false,
     image_url: ''
   });
+
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
+  const [pdfFile, setPdfFile] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
 
   const [isUserRoleModalOpen, setIsUserRoleModalOpen] = useState(false);
   const [currentUserToEdit, setCurrentUserToEdit] = useState(null);
@@ -126,7 +131,49 @@ export default function AdminPanel({ user }) {
   };
 
   // Course Management
+  const fetchCourseMaterials = async (courseId) => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/expert/courses/${courseId}/materials`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        const video = data.find(m => m.type === 'video');
+        const pdf = data.find(m => m.type === 'pdf');
+        const image = data.find(m => m.type === 'image');
+        const text = data.find(m => m.type === 'text');
+        setCourseFormData(prev => ({
+          ...prev,
+          video_url: video ? (video.content_url || '') : '',
+          pdf_url: pdf ? (pdf.content_url || '') : '',
+          material_image_url: image ? (image.content_url || '') : '',
+          material_text: text ? (text.text_content || '') : '',
+        }));
+      }
+    } catch (err) {
+      console.error("Error fetching course materials:", err);
+    }
+  };
+
+  const uploadFileToServer = async (file) => {
+    if (!file) return null;
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+    if (!res.ok) throw new Error(`Failed to upload file ${file.name}`);
+    const data = await res.json();
+    return data.url;
+  };
+
   const handleOpenCourseModal = (course = null) => {
+    setThumbnailFile(null);
+    setVideoFile(null);
+    setPdfFile(null);
+    setImageFile(null);
     if (course) {
       setCurrentCourse(course);
       setCourseFormData({
@@ -138,8 +185,13 @@ export default function AdminPanel({ user }) {
         hours: course.hours,
         is_ai_generated: course.is_ai_generated,
         is_expert_validated: course.is_expert_validated,
-        image_url: course.image_url || ''
+        image_url: course.image_url || '',
+        video_url: '',
+        pdf_url: '',
+        material_image_url: '',
+        material_text: ''
       });
+      fetchCourseMaterials(course.id);
     } else {
       setCurrentCourse(null);
       setCourseFormData({
@@ -151,7 +203,11 @@ export default function AdminPanel({ user }) {
         hours: 10,
         is_ai_generated: true,
         is_expert_validated: false,
-        image_url: ''
+        image_url: '',
+        video_url: '',
+        pdf_url: '',
+        material_image_url: '',
+        material_text: ''
       });
     }
     setIsCourseModalOpen(true);
@@ -160,18 +216,67 @@ export default function AdminPanel({ user }) {
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     try {
-      const url = currentCourse 
+      // 1. Upload files first
+      let updatedImageUrl = courseFormData.image_url;
+      let updatedVideoUrl = courseFormData.video_url;
+      let updatedPdfUrl = courseFormData.pdf_url;
+      let updatedImageUrlMaterial = courseFormData.material_image_url;
+
+      if (thumbnailFile) {
+        updatedImageUrl = await uploadFileToServer(thumbnailFile);
+      }
+      if (videoFile) {
+        updatedVideoUrl = await uploadFileToServer(videoFile);
+      }
+      if (pdfFile) {
+        updatedPdfUrl = await uploadFileToServer(pdfFile);
+      }
+      if (imageFile) {
+        updatedImageUrlMaterial = await uploadFileToServer(imageFile);
+      }
+
+      // 2. Save course
+      const url = currentCourse
         ? `${process.env.REACT_APP_API_URL}/api/admin/courses/${currentCourse.id}`
         : `${process.env.REACT_APP_API_URL}/api/admin/courses`;
       const method = currentCourse ? 'PUT' : 'POST';
 
+      const coreData = {
+        title: courseFormData.title,
+        description: courseFormData.description,
+        category: courseFormData.category,
+        rating: courseFormData.rating,
+        students_count: courseFormData.students_count,
+        hours: courseFormData.hours,
+        is_ai_generated: courseFormData.is_ai_generated,
+        is_expert_validated: courseFormData.is_expert_validated,
+        image_url: updatedImageUrl
+      };
+
       const res = await fetch(url, {
         method,
         headers,
-        body: JSON.stringify(courseFormData)
+        body: JSON.stringify(coreData)
       });
 
       if (!res.ok) throw new Error('Failed to save course');
+      const savedCourse = await res.json();
+
+      // 3. Save materials
+      const materialsPayload = {
+        video_url: updatedVideoUrl || null,
+        pdf_url: updatedPdfUrl || null,
+        image_url: updatedImageUrlMaterial || null,
+        text_content: courseFormData.material_text || null
+      };
+
+      const materialsRes = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/courses/${savedCourse.id}/materials`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(materialsPayload)
+      });
+      if (!materialsRes.ok) throw new Error('Failed to save course materials');
+
       setIsCourseModalOpen(false);
       fetchCourses();
     } catch (err) {
@@ -234,19 +339,19 @@ export default function AdminPanel({ user }) {
         </div>
 
         <div className="admin-tabs">
-          <button 
+          <button
             className={`admin-tab ${activeTab === 'users' ? 'active' : ''}`}
             onClick={() => setActiveTab('users')}
           >
             <Users size={16} /> Users Management
           </button>
-          <button 
+          <button
             className={`admin-tab ${activeTab === 'courses' ? 'active' : ''}`}
             onClick={() => setActiveTab('courses')}
           >
             <BookOpen size={16} /> Course Catalog
           </button>
-          <button 
+          <button
             className={`admin-tab ${activeTab === 'proposals' ? 'active' : ''}`}
             onClick={() => setActiveTab('proposals')}
           >
@@ -264,7 +369,7 @@ export default function AdminPanel({ user }) {
             {activeTab === 'courses' && "Live Course Catalog"}
             {activeTab === 'proposals' && "All Proposals Logs"}
           </h2>
-          
+
           <div className="admin-card-actions">
             <button className="admin-btn-action secondary" onClick={loadData}>
               <RefreshCw size={14} className={loading ? "spin" : ""} /> Reload
@@ -442,7 +547,7 @@ export default function AdminPanel({ user }) {
               <p>Update system access permissions for <strong>{currentUserToEdit?.name}</strong> ({currentUserToEdit?.email}).</p>
               <div className="form-group">
                 <label>System Role</label>
-                <select 
+                <select
                   className="admin-select"
                   value={userRoleData}
                   onChange={e => setUserRoleData(e.target.value)}
@@ -475,95 +580,153 @@ export default function AdminPanel({ user }) {
               <div className="admin-modal-body grid">
                 <div className="form-group span-2">
                   <label>Course Title</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
                     value={courseFormData.title}
-                    onChange={e => setCourseFormData({...courseFormData, title: e.target.value})}
+                    onChange={e => setCourseFormData({ ...courseFormData, title: e.target.value })}
                     placeholder="e.g. Advanced System Architecture"
                   />
                 </div>
-                
+
                 <div className="form-group span-2">
                   <label>Description</label>
-                  <textarea 
+                  <textarea
                     required
                     value={courseFormData.description}
-                    onChange={e => setCourseFormData({...courseFormData, description: e.target.value})}
+                    onChange={e => setCourseFormData({ ...courseFormData, description: e.target.value })}
                     placeholder="Provide a comprehensive summary..."
                   />
                 </div>
 
                 <div className="form-group">
                   <label>Category</label>
-                  <select 
+                  <input
+                    type="text"
+                    required
                     value={courseFormData.category}
-                    onChange={e => setCourseFormData({...courseFormData, category: e.target.value})}
-                  >
-                    <option value="Software Engineering">Software Engineering</option>
-                    <option value="AI & Machine Learning">AI & Machine Learning</option>
-                    <option value="Data Science & Databases">Data Science & Databases</option>
-                    <option value="Product & DevOps">Product & DevOps</option>
-                  </select>
+                    onChange={e => setCourseFormData({ ...courseFormData, category: e.target.value })}
+                    placeholder="e.g. Software Engineering"
+                  />
                 </div>
 
                 <div className="form-group">
                   <label>Hours Duration</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     required
                     value={courseFormData.hours}
-                    onChange={e => setCourseFormData({...courseFormData, hours: parseInt(e.target.value) || 0})}
+                    onChange={e => setCourseFormData({ ...courseFormData, hours: parseInt(e.target.value) || 0 })}
                   />
                 </div>
 
                 <div className="form-group">
                   <label>Rating</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     step="0.05"
                     min="0"
                     max="5"
                     required
                     value={courseFormData.rating}
-                    onChange={e => setCourseFormData({...courseFormData, rating: parseFloat(e.target.value) || 0.0})}
+                    onChange={e => setCourseFormData({ ...courseFormData, rating: parseFloat(e.target.value) || 0.0 })}
                   />
                 </div>
 
                 <div className="form-group">
                   <label>Students Enrolled</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     required
                     value={courseFormData.students_count}
-                    onChange={e => setCourseFormData({...courseFormData, students_count: parseInt(e.target.value) || 0})}
+                    onChange={e => setCourseFormData({ ...courseFormData, students_count: parseInt(e.target.value) || 0 })}
                   />
                 </div>
 
                 <div className="form-group span-2">
-                  <label>Image URL</label>
-                  <input 
-                    type="text" 
-                    value={courseFormData.image_url}
-                    onChange={e => setCourseFormData({...courseFormData, image_url: e.target.value})}
-                    placeholder="https://images.unsplash.com/photo-..."
+                  <label>Thumbnail Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => setThumbnailFile(e.target.files[0])}
+                  />
+                  {courseFormData.image_url && !thumbnailFile && (
+                    <div className="current-file-info">
+                      Current: <a href={`${process.env.REACT_APP_API_URL}${courseFormData.image_url}`} target="_blank" rel="noreferrer">View Image</a>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group span-2" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a', marginBottom: '0.5rem', display: 'block' }}>Course Resource Materials</span>
+                </div>
+
+                <div className="form-group">
+                  <label>Video File</label>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={e => setVideoFile(e.target.files[0])}
+                  />
+                  {courseFormData.video_url && !videoFile && (
+                    <div className="current-file-info">
+                      Current: <a href={`${process.env.REACT_APP_API_URL}${courseFormData.video_url}`} target="_blank" rel="noreferrer">Play Video</a>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>PDF Handout</label>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={e => setPdfFile(e.target.files[0])}
+                  />
+                  {courseFormData.pdf_url && !pdfFile && (
+                    <div className="current-file-info">
+                      Current: <a href={`${process.env.REACT_APP_API_URL}${courseFormData.pdf_url}`} target="_blank" rel="noreferrer">Open PDF</a>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Diagram / Image File</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => setImageFile(e.target.files[0])}
+                  />
+                  {courseFormData.material_image_url && !imageFile && (
+                    <div className="current-file-info">
+                      Current: <a href={`${process.env.REACT_APP_API_URL}${courseFormData.material_image_url}`} target="_blank" rel="noreferrer">View Diagram</a>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Syllabus outline (Text)</label>
+                  <input
+                    type="text"
+                    value={courseFormData.material_text}
+                    onChange={e => setCourseFormData({ ...courseFormData, material_text: e.target.value })}
+                    placeholder="e.g. Detailed text description..."
                   />
                 </div>
 
                 <div className="form-group checkbox-row">
                   <label className="checkbox-label">
-                    <input 
+                    <input
                       type="checkbox"
                       checked={courseFormData.is_ai_generated}
-                      onChange={e => setCourseFormData({...courseFormData, is_ai_generated: e.target.checked})}
+                      onChange={e => setCourseFormData({ ...courseFormData, is_ai_generated: e.target.checked })}
                     />
                     AI Generated
                   </label>
                   <label className="checkbox-label">
-                    <input 
+                    <input
                       type="checkbox"
                       checked={courseFormData.is_expert_validated}
-                      onChange={e => setCourseFormData({...courseFormData, is_expert_validated: e.target.checked})}
+                      onChange={e => setCourseFormData({ ...courseFormData, is_expert_validated: e.target.checked })}
                     />
                     Expert Approved
                   </label>

@@ -21,24 +21,24 @@ import './ExpertPanel.css';
 
 const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [activeView, setActiveView] = useState(
-    user?.role === 'admin' 
-      ? 'admin-panel' 
+    user?.role === 'admin'
+      ? 'admin-panel'
       : user?.role === 'expert'
         ? 'expert-panel'
-        : user?.role === 'reviewer' 
-          ? 'review-center' 
+        : user?.role === 'reviewer'
+          ? 'review-center'
           : 'dashboard'
   );
 
   return (
     <div className="dashboard-container">
-      <Sidebar 
-        user={user} 
-        onLogout={onLogout} 
+      <Sidebar
+        user={user}
+        onLogout={onLogout}
         activeView={activeView}
         onViewChange={setActiveView}
       />
-      
+
       <main className="dashboard-main">
         {/* Dashboard Header */}
         <header className="dashboard-header">
@@ -46,14 +46,14 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             <Search size={18} color="#94a3b8" />
             <input type="text" placeholder="Search courses, skills, experts..." />
           </div>
-          
+
           <div className="header-actions">
             <button className="action-btn">
               <Bell size={20} />
               <span className="notification-badge">3</span>
             </button>
-            <div 
-              className="user-avatar" 
+            <div
+              className="user-avatar"
               style={{ width: '32px', height: '32px', cursor: 'pointer' }}
               onClick={() => setActiveView('settings')}
             >

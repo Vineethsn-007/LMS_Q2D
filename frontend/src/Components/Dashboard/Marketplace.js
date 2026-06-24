@@ -21,7 +21,7 @@ const Marketplace = ({ onViewChange }) => {
         queryParams.append('search', searchQuery);
       }
 
-      const url = `${process.env.REACT_APP_API_URL }/api/courses?${queryParams.toString()}`;
+      const url = `${process.env.REACT_APP_API_URL}/api/courses?${queryParams.toString()}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -52,7 +52,7 @@ const Marketplace = ({ onViewChange }) => {
 
   return (
     <div className="marketplace-container">
-      
+
       <div className="marketplace-header">
         <h1 className="marketplace-title">Course Marketplace</h1>
         <p className="marketplace-subtitle">Browse {courses.length} AI-generated, expert-approved courses</p>
@@ -61,15 +61,15 @@ const Marketplace = ({ onViewChange }) => {
       <div className="marketplace-toolbar">
         <div className="marketplace-search">
           <Search size={18} color="#94a3b8" />
-          <input 
-            type="text" 
-            placeholder="Search any skill or topic..." 
+          <input
+            type="text"
+            placeholder="Search any skill or topic..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
-        <select 
+
+        <select
           className="toolbar-select"
           value={selectedLevel}
           onChange={(e) => setSelectedLevel(e.target.value)}
@@ -79,8 +79,8 @@ const Marketplace = ({ onViewChange }) => {
           <option value="Intermediate">Intermediate</option>
           <option value="Advanced">Advanced</option>
         </select>
-        
-        <select 
+
+        <select
           className="toolbar-select"
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
@@ -89,7 +89,7 @@ const Marketplace = ({ onViewChange }) => {
           <option value="Expert Approved">Expert Approved</option>
           <option value="Pending Review">Pending Review</option>
         </select>
-        
+
         <button className="toolbar-btn" onClick={fetchCourses}>
           <RefreshCw size={16} /> Refresh
         </button>
@@ -134,7 +134,7 @@ const Marketplace = ({ onViewChange }) => {
 
             return (
               <div key={course.id} className="course-card">
-                <div className="card-image-area" style={{ 
+                <div className="card-image-area" style={{
                   backgroundImage: course.image_url ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url(${course.image_url})` : undefined,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center'
@@ -152,7 +152,7 @@ const Marketplace = ({ onViewChange }) => {
                 <div className="card-content">
                   <h3 className="card-title">{course.title}</h3>
                   <p className="card-author">{author}</p>
-                  
+
                   <div className="card-meta">
                     <span className="meta-item">
                       <Star className="star" size={14} fill="currentColor" /> {course.rating}
@@ -164,12 +164,12 @@ const Marketplace = ({ onViewChange }) => {
                       <Clock size={14} /> {duration}
                     </span>
                   </div>
-                  
+
                   <div style={{ marginTop: '1.25rem', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span className={`card-level ${level.toLowerCase()}`} style={{ margin: 0 }}>
                       {level}
                     </span>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         if (onViewChange) {

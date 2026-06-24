@@ -165,6 +165,12 @@ class CourseMaterialCreate(BaseModel):
     content_url: Optional[str] = None
     text_content: Optional[str] = None
 
+class CourseMaterialsUpdate(BaseModel):
+    video_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    image_url: Optional[str] = None
+    text_content: Optional[str] = None
+
 class CourseMaterialResponse(CourseMaterialCreate):
     id: int
     course_id: int

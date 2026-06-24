@@ -469,6 +469,21 @@ def update_user_role(
     db.refresh(user)
     return user
 
+@app.post("/api/admin/upload")
+def admin_upload_file(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    os.makedirs("uploads", exist_ok=True)
+    file_ext = os.path.splitext(file.filename)[1]
+    import uuid
+    filename = f"{uuid.uuid4()}{file_ext}"
+    filepath = os.path.join("uploads", filename)
+    with open(filepath, "wb") as buffer:
+        buffer.write(file.file.read())
+    return {"url": f"/uploads/{filename}"}
+
 @app.post("/api/admin/courses", response_model=schemas.CourseResponse)
 def create_course(
     course_in: schemas.CourseCreateUpdate,
@@ -496,6 +511,65 @@ def update_course(
     db.commit()
     db.refresh(course)
     return course
+
+@app.put("/api/admin/courses/{course_id}/materials")
+def update_admin_course_materials(
+    course_id: int,
+    payload: schemas.CourseMaterialsUpdate,
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+        
+    types_to_update = []
+    if payload.video_url is not None:
+        types_to_update.append('video')
+    if payload.pdf_url is not None:
+        types_to_update.append('pdf')
+    if payload.image_url is not None:
+        types_to_update.append('image')
+    if payload.text_content is not None:
+        types_to_update.append('text')
+        
+    if types_to_update:
+        db.query(models.CourseMaterial).filter(
+            models.CourseMaterial.course_id == course_id,
+            models.CourseMaterial.type.in_(types_to_update)
+        ).delete(synchronize_session=False)
+        
+    if payload.video_url:
+        db.add(models.CourseMaterial(
+            course_id=course_id,
+            title="Lecture Video",
+            type="video",
+            content_url=payload.video_url
+        ))
+    if payload.pdf_url:
+        db.add(models.CourseMaterial(
+            course_id=course_id,
+            title="Course Handout (PDF)",
+            type="pdf",
+            content_url=payload.pdf_url
+        ))
+    if payload.image_url:
+        db.add(models.CourseMaterial(
+            course_id=course_id,
+            title="Course Diagram",
+            type="image",
+            content_url=payload.image_url
+        ))
+    if payload.text_content:
+        db.add(models.CourseMaterial(
+            course_id=course_id,
+            title="Syllabus Outline",
+            type="text",
+            text_content=payload.text_content
+        ))
+        
+    db.commit()
+    return {"message": "Materials updated successfully"}
 
 @app.delete("/api/admin/courses/{course_id}")
 def delete_course(
