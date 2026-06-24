@@ -39,6 +39,14 @@ export default function AdminPanel({ user }) {
   const [currentUserToEdit, setCurrentUserToEdit] = useState(null);
   const [userRoleData, setUserRoleData] = useState('learner');
 
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [addUserFormData, setAddUserFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'learner'
+  });
+
   const token = localStorage.getItem('sf_token');
   const headers = {
     'Authorization': `Bearer ${token}`,
@@ -124,6 +132,43 @@ export default function AdminPanel({ user }) {
       });
       if (!res.ok) throw new Error('Failed to update role');
       setIsUserRoleModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/users`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(addUserFormData)
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Failed to add user');
+      }
+      setIsAddUserModalOpen(false);
+      setAddUserFormData({ name: '', email: '', password: '', role: 'learner' });
+      fetchUsers();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/users/${id}`, {
+        method: 'DELETE',
+        headers
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Failed to delete user');
+      }
       fetchUsers();
     } catch (err) {
       alert(err.message);
@@ -374,6 +419,11 @@ export default function AdminPanel({ user }) {
             <button className="admin-btn-action secondary" onClick={loadData}>
               <RefreshCw size={14} className={loading ? "spin" : ""} /> Reload
             </button>
+            {activeTab === 'users' && (
+              <button className="admin-btn-action primary" onClick={() => setIsAddUserModalOpen(true)}>
+                <Plus size={14} /> Add User
+              </button>
+            )}
             {activeTab === 'courses' && (
               <button className="admin-btn-action primary" onClick={() => handleOpenCourseModal(null)}>
                 <Plus size={14} /> Add Course
@@ -390,41 +440,95 @@ export default function AdminPanel({ user }) {
         ) : (
           <div className="admin-table-container">
             {activeTab === 'users' && (
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usersList.map(usr => (
-                    <tr key={usr.id}>
-                      <td>#{usr.id}</td>
-                      <td><strong>{usr.name}</strong></td>
-                      <td>{usr.email}</td>
-                      <td>
-                        <span className={`role-badge ${usr.role}`}>
-                          {usr.role}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`status-dot ${usr.is_active ? 'active' : 'inactive'}`}></span>
-                        {usr.is_active ? 'Active' : 'Suspended'}
-                      </td>
-                      <td>
-                        <button className="admin-row-btn edit" onClick={() => handleOpenRoleModal(usr)}>
-                          <Shield size={12} /> Edit Role
-                        </button>
-                      </td>
+              <>
+                <h3 className="admin-section-title" style={{ marginTop: '0', marginBottom: '1rem', color: '#1e293b' }}>System Staff</h3>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {usersList.filter(u => ['admin', 'reviewer', 'expert'].includes(u.role)).map(usr => (
+                      <tr key={usr.id}>
+                        <td><strong>{usr.name}</strong></td>
+                        <td>{usr.email}</td>
+                        <td>
+                          <span className={`role-badge ${usr.role}`}>
+                            {usr.role}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`status-dot ${usr.is_active ? 'active' : 'inactive'}`}></span>
+                          {usr.is_active ? 'Active' : 'Suspended'}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {usr.role !== 'admin' && (
+                              <>
+                                <button className="admin-row-btn edit" onClick={() => handleOpenRoleModal(usr)}>
+                                  <Shield size={12} /> Edit Role
+                                </button>
+                                <button className="admin-row-btn delete" onClick={() => handleDeleteUser(usr.id)}>
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <h3 className="admin-section-title" style={{ marginTop: '2.5rem', marginBottom: '1rem', color: '#1e293b' }}>Learners</h3>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersList.filter(u => u.role === 'learner').map(usr => (
+                      <tr key={usr.id}>
+                        <td><strong>{usr.name}</strong></td>
+                        <td>{usr.email}</td>
+                        <td>
+                          <span className={`role-badge ${usr.role}`}>
+                            {usr.role}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`status-dot ${usr.is_active ? 'active' : 'inactive'}`}></span>
+                          {usr.is_active ? 'Active' : 'Suspended'}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {usr.role !== 'admin' && (
+                              <>
+                                <button className="admin-row-btn edit" onClick={() => handleOpenRoleModal(usr)}>
+                                  <Shield size={12} /> Edit Role
+                                </button>
+                                <button className="admin-row-btn delete" onClick={() => handleDeleteUser(usr.id)}>
+                                  <Trash2 size={12} /> Delete
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
             )}
 
             {activeTab === 'courses' && (
@@ -532,6 +636,71 @@ export default function AdminPanel({ user }) {
           </div>
         )}
       </div>
+
+      {/* Add User Modal */}
+      {isAddUserModalOpen && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal glass">
+            <div className="admin-modal-header">
+              <h3>Add New User</h3>
+              <button className="admin-modal-close" onClick={() => setIsAddUserModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleAddUser}>
+              <div className="admin-modal-body grid">
+                <div className="form-group span-2">
+                  <label>Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={addUserFormData.name}
+                    onChange={e => setAddUserFormData({ ...addUserFormData, name: e.target.value })}
+                    placeholder="e.g. John Doe"
+                  />
+                </div>
+                <div className="form-group span-2">
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={addUserFormData.email}
+                    onChange={e => setAddUserFormData({ ...addUserFormData, email: e.target.value })}
+                    placeholder="e.g. john@example.com"
+                  />
+                </div>
+                <div className="form-group span-2">
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={addUserFormData.password}
+                    onChange={e => setAddUserFormData({ ...addUserFormData, password: e.target.value })}
+                    placeholder="Temporary password"
+                  />
+                </div>
+                <div className="form-group span-2">
+                  <label>System Role</label>
+                  <select
+                    className="admin-select"
+                    value={addUserFormData.role}
+                    onChange={e => setAddUserFormData({ ...addUserFormData, role: e.target.value })}
+                  >
+                    <option value="learner">Learner</option>
+                    <option value="reviewer">Reviewer</option>
+                    <option value="expert">Expert</option>
+                    <option value="admin">Super Admin</option>
+                  </select>
+                </div>
+              </div>
+              <div className="admin-modal-footer">
+                <button type="button" className="admin-btn secondary" onClick={() => setIsAddUserModalOpen(false)}>Cancel</button>
+                <button type="submit" className="admin-btn primary">Create User</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* User Role Modal */}
       {isUserRoleModalOpen && (

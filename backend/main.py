@@ -454,6 +454,31 @@ def get_users(
 ):
     return db.query(models.User).order_by(models.User.id.asc()).all()
 
+@app.post("/api/admin/users", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user_by_admin(
+    user_in: schemas.UserCreateByAdmin,
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    existing_user = db.query(models.User).filter(models.User.email == user_in.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="A user with this email address already exists."
+        )
+    
+    hashed_pwd = hash_password(user_in.password)
+    db_user = models.User(
+        email=user_in.email,
+        name=user_in.name,
+        hashed_password=hashed_pwd,
+        role=user_in.role
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
 @app.put("/api/admin/users/{user_id}/role", response_model=schemas.UserResponse)
 def update_user_role(
     user_id: int,
@@ -570,6 +595,22 @@ def update_admin_course_materials(
         
     db.commit()
     return {"message": "Materials updated successfully"}
+
+@app.delete("/api/admin/users/{user_id}")
+def delete_user(
+    user_id: int,
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.role == "admin":
+        raise HTTPException(status_code=403, detail="Cannot delete an admin user")
+        
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted successfully"}
 
 @app.delete("/api/admin/courses/{course_id}")
 def delete_course(
