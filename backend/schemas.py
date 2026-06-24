@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List, Any
 from datetime import datetime
 
 class UserCreate(BaseModel):
@@ -50,6 +50,7 @@ class CourseResponse(BaseModel):
     is_ai_generated: bool
     is_expert_validated: bool
     image_url: Optional[str] = None
+    modules_data: Optional[List[Any]] = None
 
     class Config:
         orm_mode = True
@@ -164,6 +165,7 @@ class CourseCreateUpdate(BaseModel):
     is_ai_generated: bool
     is_expert_validated: bool
     image_url: Optional[str] = None
+    modules_data: Optional[List[Any]] = None
 
 class CourseMaterialCreate(BaseModel):
     title: str

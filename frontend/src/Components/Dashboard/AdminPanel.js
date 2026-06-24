@@ -31,9 +31,7 @@ export default function AdminPanel({ user }) {
   });
 
   const [thumbnailFile, setThumbnailFile] = useState(null);
-  const [videoFile, setVideoFile] = useState(null);
-  const [pdfFile, setPdfFile] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
+  const [modulesData, setModulesData] = useState([]);
 
   const [isUserRoleModalOpen, setIsUserRoleModalOpen] = useState(false);
   const [currentUserToEdit, setCurrentUserToEdit] = useState(null);
@@ -214,11 +212,55 @@ export default function AdminPanel({ user }) {
     return data.url;
   };
 
+  const handleAddModule = () => {
+    setModulesData([...modulesData, {
+      id: Date.now().toString(),
+      title: '',
+      lessons: []
+    }]);
+  };
+
+  const handleRemoveModule = (mIndex) => {
+    const newData = [...modulesData];
+    newData.splice(mIndex, 1);
+    setModulesData(newData);
+  };
+
+  const handleAddLesson = (mIndex) => {
+    const newData = [...modulesData];
+    newData[mIndex].lessons.push({
+      id: Date.now().toString(),
+      title: '',
+      contents: []
+    });
+    setModulesData(newData);
+  };
+
+  const handleRemoveLesson = (mIndex, lIndex) => {
+    const newData = [...modulesData];
+    newData[mIndex].lessons.splice(lIndex, 1);
+    setModulesData(newData);
+  };
+
+  const handleAddContent = (mIndex, lIndex) => {
+    const newData = [...modulesData];
+    newData[mIndex].lessons[lIndex].contents.push({
+      id: Date.now().toString(),
+      type: 'video',
+      content_url: '',
+      file: null
+    });
+    setModulesData(newData);
+  };
+
+  const handleRemoveContent = (mIndex, lIndex, cIndex) => {
+    const newData = [...modulesData];
+    newData[mIndex].lessons[lIndex].contents.splice(cIndex, 1);
+    setModulesData(newData);
+  };
+
   const handleOpenCourseModal = (course = null) => {
     setThumbnailFile(null);
-    setVideoFile(null);
-    setPdfFile(null);
-    setImageFile(null);
     if (course) {
       setCurrentCourse(course);
       setCourseFormData({
@@ -230,13 +272,10 @@ export default function AdminPanel({ user }) {
         hours: course.hours,
         is_ai_generated: course.is_ai_generated,
         is_expert_validated: course.is_expert_validated,
-        image_url: course.image_url || '',
-        video_url: '',
-        pdf_url: '',
-        material_image_url: '',
-        material_text: ''
+        image_url: course.image_url || ''
       });
-      fetchCourseMaterials(course.id);
+      setModulesData(course.modules_data || []);
+      // fetchCourseMaterials(course.id); // Disabled since we use modulesData
     } else {
       setCurrentCourse(null);
       setCourseFormData({
@@ -248,36 +287,40 @@ export default function AdminPanel({ user }) {
         hours: 10,
         is_ai_generated: true,
         is_expert_validated: false,
-        image_url: '',
-        video_url: '',
-        pdf_url: '',
-        material_image_url: '',
-        material_text: ''
+        image_url: ''
       });
+      setModulesData([]);
     }
     setIsCourseModalOpen(true);
   };
 
+
   const handleSaveCourse = async (e) => {
     e.preventDefault();
     try {
-      // 1. Upload files first
+      // 1. Upload thumbnail
       let updatedImageUrl = courseFormData.image_url;
-      let updatedVideoUrl = courseFormData.video_url;
-      let updatedPdfUrl = courseFormData.pdf_url;
-      let updatedImageUrlMaterial = courseFormData.material_image_url;
-
       if (thumbnailFile) {
         updatedImageUrl = await uploadFileToServer(thumbnailFile);
       }
-      if (videoFile) {
-        updatedVideoUrl = await uploadFileToServer(videoFile);
-      }
-      if (pdfFile) {
-        updatedPdfUrl = await uploadFileToServer(pdfFile);
-      }
-      if (imageFile) {
-        updatedImageUrlMaterial = await uploadFileToServer(imageFile);
+
+      // 1.5 Upload module content files
+      const newModulesData = [];
+      for (const mod of modulesData) {
+        const newLessons = [];
+        for (const less of mod.lessons) {
+          const newContents = [];
+          for (const content of less.contents) {
+            if (content.file) {
+              const url = await uploadFileToServer(content.file);
+              newContents.push({ ...content, content_url: url, file: undefined });
+            } else {
+              newContents.push(content);
+            }
+          }
+          newLessons.push({ ...less, contents: newContents });
+        }
+        newModulesData.push({ ...mod, lessons: newLessons });
       }
 
       // 2. Save course
@@ -295,7 +338,8 @@ export default function AdminPanel({ user }) {
         hours: courseFormData.hours,
         is_ai_generated: courseFormData.is_ai_generated,
         is_expert_validated: courseFormData.is_expert_validated,
-        image_url: updatedImageUrl
+        image_url: updatedImageUrl,
+        modules_data: newModulesData
       };
 
       const res = await fetch(url, {
@@ -305,23 +349,7 @@ export default function AdminPanel({ user }) {
       });
 
       if (!res.ok) throw new Error('Failed to save course');
-      const savedCourse = await res.json();
-
-      // 3. Save materials
-      const materialsPayload = {
-        video_url: updatedVideoUrl || null,
-        pdf_url: updatedPdfUrl || null,
-        image_url: updatedImageUrlMaterial || null,
-        text_content: courseFormData.material_text || null
-      };
-
-      const materialsRes = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/courses/${savedCourse.id}/materials`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify(materialsPayload)
-      });
-      if (!materialsRes.ok) throw new Error('Failed to save course materials');
-
+      
       setIsCourseModalOpen(false);
       fetchCourses();
     } catch (err) {
@@ -448,7 +476,6 @@ export default function AdminPanel({ user }) {
                       <th>Name</th>
                       <th>Email</th>
                       <th>Role</th>
-                      <th>Status</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -461,10 +488,6 @@ export default function AdminPanel({ user }) {
                           <span className={`role-badge ${usr.role}`}>
                             {usr.role}
                           </span>
-                        </td>
-                        <td>
-                          <span className={`status-dot ${usr.is_active ? 'active' : 'inactive'}`}></span>
-                          {usr.is_active ? 'Active' : 'Suspended'}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
@@ -492,7 +515,6 @@ export default function AdminPanel({ user }) {
                       <th>Name</th>
                       <th>Email</th>
                       <th>Role</th>
-                      <th>Status</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -505,10 +527,6 @@ export default function AdminPanel({ user }) {
                           <span className={`role-badge ${usr.role}`}>
                             {usr.role}
                           </span>
-                        </td>
-                        <td>
-                          <span className={`status-dot ${usr.is_active ? 'active' : 'inactive'}`}></span>
-                          {usr.is_active ? 'Active' : 'Suspended'}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
@@ -826,60 +844,121 @@ export default function AdminPanel({ user }) {
                   )}
                 </div>
 
-                <div className="form-group span-2" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a', marginBottom: '0.5rem', display: 'block' }}>Course Resource Materials</span>
-                </div>
+                <div className="form-group span-2" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a' }}>Course Modules</span>
+                    <button type="button" className="admin-btn secondary" onClick={handleAddModule}>+ Add Module</button>
+                  </div>
+                  
+                  <div className="modules-container">
+                    {modulesData.map((module, mIndex) => (
+                      <div key={module.id} className="admin-module-card">
+                        <div className="module-header" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            placeholder={`Module ${mIndex + 1} Title`}
+                            value={module.title}
+                            onChange={(e) => {
+                              const newData = [...modulesData];
+                              newData[mIndex].title = e.target.value;
+                              setModulesData(newData);
+                            }}
+                            className="module-title-input form-group input"
+                            style={{ flex: 1, padding: '0.65rem 0.8rem', border: '1px solid #cbd5e1', borderRadius: '8px' }}
+                            required
+                          />
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <button type="button" className="admin-btn primary" onClick={() => handleAddLesson(mIndex)}>+ Add Lesson</button>
+                            <button type="button" className="admin-modal-close" onClick={() => handleRemoveModule(mIndex)}><X size={18} color="#ef4444" /></button>
+                          </div>
+                        </div>
 
-                <div className="form-group">
-                  <label>Video File</label>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    onChange={e => setVideoFile(e.target.files[0])}
-                  />
-                  {courseFormData.video_url && !videoFile && (
-                    <div className="current-file-info">
-                      Current: <a href={`${process.env.REACT_APP_API_URL}${courseFormData.video_url}`} target="_blank" rel="noreferrer">Play Video</a>
-                    </div>
-                  )}
-                </div>
+                        <div className="lessons-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                          {module.lessons.map((lesson, lIndex) => (
+                            <div key={lesson.id} className="admin-lesson-card" style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem', backgroundColor: '#ffffff' }}>
+                              <div className="lesson-header" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  placeholder="Lesson Title"
+                                  value={lesson.title}
+                                  onChange={(e) => {
+                                    const newData = [...modulesData];
+                                    newData[mIndex].lessons[lIndex].title = e.target.value;
+                                    setModulesData(newData);
+                                  }}
+                                  className="lesson-title-input"
+                                  style={{ flex: 1, padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px' }}
+                                  required
+                                />
+                                <button type="button" className="admin-modal-close" onClick={() => handleRemoveLesson(mIndex, lIndex)}><X size={16} color="#ef4444" /></button>
+                              </div>
 
-                <div className="form-group">
-                  <label>PDF Handout</label>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={e => setPdfFile(e.target.files[0])}
-                  />
-                  {courseFormData.pdf_url && !pdfFile && (
-                    <div className="current-file-info">
-                      Current: <a href={`${process.env.REACT_APP_API_URL}${courseFormData.pdf_url}`} target="_blank" rel="noreferrer">Open PDF</a>
-                    </div>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label>Diagram / Image File</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => setImageFile(e.target.files[0])}
-                  />
-                  {courseFormData.material_image_url && !imageFile && (
-                    <div className="current-file-info">
-                      Current: <a href={`${process.env.REACT_APP_API_URL}${courseFormData.material_image_url}`} target="_blank" rel="noreferrer">View Diagram</a>
-                    </div>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label>Syllabus outline (Text)</label>
-                  <input
-                    type="text"
-                    value={courseFormData.material_text}
-                    onChange={e => setCourseFormData({ ...courseFormData, material_text: e.target.value })}
-                    placeholder="e.g. Detailed text description..."
-                  />
+                              <div className="contents-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginLeft: '1rem', paddingLeft: '1rem', borderLeft: '2px solid #f1f5f9' }}>
+                                {lesson.contents.map((content, cIndex) => (
+                                  <div key={content.id} className="admin-content-card-inner" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <div className="content-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                      <select
+                                        value={content.type}
+                                        onChange={(e) => {
+                                          const newData = [...modulesData];
+                                          newData[mIndex].lessons[lIndex].contents[cIndex].type = e.target.value;
+                                          setModulesData(newData);
+                                        }}
+                                        className="content-type-select admin-select"
+                                        style={{ width: 'auto', padding: '0.35rem 2rem 0.35rem 0.75rem' }}
+                                      >
+                                        <option value="video">Video</option>
+                                        <option value="pdf">PDF</option>
+                                        <option value="image">Image</option>
+                                        <option value="text">Text</option>
+                                      </select>
+                                      <button type="button" className="admin-modal-close" onClick={() => handleRemoveContent(mIndex, lIndex, cIndex)}><X size={14} color="#94a3b8" /></button>
+                                    </div>
+                                    
+                                    {content.type === 'text' ? (
+                                      <textarea
+                                        placeholder="Write text content or enter URL..."
+                                        value={content.text_content || ''}
+                                        onChange={(e) => {
+                                          const newData = [...modulesData];
+                                          newData[mIndex].lessons[lIndex].contents[cIndex].text_content = e.target.value;
+                                          setModulesData(newData);
+                                        }}
+                                        className="content-textarea"
+                                        style={{ width: '100%', minHeight: '60px', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                                        required
+                                      />
+                                    ) : (
+                                      <div className="content-file-upload">
+                                        <input
+                                          type="file"
+                                          accept={content.type === 'video' ? 'video/*' : content.type === 'pdf' ? '.pdf' : 'image/*'}
+                                          onChange={(e) => {
+                                            const newData = [...modulesData];
+                                            newData[mIndex].lessons[lIndex].contents[cIndex].file = e.target.files[0];
+                                            setModulesData(newData);
+                                          }}
+                                          style={{ width: '100%', padding: '0.5rem', border: '1px dashed #cbd5e1', borderRadius: '6px', background: 'white' }}
+                                        />
+                                        {content.content_url && !content.file && (
+                                          <div className="current-file-info" style={{ marginTop: '0.5rem' }}>
+                                            Current: <a href={`${process.env.REACT_APP_API_URL}${content.content_url}`} target="_blank" rel="noreferrer">View File</a>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                                <button type="button" className="admin-btn secondary" style={{ alignSelf: 'center', marginTop: '0.5rem', background: '#f1f5f9', fontSize: '0.75rem', padding: '0.35rem 1rem' }} onClick={() => handleAddContent(mIndex, lIndex)}>
+                                  + Add More Content (Video, PDF, etc.)
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="form-group checkbox-row">

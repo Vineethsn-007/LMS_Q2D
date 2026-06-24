@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw } from 'lucide-react';
 import './Marketplace.css';
 
-const Marketplace = ({ onViewChange }) => {
+const Marketplace = ({ onStartCourse }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -108,7 +108,7 @@ const Marketplace = ({ onViewChange }) => {
               By SkillForge AI • {courses[0].is_expert_validated ? 'Expert Reviewed' : 'Pending Review'} • {courses[0].students_count >= 1000 ? `${(courses[0].students_count / 1000).toFixed(1)}k` : courses[0].students_count} students
             </p>
           </div>
-          <button className="trending-btn" onClick={() => onViewChange && onViewChange('mylearning')}>View Course</button>
+          <button className="trending-btn" onClick={() => onStartCourse && onStartCourse(courses[0])}>View Course</button>
         </div>
       )}
 
@@ -135,7 +135,7 @@ const Marketplace = ({ onViewChange }) => {
             return (
               <div key={course.id} className="course-card">
                 <div className="card-image-area" style={{
-                  backgroundImage: course.image_url ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url(${course.image_url})` : undefined,
+                  backgroundImage: course.image_url ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url(${process.env.REACT_APP_API_URL}${course.image_url})` : undefined,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center'
                 }}>
@@ -172,8 +172,8 @@ const Marketplace = ({ onViewChange }) => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (onViewChange) {
-                          onViewChange('mylearning');
+                        if (onStartCourse) {
+                          onStartCourse(course);
                         } else {
                           alert(`Loading learning dashboard for "${course.title}"...`);
                         }

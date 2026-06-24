@@ -25,7 +25,7 @@ const skillData = [
   { subject: 'Sys. Design', A: 85, fullMark: 100 },
 ];
 
-const DashboardContent = ({ user }) => {
+const DashboardContent = ({ user, onStartCourse }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -168,7 +168,7 @@ const DashboardContent = ({ user }) => {
                           <span className="course-progress-text" style={{ color: '#0ea5e9' }}>{progress}%</span>
                         </div>
                       </div>
-                      <button className="resume-btn">Resume</button>
+                      <button className="resume-btn" onClick={() => onStartCourse && onStartCourse(course)}>Resume</button>
                     </div>
                   );
                 })

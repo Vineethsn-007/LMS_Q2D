@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, JSON
 from sqlalchemy.sql import func
 from database import Base
 
@@ -29,6 +29,7 @@ class Course(Base):
     is_ai_generated = Column(Boolean, default=True)
     is_expert_validated = Column(Boolean, default=True)
     image_url = Column(String, nullable=True)
+    modules_data = Column(JSON, nullable=True)
 
 class Expert(Base):
     __tablename__ = "experts"

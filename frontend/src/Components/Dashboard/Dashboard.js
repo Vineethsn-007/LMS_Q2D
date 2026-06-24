@@ -29,6 +29,12 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           ? 'review-center'
           : 'dashboard'
   );
+  const [activeCourse, setActiveCourse] = useState(null);
+
+  const handleStartCourse = (course) => {
+    setActiveCourse(course);
+    setActiveView('mylearning');
+  };
 
   return (
     <div className="dashboard-container">
@@ -73,11 +79,11 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
               <ExpertPanel user={user} />
             </ExpertProtectedRoute>
           ) : (
-            <DashboardContent user={user} />
+            <DashboardContent user={user} onStartCourse={handleStartCourse} />
           )
         )}
-        {activeView === 'marketplace' && <Marketplace onViewChange={setActiveView} />}
-        {activeView === 'mylearning' && <MyLearning />}
+        {activeView === 'marketplace' && <Marketplace onStartCourse={handleStartCourse} />}
+        {activeView === 'mylearning' && <MyLearning course={activeCourse} />}
         {activeView === 'certifications' && <Certifications />}
         {activeView === 'community-voting' && <CommunityVoting />}
         {activeView === 'review-center' && (

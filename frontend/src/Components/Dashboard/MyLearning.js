@@ -1,91 +1,136 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, CheckCircle2, Circle, FileText, ChevronRight, HelpCircle } from 'lucide-react';
 import './MyLearning.css';
 
-const LESSONS = [
-  { id: 1, title: "Intro to Advanced Types", duration: "12:30", status: "completed" },
-  { id: 2, title: "Type Narrowing & Guards", duration: "18:45", status: "completed" },
-  { id: 3, title: "Discriminated Unions", duration: "22:10", status: "completed" },
-  { id: 4, title: "Generic Functions", duration: "19:20", status: "completed" },
-  { id: 5, title: "Constrained Generics", duration: "16:40", status: "completed" },
-  { id: 6, title: "Generic Classes & Interfaces", duration: "24:15", status: "completed" },
-  { id: 7, title: "Mapped Types", duration: "20:30", status: "completed" },
-  { id: 8, title: "Template Literal Types", duration: "17:50", status: "completed" },
-  { id: 9, title: "Conditional Types", duration: "25:40", status: "completed" },
-  { id: 10, title: "Infer Keyword Deep Dive", duration: "21:10", status: "completed" },
-  { id: 11, title: "Recursive Types", duration: "19:00", status: "completed" },
-  { id: 12, title: "Variadic Tuple Types", duration: "15:30", status: "completed" },
-  { id: 13, title: "Custom Hooks Deep Dive", duration: "28:20", status: "active" },
-  { id: 14, title: "Declaration Merging", duration: "14:45", status: "locked" },
-  { id: 15, title: "Advanced Patterns Review", duration: "32:10", status: "locked" },
-];
+const MyLearning = ({ course }) => {
+  const [activeLesson, setActiveLesson] = useState(null);
+  
+  useEffect(() => {
+    if (course && course.modules_data && course.modules_data.length > 0) {
+      // Find first lesson
+      for (const mod of course.modules_data) {
+        if (mod.lessons && mod.lessons.length > 0) {
+          setActiveLesson(mod.lessons[0]);
+          return;
+        }
+      }
+    } else {
+      setActiveLesson(null);
+    }
+  }, [course]);
 
-const MyLearning = () => {
+  if (!course) {
+    return <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>No course selected. Please select a course from the Dashboard or Marketplace.</div>;
+  }
+
+  // Flatten lessons for the sidebar if using modules
+  const hasModules = course.modules_data && course.modules_data.length > 0;
+  
   return (
     <div className="mylearning-container">
-      
-      {/* Sidebar: Curriculum */}
       <aside className="curriculum-sidebar">
         <div className="curriculum-header">
-          <h2 className="course-title-small">Advanced React Patterns & Architecture</h2>
+          <h2 className="course-title-small">{course.title}</h2>
           <div className="curriculum-progress-info">
-            <span>12 / 15 lessons</span>
-            <span>80%</span>
+            <span>Progress</span>
+            <span>0%</span>
           </div>
           <div className="curriculum-progress-bg">
-            <div className="curriculum-progress-fill" style={{ width: '80%' }}></div>
+            <div className="curriculum-progress-fill" style={{ width: '0%' }}></div>
           </div>
         </div>
 
         <div className="curriculum-list">
-          {LESSONS.map((lesson) => (
-            <div key={lesson.id} className={`lesson-item ${lesson.status === 'active' ? 'active' : ''}`}>
-              <div className={`lesson-icon ${lesson.status}`}>
-                {lesson.status === 'completed' && <CheckCircle2 size={16} fill="currentColor" color="white" />}
-                {lesson.status === 'active' && <Play size={16} fill="currentColor" />}
-                {lesson.status === 'locked' && <Circle size={16} />}
+          {hasModules ? (
+            course.modules_data.map((mod, mIndex) => (
+              <div key={mod.id || mIndex} style={{ marginBottom: '1rem' }}>
+                <h4 style={{ padding: '0 1.25rem', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Module {mIndex + 1}: {mod.title}
+                </h4>
+                {mod.lessons.map((lesson, lIndex) => (
+                  <div 
+                    key={lesson.id || lIndex} 
+                    className={`lesson-item ${activeLesson?.id === lesson.id ? 'active' : ''}`}
+                    onClick={() => setActiveLesson(lesson)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className={`lesson-icon ${activeLesson?.id === lesson.id ? 'active' : 'locked'}`}>
+                      {activeLesson?.id === lesson.id ? <Play size={16} fill="currentColor" /> : <Circle size={16} />}
+                    </div>
+                    <div className="lesson-details">
+                      <span className="lesson-title">{lesson.title}</span>
+                      <span className="lesson-duration">{lesson.contents?.length || 0} items</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="lesson-details">
-                <span className="lesson-title">{lesson.id}. {lesson.title}</span>
-                <span className="lesson-duration">{lesson.duration}</span>
-              </div>
+            ))
+          ) : (
+            <div style={{ padding: '1.25rem', color: '#64748b', fontSize: '0.9rem' }}>
+              No dynamic modules available for this course. Check the overview for more details.
             </div>
-          ))}
+          )}
         </div>
       </aside>
 
-      {/* Main Content: Video & Tabs */}
       <main className="learning-content">
-        
         <div className="video-section">
-          <div className="video-player">
-            <div className="play-button-overlay">
-              <Play size={24} fill="currentColor" />
+          {activeLesson && activeLesson.contents && activeLesson.contents.length > 0 ? (
+            <div className="lesson-contents" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {activeLesson.contents.map((content, cIndex) => {
+                if (content.type === 'video' && content.content_url) {
+                  return (
+                    <video key={cIndex} controls style={{ width: '100%', maxHeight: '500px', backgroundColor: '#000', borderRadius: '12px' }}>
+                      <source src={`${process.env.REACT_APP_API_URL}${content.content_url}`} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  );
+                } else if (content.type === 'image' && content.content_url) {
+                  return (
+                    <img key={cIndex} src={`${process.env.REACT_APP_API_URL}${content.content_url}`} alt={activeLesson.title} style={{ width: '100%', maxHeight: '500px', objectFit: 'contain', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
+                  );
+                } else if (content.type === 'text') {
+                  return (
+                    <div key={cIndex} style={{ padding: '2rem', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      {content.text_content}
+                    </div>
+                  );
+                } else if (content.type === 'pdf' && content.content_url) {
+                  return (
+                    <div key={cIndex} style={{ padding: '1.5rem', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <FileText size={32} color="#ef4444" />
+                      <div>
+                        <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a' }}>PDF Document</h4>
+                        <a href={`${process.env.REACT_APP_API_URL}${content.content_url}`} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: '500', fontSize: '0.9rem' }}>Download / View PDF</a>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })}
             </div>
-            <div className="video-overlay-text">Custom Hooks Deep Dive</div>
-            <div className="video-overlay-time">28:20</div>
-            
-            <div className="video-progress-container">
-              <div className="video-progress-bar">
-                <div className="video-progress-fill"></div>
+          ) : course.image_url ? (
+            <div className="video-player" style={{ backgroundImage: `url(${process.env.REACT_APP_API_URL}${course.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+              <div className="play-button-overlay">
+                <Play size={24} fill="currentColor" />
               </div>
+              <div className="video-overlay-text">{course.title}</div>
             </div>
-          </div>
+          ) : (
+            <div className="video-player">
+              <div className="play-button-overlay">
+                <Play size={24} fill="currentColor" />
+              </div>
+              <div className="video-overlay-text">{course.title}</div>
+            </div>
+          )}
         </div>
 
         <div className="lesson-meta-area">
           <div className="lesson-header-row">
             <div>
-              <h1 className="lesson-main-title">Custom Hooks Deep Dive</h1>
-              <span className="lesson-subtitle">Lesson 13 · Advanced React Patterns</span>
-            </div>
-            <div className="lesson-actions">
-              <button className="btn-secondary">
-                <FileText size={16} /> Resources
-              </button>
-              <button className="btn-primary">
-                Next Lesson <ChevronRight size={16} />
-              </button>
+              <h1 className="lesson-main-title">{activeLesson ? activeLesson.title : course.title}</h1>
+              <span className="lesson-subtitle">{course.category} · {course.hours} hours</span>
             </div>
           </div>
 
@@ -97,23 +142,11 @@ const MyLearning = () => {
           </div>
 
           <div className="tab-content-box">
-            <h3>In this lesson</h3>
-            <p>
-              Explore advanced patterns for building reusable custom hooks in React. We cover state management, 
-              side effects, cleanup functions, and how to design hooks with flexible APIs that compose well across 
-              different components.
-            </p>
-            <ul>
-              <li>Building hooks with complex state logic</li>
-              <li>Managing subscriptions and cleanup correctly</li>
-              <li>Composing multiple hooks together</li>
-              <li>Testing custom hooks with React Testing Library</li>
-            </ul>
+            <h3>{activeLesson ? 'About this lesson' : 'About this course'}</h3>
+            <p>{course.description}</p>
           </div>
         </div>
-        
       </main>
-
     </div>
   );
 };
