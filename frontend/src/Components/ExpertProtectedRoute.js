@@ -6,7 +6,7 @@ const ExpertProtectedRoute = ({ user, children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  if (user && user.role === 'expert') {
+  if (user && (user.role === 'expert' || user.role === 'admin')) {
     return children;
   }
 
