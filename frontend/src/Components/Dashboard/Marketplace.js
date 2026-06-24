@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw } from 'lucide-react';
 import './Marketplace.css';
 
-const CATEGORIES = ["All", "AI & Machine Learning", "Software Engineering", "Data Science & Databases", "Product & DevOps"];
-
-const Marketplace = () => {
+const Marketplace = ({ onViewChange }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [activeCategory] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All levels");
   const [selectedStatus, setSelectedStatus] = useState("All status");
 
@@ -97,17 +95,6 @@ const Marketplace = () => {
         </button>
       </div>
 
-      <div className="category-nav">
-        {CATEGORIES.map(cat => (
-          <div 
-            key={cat} 
-            className={`category-pill ${activeCategory === cat ? 'active' : ''}`}
-            onClick={() => setActiveCategory(cat)}
-          >
-            {cat}
-          </div>
-        ))}
-      </div>
 
       {/* Trending Banner (using the highest rated course as trending if available) */}
       {courses.length > 0 && (
@@ -121,7 +108,7 @@ const Marketplace = () => {
               By SkillForge AI • {courses[0].is_expert_validated ? 'Expert Reviewed' : 'Pending Review'} • {courses[0].students_count >= 1000 ? `${(courses[0].students_count / 1000).toFixed(1)}k` : courses[0].students_count} students
             </p>
           </div>
-          <button className="trending-btn">View Course</button>
+          <button className="trending-btn" onClick={() => onViewChange && onViewChange('mylearning')}>View Course</button>
         </div>
       )}
 
@@ -178,9 +165,25 @@ const Marketplace = () => {
                     </span>
                   </div>
                   
-                  <span className={`card-level ${level.toLowerCase()}`}>
-                    {level}
-                  </span>
+                  <div style={{ marginTop: '1.25rem', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span className={`card-level ${level.toLowerCase()}`} style={{ margin: 0 }}>
+                      {level}
+                    </span>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onViewChange) {
+                          onViewChange('mylearning');
+                        } else {
+                          alert(`Loading learning dashboard for "${course.title}"...`);
+                        }
+                      }}
+                      className={course.id <= 3 ? "btn-primary" : "btn-secondary"}
+                      style={{ padding: '0.45rem 1rem', fontSize: '0.775rem', borderRadius: '9999px', cursor: 'pointer' }}
+                    >
+                      {course.id <= 3 ? "Continue Learning" : "Start Learning"}
+                    </button>
+                  </div>
                 </div>
               </div>
             );

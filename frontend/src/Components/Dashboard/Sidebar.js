@@ -81,7 +81,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
             >
               <div className="sidebar-link-content">
                 <FileEdit size={18} />
-                <span>Proposals & Voting</span>
+                <span>Community feed</span>
               </div>
               <span className="sidebar-badge">12</span>
             </div>

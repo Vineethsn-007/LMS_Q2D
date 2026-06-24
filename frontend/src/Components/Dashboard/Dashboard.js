@@ -74,7 +74,7 @@ const Dashboard = ({ user, onLogout }) => {
             <DashboardContent user={user} />
           )
         )}
-        {activeView === 'marketplace' && <Marketplace />}
+        {activeView === 'marketplace' && <Marketplace onViewChange={setActiveView} />}
         {activeView === 'mylearning' && <MyLearning />}
         {activeView === 'certifications' && <Certifications />}
         {activeView === 'community-voting' && <CommunityVoting />}

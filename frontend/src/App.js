@@ -8,7 +8,7 @@ import Footer from './Components/Footer';
 import AuthModal from './Components/AuthModal';
 import Dashboard from './Components/Dashboard/Dashboard';
 import CourseProposalModal from './Components/CourseProposalModal';
-import { Sparkles } from 'lucide-react';
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -237,8 +237,7 @@ function App() {
             onClick={() => setIsProposalOpen(true)}
             aria-label="Suggest a Course"
           >
-            <Sparkles size={16} />
-            <span>Course Request</span>
+            <span>Suggest a Course</span>
           </button>
 
           <CourseProposalModal 
