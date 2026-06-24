@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Mail, Send, CheckCircle } from 'lucide-react';
+import { PrivacyModal, TermsModal } from './LegalModals';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [error, setError] = useState('');
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
 
   const handleSubscribe = (e) => {
     e.preventDefault();
@@ -106,11 +109,24 @@ export default function Footer() {
         <div style={styles.bottomBanner}>
           <p style={styles.copyright}>© 2026 SkillForge LMS. All rights reserved.</p>
           <div style={styles.bottomLinks}>
-            <a href="#privacy" style={styles.bottomLink}>Privacy Policy</a>
-            <a href="#terms" style={styles.bottomLink}>Terms of Service</a>
+            <button 
+              onClick={() => setIsPrivacyOpen(true)} 
+              style={{ ...styles.bottomLink, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0 }}
+            >
+              Privacy Policy
+            </button>
+            <button 
+              onClick={() => setIsTermsOpen(true)} 
+              style={{ ...styles.bottomLink, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', padding: 0 }}
+            >
+              Terms of Service
+            </button>
           </div>
         </div>
       </div>
+
+      <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
+      <TermsModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
     </footer>
   );
 }

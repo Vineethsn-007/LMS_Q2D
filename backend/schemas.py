@@ -14,6 +14,11 @@ class UserLogin(BaseModel):
 class UserGoogleLogin(BaseModel):
     id_token: str
 
+class UserUpdate(BaseModel):
+    email: EmailStr
+    name: str
+    weekly_goal_hours: float
+
 class UserResponse(BaseModel):
     id: int
     email: str

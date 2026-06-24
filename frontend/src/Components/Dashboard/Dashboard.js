@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Bell, Settings } from 'lucide-react';
+import { Search, Bell } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DashboardContent from './DashboardContent';
 import Marketplace from './Marketplace';
@@ -12,13 +12,14 @@ import AdminProtectedRoute from '../AdminProtectedRoute';
 import AdminPanel from './AdminPanel';
 import ExpertProtectedRoute from '../ExpertProtectedRoute';
 import ExpertPanel from './ExpertPanel';
+import SettingsPanel from './SettingsPanel';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
 import './Certifications.css';
 import './ExpertPanel.css';
 
-const Dashboard = ({ user, onLogout }) => {
+const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [activeView, setActiveView] = useState(
     user?.role === 'admin' 
       ? 'admin-panel' 
@@ -51,10 +52,11 @@ const Dashboard = ({ user, onLogout }) => {
               <Bell size={20} />
               <span className="notification-badge">3</span>
             </button>
-            <button className="action-btn">
-              <Settings size={20} />
-            </button>
-            <div className="user-avatar" style={{ width: '32px', height: '32px', cursor: 'pointer' }}>
+            <div 
+              className="user-avatar" 
+              style={{ width: '32px', height: '32px', cursor: 'pointer' }}
+              onClick={() => setActiveView('settings')}
+            >
               {user?.name?.charAt(0) || 'A'}
             </div>
           </div>
@@ -92,6 +94,9 @@ const Dashboard = ({ user, onLogout }) => {
           <ExpertProtectedRoute user={user}>
             <ExpertPanel user={user} />
           </ExpertProtectedRoute>
+        )}
+        {activeView === 'settings' && (
+          <SettingsPanel user={user} onUserUpdate={onUserUpdate} />
         )}
       </main>
     </div>

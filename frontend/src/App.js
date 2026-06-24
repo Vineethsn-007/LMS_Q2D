@@ -162,6 +162,11 @@ function App() {
     localStorage.removeItem('sf_user');
   };
 
+  const handleUserUpdate = (newUserData) => {
+    setUser(newUserData);
+    localStorage.setItem('sf_user', JSON.stringify(newUserData));
+  };
+
   const handleEnrollCourse = (course) => {
     if (!user) {
       // Prompt user to sign in before enrolling
@@ -192,7 +197,7 @@ function App() {
   return (
     <div className="App skillforge-gradient-bg">
       {user ? (
-        <Dashboard user={user} onLogout={handleLogout} />
+        <Dashboard user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
       ) : (
         <>
           <Header 

@@ -8,7 +8,8 @@ import {
   FileEdit, 
   Wand2, 
   Shield,
-  LogOut
+  LogOut,
+  Settings
 } from 'lucide-react';
 import logoImg from '../../logo.png';
 import './Dashboard.css';
@@ -140,7 +141,20 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         </div>
       )}
 
-
+      <div className="sidebar-section">
+        <div className="sidebar-section-title">Account</div>
+        <nav className="sidebar-nav">
+          <div 
+            className={`sidebar-link ${activeView === 'settings' ? 'active' : ''}`}
+            onClick={() => onViewChange('settings')}
+          >
+            <div className="sidebar-link-content">
+              <Settings size={18} />
+              <span>Settings</span>
+            </div>
+          </div>
+        </nav>
+      </div>
 
       <div className="sidebar-user" onClick={onLogout}>
         <div className="user-avatar">

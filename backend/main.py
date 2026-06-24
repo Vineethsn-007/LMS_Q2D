@@ -199,6 +199,29 @@ def google_auth(user_in: schemas.UserGoogleLogin, db: Session = Depends(get_db))
         "user": db_user
     }
 
+# User Profile Update
+@app.put("/api/users/profile", response_model=schemas.UserResponse)
+def update_profile(
+    user_update: schemas.UserUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if user_update.email != current_user.email:
+        existing = db.query(models.User).filter(models.User.email == user_update.email).first()
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="Email address already in use."
+            )
+    
+    current_user.name = user_update.name
+    current_user.email = user_update.email
+    current_user.weekly_goal_hours = user_update.weekly_goal_hours
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
 # Course Proposal Create
 @app.post("/api/proposals/create", response_model=schemas.CourseProposalResponse, status_code=status.HTTP_201_CREATED)
 def create_proposal(
