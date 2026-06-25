@@ -96,7 +96,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         </div>
       )}
 
-      {(user?.role === 'reviewer' || user?.role === 'admin' || user?.role === 'expert') && (
+      {(user?.role === 'reviewer' || user?.role === 'admin') && (
         <div className="sidebar-section">
           <div className="sidebar-section-title">Review Admin</div>
           <nav className="sidebar-nav">
