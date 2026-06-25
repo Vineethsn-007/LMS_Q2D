@@ -6,7 +6,7 @@ const ReviewerProtectedRoute = ({ user, children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  if (user && (user.role === 'reviewer' || user.role === 'admin')) {
+  if (user && (user.role === 'reviewer' || user.role === 'admin' || user.role === 'expert')) {
     return children;
   }
 
@@ -29,7 +29,7 @@ const ReviewerProtectedRoute = ({ user, children }) => {
       }
 
       const data = await res.json();
-      if (data.user.role !== 'reviewer' && data.user.role !== 'admin') {
+      if (data.user.role !== 'reviewer' && data.user.role !== 'admin' && data.user.role !== 'expert') {
         throw new Error('This account does not have reviewer permissions.');
       }
 

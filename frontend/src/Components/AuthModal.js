@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Lock, User, ShieldCheck } from 'lucide-react';
+import { X, Mail, Lock, User, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,6 +9,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleInitialized, setGoogleInitialized] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleGoogleCredentialResponse = async (response) => {
     setLoading(true);
@@ -174,14 +175,33 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             <div style={styles.inputWrapper}>
               <Lock size={18} style={styles.inputIcon} />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                style={styles.input}
+                style={{...styles.input, paddingRight: '40px'}}
                 className="form-input"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#94a3b8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: 0
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
