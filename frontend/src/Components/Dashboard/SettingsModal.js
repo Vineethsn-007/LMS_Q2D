@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Clock } from 'lucide-react';
+import { X, User, Mail, Clock, Shield, Eye, EyeOff } from 'lucide-react';
 import './SettingsModal.css';
 
 export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [weeklyGoalHours, setWeeklyGoalHours] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  const isLearner = !user || !user.role || user.role === 'learner';
 
   useEffect(() => {
     if (user && isOpen) {
       setName(user.name || '');
       setEmail(user.email || '');
       setWeeklyGoalHours(user.weekly_goal_hours !== undefined ? user.weekly_goal_hours.toString() : '8');
+      setPassword('');
       setError('');
       setSuccess(false);
     }
@@ -40,10 +45,14 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
       return;
     }
 
-    const hours = parseFloat(weeklyGoalHours);
-    if (isNaN(hours) || hours <= 0) {
-      setError('Weekly study goal must be a positive number.');
-      return;
+    let hours = parseFloat(weeklyGoalHours);
+    if (isLearner) {
+      if (isNaN(hours) || hours <= 0) {
+        setError('Weekly study goal must be a positive number.');
+        return;
+      }
+    } else {
+      hours = user?.weekly_goal_hours || 8;
     }
 
     setLoading(true);
@@ -59,7 +68,8 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
         body: JSON.stringify({
           name: trimmedName,
           email: email.trim(),
-          weekly_goal_hours: hours
+          weekly_goal_hours: hours,
+          ...(password && !isLearner ? { password } : {})
         })
       });
 
@@ -129,25 +139,64 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
             />
           </div>
 
-          <div className="settings-input-group">
-            <label className="settings-label">
-              <Clock size={16} className="settings-input-icon" />
-              Weekly Study Goal (Hours)
-            </label>
-            <input
-              type="number"
-              step="0.5"
-              min="0.5"
-              className="settings-input"
-              value={weeklyGoalHours}
-              onChange={(e) => setWeeklyGoalHours(e.target.value)}
-              placeholder="e.g. 8"
-              disabled={loading || success}
-            />
-            <span className="settings-helper-text">
-              We'll track your progress against this goal on your dashboard.
-            </span>
-          </div>
+          {isLearner ? (
+            <div className="settings-input-group">
+              <label className="settings-label">
+                <Clock size={16} className="settings-input-icon" />
+                Weekly Study Goal (Hours)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0.5"
+                className="settings-input"
+                value={weeklyGoalHours}
+                onChange={(e) => setWeeklyGoalHours(e.target.value)}
+                placeholder="e.g. 8"
+                disabled={loading || success}
+              />
+              <span className="settings-helper-text">
+                We'll track your progress against this goal on your dashboard.
+              </span>
+            </div>
+          ) : (
+            <div className="settings-input-group">
+              <label className="settings-label">
+                <Shield size={16} className="settings-input-icon" />
+                Password
+              </label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="settings-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Leave blank to keep current password"
+                  disabled={loading || success}
+                  style={{ width: '100%', paddingRight: '40px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#666',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <span className="settings-helper-text">
+                Update your password.
+              </span>
+            </div>
+          )}
 
           <div className="settings-modal-footer">
             <button

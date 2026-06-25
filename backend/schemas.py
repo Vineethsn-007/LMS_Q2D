@@ -24,6 +24,7 @@ class UserUpdate(BaseModel):
     email: EmailStr
     name: str
     weekly_goal_hours: float
+    password: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: int
