@@ -227,6 +227,8 @@ def update_profile(
     current_user.name = user_update.name
     current_user.email = user_update.email
     current_user.weekly_goal_hours = user_update.weekly_goal_hours
+    if user_update.password:
+        current_user.hashed_password = hash_password(user_update.password)
     
     db.commit()
     db.refresh(current_user)
