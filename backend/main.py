@@ -75,8 +75,18 @@ def get_courses(
 # Experts endpoint
 @app.get("/api/experts", response_model=List[schemas.ExpertResponse])
 def get_experts(db: Session = Depends(get_db)):
-    experts = db.query(models.Expert).all()
-    return experts
+    users = db.query(models.User).filter(models.User.role == "expert").all()
+    experts_list = []
+    for user in users:
+        experts_list.append({
+            "id": user.id,
+            "name": user.name,
+            "role": "Industry Expert",
+            "bio": f"{user.name} is a validated industry expert.",
+            "avatar_url": None,
+            "courses_validated_count": user.streak if user.streak else 0
+        })
+    return experts_list
 
 # Auth Register
 @app.post("/api/auth/register", response_model=schemas.TokenResponse, status_code=status.HTTP_201_CREATED)

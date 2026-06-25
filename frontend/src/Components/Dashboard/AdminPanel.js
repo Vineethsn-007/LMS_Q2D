@@ -12,7 +12,6 @@ export default function AdminPanel({ user }) {
 
   // Data lists
   const [usersList, setUsersList] = useState([]);
-  const [proposalsList, setProposalsList] = useState([]);
 
   // Modals & form state
 
@@ -53,31 +52,10 @@ export default function AdminPanel({ user }) {
     }
   };
 
-
-  const fetchProposals = async () => {
-    try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/reviewer/proposals`, { headers });
-      if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem('sf_token');
-          localStorage.removeItem('sf_user');
-          window.location.reload();
-          return;
-        }
-        throw new Error('Failed to fetch proposals');
-      }
-      const data = await res.json();
-      setProposalsList(data);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
   const loadData = async () => {
     setLoading(true);
     setError(null);
     if (activeTab === 'users') await fetchUsers();
-    else if (activeTab === 'proposals') await fetchProposals();
     setLoading(false);
   };
 
@@ -147,35 +125,6 @@ export default function AdminPanel({ user }) {
 
 
 
-  // Proposal Management
-  const handleDeleteProposal = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this course proposal?")) return;
-    try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/proposals/${id}`, {
-        method: 'DELETE',
-        headers
-      });
-      if (!res.ok) throw new Error('Failed to delete proposal');
-      fetchProposals();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
-  const handleUpdateProposalStatus = async (id, status) => {
-    try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/reviewer/proposals/${id}/status`, {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({ status })
-      });
-      if (!res.ok) throw new Error('Failed to update proposal status');
-      fetchProposals();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
   return (
     <div className="admin-panel-container">
       <div className="admin-header">
@@ -194,12 +143,6 @@ export default function AdminPanel({ user }) {
           >
             <Users size={16} /> Users Management
           </button>
-          <button
-            className={`admin-tab ${activeTab === 'proposals' ? 'active' : ''}`}
-            onClick={() => setActiveTab('proposals')}
-          >
-            <FileEdit size={16} /> Proposals Archive
-          </button>
         </div>
       </div>
 
@@ -209,7 +152,6 @@ export default function AdminPanel({ user }) {
         <div className="admin-card-header">
           <h2 className="admin-card-title">
             {activeTab === 'users' && "Registered User Profiles"}
-            {activeTab === 'proposals' && "All Proposals Logs"}
           </h2>
 
           <div className="admin-card-actions">
@@ -314,59 +256,6 @@ export default function AdminPanel({ user }) {
               </>
             )}
 
-
-            {activeTab === 'proposals' && (
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Course Name</th>
-                    <th>Proposer</th>
-                    <th>AI Category</th>
-                    <th>Risk</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {proposalsList.map(p => (
-                    <tr key={p.id}>
-                      <td>#{p.id}</td>
-                      <td><strong>{p.course_name}</strong></td>
-                      <td>{p.learner_name || 'Anonymous'}</td>
-                      <td>{p.ai_category || 'Pending'}</td>
-                      <td>
-                        <span className={`risk-badge ${p.risk_level || 'unknown'}`}>
-                          {p.risk_level || 'N/A'}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${p.status}`}>
-                          {p.status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          {p.status !== 'approved' && (
-                            <button className="admin-row-btn approve" onClick={() => handleUpdateProposalStatus(p.id, 'approved')}>
-                              <Check size={12} /> Approve
-                            </button>
-                          )}
-                          {p.status !== 'rejected' && (
-                            <button className="admin-row-btn reject" onClick={() => handleUpdateProposalStatus(p.id, 'rejected')}>
-                              <X size={12} /> Reject
-                            </button>
-                          )}
-                          <button className="admin-row-btn delete" onClick={() => handleDeleteProposal(p.id)}>
-                            <Trash2 size={12} /> Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
           </div>
         )}
       </div>

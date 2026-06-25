@@ -48,16 +48,20 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
       <main className="dashboard-main">
         {/* Dashboard Header */}
         <header className="dashboard-header">
-          <div className="header-search">
-            <Search size={18} color="#94a3b8" />
-            <input type="text" placeholder="Search courses, skills, experts..." />
-          </div>
+          {user?.role !== 'admin' && (
+            <div className="header-search">
+              <Search size={18} color="#94a3b8" />
+              <input type="text" placeholder="Search courses, skills, experts..." />
+            </div>
+          )}
 
           <div className="header-actions">
-            <button className="action-btn">
-              <Bell size={20} />
-              <span className="notification-badge">3</span>
-            </button>
+            {user?.role !== 'admin' && (
+              <button className="action-btn">
+                <Bell size={20} />
+                <span className="notification-badge">3</span>
+              </button>
+            )}
             <div
               className="user-avatar"
               style={{ width: '32px', height: '32px', cursor: 'pointer' }}
