@@ -32,7 +32,7 @@ const MyLearning = ({ course, onBack }) => {
   const hasModules = course.modules_data && course.modules_data.length > 0;
   
   return (
-    <div className="mylearning-container" style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex' }}>
+    <div className="mylearning-container" style={{ background: '#f8fafc', display: 'flex' }}>
       
       {/* Sidebar: Curriculum */}
       <aside className="curriculum-sidebar" style={{ width: '320px', background: '#f8fafc', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
