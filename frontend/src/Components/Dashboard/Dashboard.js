@@ -83,7 +83,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           )
         )}
         {activeView === 'marketplace' && <Marketplace onStartCourse={handleStartCourse} />}
-        {activeView === 'mylearning' && <MyLearning course={activeCourse} />}
+        {activeView === 'mylearning' && <MyLearning course={activeCourse} onBack={() => setActiveView('dashboard')} />}
         {activeView === 'certifications' && <Certifications />}
         {activeView === 'community-voting' && <CommunityVoting />}
         {activeView === 'review-center' && (

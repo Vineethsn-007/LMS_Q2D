@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Play, CheckCircle2, Circle, FileText, ChevronRight, HelpCircle } from 'lucide-react';
+import { Play, CheckCircle2, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import './MyLearning.css';
 
-const MyLearning = ({ course }) => {
+const MyLearning = ({ course, onBack }) => {
   const [activeLesson, setActiveLesson] = useState(null);
+  const [expandedModules, setExpandedModules] = useState({});
   
   useEffect(() => {
     if (course && course.modules_data && course.modules_data.length > 0) {
-      // Find first lesson
+      // Find first lesson and expand first module
+      setExpandedModules({ 0: true });
       for (const mod of course.modules_data) {
         if (mod.lessons && mod.lessons.length > 0) {
           setActiveLesson(mod.lessons[0]);
@@ -19,132 +21,167 @@ const MyLearning = ({ course }) => {
     }
   }, [course]);
 
+  const toggleModule = (mIndex) => {
+    setExpandedModules(prev => ({ ...prev, [mIndex]: !prev[mIndex] }));
+  };
+
   if (!course) {
     return <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>No course selected. Please select a course from the Dashboard or Marketplace.</div>;
   }
 
-  // Flatten lessons for the sidebar if using modules
   const hasModules = course.modules_data && course.modules_data.length > 0;
   
   return (
-    <div className="mylearning-container">
-      <aside className="curriculum-sidebar">
-        <div className="curriculum-header">
-          <h2 className="course-title-small">{course.title}</h2>
-          <div className="curriculum-progress-info">
-            <span>Progress</span>
-            <span>0%</span>
+    <div className="mylearning-container" style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex' }}>
+      
+      {/* Sidebar: Curriculum */}
+      <aside className="curriculum-sidebar" style={{ width: '320px', background: '#f8fafc', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+        <div className="curriculum-header" style={{ padding: '2rem 1.5rem 1rem', borderBottom: '1px solid #e2e8f0' }}>
+          <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', padding: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            ← Back to Courses
+          </button>
+          <h2 className="course-title-small" style={{ fontSize: '1.25rem', fontWeight: '800', marginBottom: '0.75rem', color: '#0f172a' }}>{course.title}</h2>
+          <div className="curriculum-progress-bg" style={{ height: '4px', background: '#e2e8f0', borderRadius: '2px', marginBottom: '0.5rem', width: '100%' }}>
+            <div className="curriculum-progress-fill" style={{ width: '100%', background: '#3b82f6', height: '100%', borderRadius: '2px' }}></div>
           </div>
-          <div className="curriculum-progress-bg">
-            <div className="curriculum-progress-fill" style={{ width: '0%' }}></div>
+          <div className="curriculum-progress-info" style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: '600', display: 'flex', justifyContent: 'space-between' }}>
+            <span>100% Completed</span>
           </div>
         </div>
 
-        <div className="curriculum-list">
+        <div className="curriculum-list" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
           {hasModules ? (
-            course.modules_data.map((mod, mIndex) => (
-              <div key={mod.id || mIndex} style={{ marginBottom: '1rem' }}>
-                <h4 style={{ padding: '0 1.25rem', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Module {mIndex + 1}: {mod.title}
-                </h4>
-                {mod.lessons.map((lesson, lIndex) => (
-                  <div 
-                    key={lesson.id || lIndex} 
-                    className={`lesson-item ${activeLesson?.id === lesson.id ? 'active' : ''}`}
-                    onClick={() => setActiveLesson(lesson)}
-                    style={{ cursor: 'pointer' }}
+            course.modules_data.map((mod, mIndex) => {
+              const isExpanded = expandedModules[mIndex];
+              return (
+                <div key={mod.id || mIndex} className="module-accordion" style={{ marginBottom: '1rem' }}>
+                  <button 
+                    onClick={() => toggleModule(mIndex)}
+                    style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '0.85rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#1e293b', fontSize: '0.9rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
                   >
-                    <div className={`lesson-icon ${activeLesson?.id === lesson.id ? 'active' : 'locked'}`}>
-                      {activeLesson?.id === lesson.id ? <Play size={16} fill="currentColor" /> : <Circle size={16} />}
+                    {mIndex + 1}. {mod.title}
+                    <span style={{ color: '#94a3b8', display: 'flex' }}>
+                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                  </button>
+                  {isExpanded && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      {mod.lessons.map((lesson, lIndex) => {
+                        const isActive = activeLesson?.id === lesson.id;
+                        const isVideo = lesson.contents?.some(c => c.type === 'video');
+                        return (
+                          <div 
+                            key={lesson.id || lIndex} 
+                            onClick={() => setActiveLesson(lesson)}
+                            style={{ 
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                              padding: '0.75rem 1rem', borderRadius: '8px', cursor: 'pointer', 
+                              background: isActive ? '#3b82f6' : 'transparent',
+                              color: isActive ? '#fff' : '#64748b',
+                              fontWeight: isActive ? '600' : '500',
+                              fontSize: '0.85rem',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              {isVideo ? (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', background: isActive ? 'rgba(255,255,255,0.2)' : '#e2e8f0', borderRadius: '4px' }}>
+                                  <Play size={12} fill={isActive ? '#fff' : '#94a3b8'} color={isActive ? '#fff' : '#94a3b8'} />
+                                </div>
+                              ) : (
+                                <FileText size={16} color={isActive ? '#fff' : '#cbd5e1'} />
+                              )}
+                              <span>{lesson.title}</span>
+                            </div>
+                            <CheckCircle2 size={14} color={isActive ? '#fff' : '#22c55e'} />
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="lesson-details">
-                      <span className="lesson-title">{lesson.title}</span>
-                      <span className="lesson-duration">{lesson.contents?.length || 0} items</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))
+                  )}
+                </div>
+              );
+            })
           ) : (
             <div style={{ padding: '1.25rem', color: '#64748b', fontSize: '0.9rem' }}>
-              No dynamic modules available for this course. Check the overview for more details.
+              No dynamic modules available for this course.
             </div>
           )}
         </div>
       </aside>
 
-      <main className="learning-content">
-        <div className="video-section">
-          {activeLesson && activeLesson.contents && activeLesson.contents.length > 0 ? (
-            <div className="lesson-contents" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {activeLesson.contents.map((content, cIndex) => {
-                if (content.type === 'video' && content.content_url) {
-                  return (
-                    <video key={cIndex} controls style={{ width: '100%', maxHeight: '500px', backgroundColor: '#000', borderRadius: '12px' }}>
-                      <source src={`${process.env.REACT_APP_API_URL}${content.content_url}`} type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-                  );
-                } else if (content.type === 'image' && content.content_url) {
-                  return (
-                    <img key={cIndex} src={`${process.env.REACT_APP_API_URL}${content.content_url}`} alt={activeLesson.title} style={{ width: '100%', maxHeight: '500px', objectFit: 'contain', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }} />
-                  );
-                } else if (content.type === 'text') {
-                  return (
-                    <div key={cIndex} style={{ padding: '2rem', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                      {content.text_content}
-                    </div>
-                  );
-                } else if (content.type === 'pdf' && content.content_url) {
-                  return (
-                    <div key={cIndex} style={{ padding: '1.5rem', backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <FileText size={32} color="#ef4444" />
-                      <div>
-                        <h4 style={{ margin: '0 0 0.25rem 0', color: '#0f172a' }}>PDF Document</h4>
-                        <a href={`${process.env.REACT_APP_API_URL}${content.content_url}`} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: '500', fontSize: '0.9rem' }}>Download / View PDF</a>
+      {/* Main Content Area */}
+      <main className="learning-content" style={{ flex: 1, padding: '2.5rem 4rem', background: '#fff', overflowY: 'auto' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          
+          <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a', margin: '0 0 1.5rem 0', textTransform: 'capitalize' }}>
+            {activeLesson ? activeLesson.title : course.title}
+          </h1>
+
+          <div className="video-section" style={{ background: '#000', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', position: 'relative' }}>
+            {activeLesson && activeLesson.contents && activeLesson.contents.length > 0 ? (
+              <div className="lesson-contents">
+                {(() => {
+                  const content = activeLesson.contents[0];
+                  if (!content) return null;
+                  
+                  if (content.type === 'video' && content.content_url) {
+                    return (
+                      <video controls style={{ width: '100%', display: 'block', maxHeight: '600px' }}>
+                        <source src={`${process.env.REACT_APP_API_URL}${content.content_url}`} type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                    );
+                  } else if (content.type === 'image' && content.content_url) {
+                    return (
+                      <img src={`${process.env.REACT_APP_API_URL}${content.content_url}`} alt={activeLesson.title} style={{ width: '100%', display: 'block', maxHeight: '600px', objectFit: 'contain', backgroundColor: '#f8fafc' }} />
+                    );
+                  } else if (content.type === 'text') {
+                    return (
+                      <div style={{ padding: '3rem', backgroundColor: '#fff', minHeight: '400px', fontSize: '1.1rem', lineHeight: 1.6 }}>
+                        {content.text_content}
                       </div>
-                    </div>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          ) : course.image_url ? (
-            <div className="video-player" style={{ backgroundImage: `url(${process.env.REACT_APP_API_URL}${course.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-              <div className="play-button-overlay">
-                <Play size={24} fill="currentColor" />
+                    );
+                  } else if (content.type === 'pdf' && content.content_url) {
+                    return (
+                      <div style={{ padding: '4rem', backgroundColor: '#f8fafc', minHeight: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+                        <FileText size={64} color="#ef4444" />
+                        <h3 style={{ margin: 0, color: '#0f172a' }}>PDF Document</h3>
+                        <a href={`${process.env.REACT_APP_API_URL}${content.content_url}`} target="_blank" rel="noreferrer" style={{ padding: '0.75rem 2rem', background: '#3b82f6', color: '#fff', textDecoration: 'none', fontWeight: '600', borderRadius: '8px', marginTop: '1rem' }}>Download / View PDF</a>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
-              <div className="video-overlay-text">{course.title}</div>
-            </div>
-          ) : (
-            <div className="video-player">
-              <div className="play-button-overlay">
-                <Play size={24} fill="currentColor" />
+            ) : course.image_url ? (
+              <div className="video-player-mock" style={{ backgroundImage: `url(${process.env.REACT_APP_API_URL}${course.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', paddingBottom: '56.25%', position: 'relative' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <Play size={32} fill="#fff" color="#fff" style={{ marginLeft: '4px' }} />
+                  </div>
+                </div>
               </div>
-              <div className="video-overlay-text">{course.title}</div>
-            </div>
-          )}
-        </div>
-
-        <div className="lesson-meta-area">
-          <div className="lesson-header-row">
-            <div>
-              <h1 className="lesson-main-title">{activeLesson ? activeLesson.title : course.title}</h1>
-              <span className="lesson-subtitle">{course.category} · {course.hours} hours</span>
-            </div>
+            ) : (
+              <div className="video-player-mock" style={{ background: '#1e293b', paddingBottom: '56.25%', position: 'relative' }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Play size={32} fill="#fff" color="#fff" style={{ marginLeft: '4px' }} />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="lesson-tabs">
-            <div className="tab active">Overview</div>
-            <div className="tab">Notes</div>
-            <div className="tab">Q&A</div>
-            <div className="tab">Discussion</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
+            <button style={{ padding: '0.75rem 1.5rem', background: '#f1f5f9', color: '#94a3b8', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ← Previous Lesson
+            </button>
+            <button style={{ padding: '0.75rem 1.5rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)' }}>
+              Complete & Next →
+            </button>
           </div>
 
-          <div className="tab-content-box">
-            <h3>{activeLesson ? 'About this lesson' : 'About this course'}</h3>
-            <p>{course.description}</p>
-          </div>
         </div>
       </main>
     </div>

@@ -228,10 +228,10 @@ export default function AdminPanel({ user }) {
 
   const handleAddLesson = (mIndex) => {
     const newData = [...modulesData];
-    newData[mIndex].lessons.push({
-      id: Date.now().toString(),
-      title: '',
-      contents: []
+    newData[mIndex].lessons.push({ 
+      id: Date.now().toString(), 
+      title: '', 
+      contents: [{ id: Date.now().toString() + 'c', type: 'video', content_url: null, text_content: '', file: null }] 
     });
     setModulesData(newData);
   };
@@ -912,7 +912,6 @@ export default function AdminPanel({ user }) {
                                         <option value="image">Image</option>
                                         <option value="text">Text</option>
                                       </select>
-                                      <button type="button" className="admin-modal-close" onClick={() => handleRemoveContent(mIndex, lIndex, cIndex)}><X size={14} color="#94a3b8" /></button>
                                     </div>
                                     
                                     {content.type === 'text' ? (
@@ -949,9 +948,6 @@ export default function AdminPanel({ user }) {
                                     )}
                                   </div>
                                 ))}
-                                <button type="button" className="admin-btn secondary" style={{ alignSelf: 'center', marginTop: '0.5rem', background: '#f1f5f9', fontSize: '0.75rem', padding: '0.35rem 1rem' }} onClick={() => handleAddContent(mIndex, lIndex)}>
-                                  + Add More Content (Video, PDF, etc.)
-                                </button>
                               </div>
                             </div>
                           ))}
