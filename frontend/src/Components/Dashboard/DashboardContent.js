@@ -28,6 +28,12 @@ const skillData = [
 const DashboardContent = ({ user, onStartCourse }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [completedCourses, setCompletedCourses] = useState([]);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
+    setCompletedCourses(saved);
+  }, []);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -49,7 +55,7 @@ const DashboardContent = ({ user, onStartCourse }) => {
     fetchCourses();
   }, []);
 
-  const continueLearningCourses = courses.slice(0, 3);
+  const continueLearningCourses = courses.filter(c => !completedCourses.includes(c.id)).slice(0, 3);
   const aiRecommended = courses.filter(c => c.is_ai_generated).slice(0, 3);
   
   // Calculate dynamic stats

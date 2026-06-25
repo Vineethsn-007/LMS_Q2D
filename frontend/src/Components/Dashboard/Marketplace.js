@@ -9,6 +9,12 @@ const Marketplace = ({ onStartCourse }) => {
   const [activeCategory] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All levels");
   const [selectedStatus, setSelectedStatus] = useState("All status");
+  const [completedCourses, setCompletedCourses] = useState([]);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
+    setCompletedCourses(saved);
+  }, []);
 
   const fetchCourses = async () => {
     try {
@@ -178,10 +184,18 @@ const Marketplace = ({ onStartCourse }) => {
                           alert(`Loading learning dashboard for "${course.title}"...`);
                         }
                       }}
-                      className={course.id <= 3 ? "btn-primary" : "btn-secondary"}
-                      style={{ padding: '0.45rem 1rem', fontSize: '0.775rem', borderRadius: '9999px', cursor: 'pointer' }}
+                      className={completedCourses.includes(course.id) ? "btn-success" : (course.id <= 3 ? "btn-primary" : "btn-secondary")}
+                      style={{ 
+                        padding: '0.45rem 1rem', 
+                        fontSize: '0.775rem', 
+                        borderRadius: '9999px', 
+                        cursor: 'pointer',
+                        backgroundColor: completedCourses.includes(course.id) ? '#22c55e' : undefined,
+                        color: completedCourses.includes(course.id) ? '#fff' : undefined,
+                        border: completedCourses.includes(course.id) ? 'none' : undefined
+                      }}
                     >
-                      {course.id <= 3 ? "Continue Learning" : "Start Learning"}
+                      {completedCourses.includes(course.id) ? "Completed" : (course.id <= 3 ? "Continue Learning" : "Start Learning")}
                     </button>
                   </div>
                 </div>

@@ -30,6 +30,41 @@ const MyLearning = ({ course, onBack }) => {
   }
 
   const hasModules = course.modules_data && course.modules_data.length > 0;
+
+  const flattenedLessons = [];
+  if (course && course.modules_data) {
+    course.modules_data.forEach((mod, mIndex) => {
+      if (mod.lessons) {
+        mod.lessons.forEach((lesson) => {
+          flattenedLessons.push({ moduleIndex: mIndex, lesson: lesson });
+        });
+      }
+    });
+  }
+  const currentIndex = activeLesson ? flattenedLessons.findIndex(item => item.lesson.id === activeLesson.id) : -1;
+  const prevLessonItem = currentIndex > 0 ? flattenedLessons[currentIndex - 1] : null;
+  const nextLessonItem = currentIndex >= 0 && currentIndex < flattenedLessons.length - 1 ? flattenedLessons[currentIndex + 1] : null;
+
+  const handlePrev = () => {
+    if (prevLessonItem) {
+      setActiveLesson(prevLessonItem.lesson);
+      setExpandedModules(prev => ({ ...prev, [prevLessonItem.moduleIndex]: true }));
+    }
+  };
+
+  const handleNext = () => {
+    if (nextLessonItem) {
+      setActiveLesson(nextLessonItem.lesson);
+      setExpandedModules(prev => ({ ...prev, [nextLessonItem.moduleIndex]: true }));
+    } else {
+      const saved = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
+      if (course && course.id && !saved.includes(course.id)) {
+        saved.push(course.id);
+        localStorage.setItem('sf_completed_courses', JSON.stringify(saved));
+      }
+      if (onBack) onBack();
+    }
+  };
   
   return (
     <div className="mylearning-container" style={{ background: '#f8fafc', display: 'flex' }}>
@@ -174,11 +209,43 @@ const MyLearning = ({ course, onBack }) => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-            <button style={{ padding: '0.75rem 1.5rem', background: '#f1f5f9', color: '#94a3b8', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'not-allowed', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button 
+              onClick={handlePrev}
+              disabled={!prevLessonItem}
+              style={{ 
+                padding: '0.75rem 1.5rem', 
+                background: prevLessonItem ? '#f1f5f9' : '#f8fafc', 
+                color: prevLessonItem ? '#334155' : '#cbd5e1', 
+                border: 'none', 
+                borderRadius: '8px', 
+                fontWeight: '600', 
+                cursor: prevLessonItem ? 'pointer' : 'not-allowed', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                transition: 'all 0.2s'
+              }}
+            >
               ← Previous Lesson
             </button>
-            <button style={{ padding: '0.75rem 1.5rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)' }}>
-              Complete & Next →
+            <button 
+              onClick={handleNext}
+              style={{ 
+                padding: '0.75rem 1.5rem', 
+                background: '#3b82f6', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '8px', 
+                fontWeight: '600', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem', 
+                boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)',
+                transition: 'all 0.2s'
+              }}
+            >
+              {nextLessonItem ? 'Complete & Next →' : 'Complete Course ✓'}
             </button>
           </div>
 

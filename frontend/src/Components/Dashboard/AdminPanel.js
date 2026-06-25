@@ -553,13 +553,10 @@ export default function AdminPanel({ user }) {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
                     <th>Course Title</th>
                     <th>Category</th>
                     <th>Hours</th>
                     <th>Rating</th>
-                    <th>Students</th>
-                    <th>Type</th>
                     <th>Validation</th>
                     <th>Actions</th>
                   </tr>
@@ -567,7 +564,6 @@ export default function AdminPanel({ user }) {
                 <tbody>
                   {coursesList.map(c => (
                     <tr key={c.id}>
-                      <td>#{c.id}</td>
                       <td><strong>{c.title}</strong></td>
                       <td>{c.category}</td>
                       <td>{c.hours}h</td>
@@ -576,8 +572,6 @@ export default function AdminPanel({ user }) {
                           <Star size={12} fill="#fbbf24" color="#fbbf24" /> {c.rating}
                         </div>
                       </td>
-                      <td>{c.students_count}</td>
-                      <td>{c.is_ai_generated ? "🤖 AI" : "🧑‍💻 Manual"}</td>
                       <td>
                         <span className={`validation-badge ${c.is_expert_validated ? 'validated' : 'pending'}`}>
                           {c.is_expert_validated ? 'Expert Approved' : 'Needs Review'}
@@ -820,15 +814,7 @@ export default function AdminPanel({ user }) {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label>Students Enrolled</label>
-                  <input
-                    type="number"
-                    required
-                    value={courseFormData.students_count}
-                    onChange={e => setCourseFormData({ ...courseFormData, students_count: parseInt(e.target.value) || 0 })}
-                  />
-                </div>
+
 
                 <div className="form-group span-2">
                   <label>Thumbnail Image</label>
@@ -958,14 +944,7 @@ export default function AdminPanel({ user }) {
                 </div>
 
                 <div className="form-group checkbox-row">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={courseFormData.is_ai_generated}
-                      onChange={e => setCourseFormData({ ...courseFormData, is_ai_generated: e.target.checked })}
-                    />
-                    AI Generated
-                  </label>
+
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
