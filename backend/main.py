@@ -497,7 +497,7 @@ def update_user_role(
 @app.post("/api/admin/upload")
 def admin_upload_file(
     file: UploadFile = File(...),
-    current_user: models.User = Depends(verifyAdminRole),
+    current_user: models.User = Depends(verifyExpertRole),
     db: Session = Depends(get_db)
 ):
     os.makedirs("uploads", exist_ok=True)
@@ -512,7 +512,7 @@ def admin_upload_file(
 @app.post("/api/admin/courses", response_model=schemas.CourseResponse)
 def create_course(
     course_in: schemas.CourseCreateUpdate,
-    current_user: models.User = Depends(verifyAdminRole),
+    current_user: models.User = Depends(verifyExpertRole),
     db: Session = Depends(get_db)
 ):
     course = models.Course(**course_in.dict())
@@ -525,7 +525,7 @@ def create_course(
 def update_course(
     course_id: int,
     course_in: schemas.CourseCreateUpdate,
-    current_user: models.User = Depends(verifyAdminRole),
+    current_user: models.User = Depends(verifyExpertRole),
     db: Session = Depends(get_db)
 ):
     course = db.query(models.Course).filter(models.Course.id == course_id).first()
@@ -541,7 +541,7 @@ def update_course(
 def update_admin_course_materials(
     course_id: int,
     payload: schemas.CourseMaterialsUpdate,
-    current_user: models.User = Depends(verifyAdminRole),
+    current_user: models.User = Depends(verifyExpertRole),
     db: Session = Depends(get_db)
 ):
     course = db.query(models.Course).filter(models.Course.id == course_id).first()

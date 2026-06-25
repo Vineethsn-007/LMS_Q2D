@@ -141,7 +141,7 @@ const Marketplace = ({ onStartCourse }) => {
             return (
               <div key={course.id} className="course-card">
                 <div className="card-image-area" style={{
-                  backgroundImage: course.image_url ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url(${process.env.REACT_APP_API_URL}${course.image_url})` : undefined,
+                  backgroundImage: course.image_url ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url(${course.image_url.startsWith('http') ? course.image_url : process.env.REACT_APP_API_URL + course.image_url})` : undefined,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center'
                 }}>

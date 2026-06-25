@@ -80,7 +80,7 @@ def verifyReviewerRole(token: str = Depends(oauth2_scheme), db: Session = Depend
     if user is None:
         raise credentials_exception
         
-    if user.role not in ["reviewer", "admin"]:
+    if user.role not in ["reviewer", "admin", "expert"]:
         raise access_denied_exception
         
     return user

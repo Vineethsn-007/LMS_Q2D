@@ -18,7 +18,7 @@ export default function Hero({ stats, onStartFree, onBrowseCourses }) {
         {/* Sparkle Badge */}
         <div style={styles.badge} className="glass">
           <span style={styles.badgeSparkle}>✦</span>
-          <span style={styles.badgeText}>AI-Generated · Expert-Validated · Community-Voted</span>
+          <span style={styles.badgeText}>Expert-Validated · Community-Voted</span>
         </div>
 
         {/* Heading */}
