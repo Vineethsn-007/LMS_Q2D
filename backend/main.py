@@ -693,3 +693,7 @@ def create_course_material(
     db.commit()
     db.refresh(db_material)
     return db_material
+
+@app.get("/api/experts", response_model=List[schemas.ExpertResponse])
+def get_experts(db: Session = Depends(get_db)):
+    return db.query(models.Expert).all()
