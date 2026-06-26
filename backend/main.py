@@ -709,3 +709,53 @@ def create_course_material(
 @app.get("/api/experts", response_model=List[schemas.ExpertResponse])
 def get_experts(db: Session = Depends(get_db)):
     return db.query(models.Expert).all()
+
+# ─── Course Feedback Endpoints ──────────────────────────────────────────────
+
+@app.get("/api/feedback", response_model=List[schemas.CourseFeedbackResponse])
+def get_feedback(
+    course_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.CourseFeedback)
+    if course_id:
+        query = query.filter(models.CourseFeedback.course_id == course_id)
+    return query.order_by(models.CourseFeedback.created_at.desc()).all()
+
+@app.post("/api/feedback", response_model=schemas.CourseFeedbackResponse, status_code=status.HTTP_201_CREATED)
+def create_feedback(
+    feedback_in: schemas.CourseFeedbackCreate,
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    course = db.query(models.Course).filter(models.Course.id == feedback_in.course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    user_name = current_user.name if current_user else "Anonymous"
+    user_id = current_user.id if current_user else None
+    
+    db_feedback = models.CourseFeedback(
+        course_id=feedback_in.course_id,
+        user_id=user_id,
+        user_name=user_name,
+        rating=feedback_in.rating,
+        title=feedback_in.title,
+        comment=feedback_in.comment,
+    )
+    db.add(db_feedback)
+    db.commit()
+    db.refresh(db_feedback)
+    return db_feedback
+
+@app.post("/api/feedback/{feedback_id}/helpful")
+def mark_helpful(
+    feedback_id: int,
+    db: Session = Depends(get_db)
+):
+    fb = db.query(models.CourseFeedback).filter(models.CourseFeedback.id == feedback_id).first()
+    if not fb:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    fb.helpful_count += 1
+    db.commit()
+    return {"helpful_count": fb.helpful_count}

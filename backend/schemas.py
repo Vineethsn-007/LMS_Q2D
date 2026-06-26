@@ -188,3 +188,23 @@ class CourseMaterialResponse(CourseMaterialCreate):
     class Config:
         orm_mode = True
 
+# --- Course Feedback ---
+class CourseFeedbackCreate(BaseModel):
+    course_id: int
+    rating: int          # 1-5
+    title: Optional[str] = None
+    comment: str
+
+class CourseFeedbackResponse(BaseModel):
+    id: int
+    course_id: int
+    user_id: Optional[int] = None
+    user_name: str
+    rating: int
+    title: Optional[str] = None
+    comment: str
+    helpful_count: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True

@@ -111,6 +111,19 @@ class ProposalComment(Base):
     likes = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+class CourseFeedback(Base):
+    __tablename__ = "course_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, index=True, nullable=False)
+    user_id = Column(Integer, index=True, nullable=True)   # nullable for anonymous
+    user_name = Column(String, nullable=False)
+    rating = Column(Integer, nullable=False)               # 1-5 stars
+    title = Column(String, nullable=True)
+    comment = Column(Text, nullable=False)
+    helpful_count = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class CourseMaterial(Base):
     __tablename__ = "course_materials"
 

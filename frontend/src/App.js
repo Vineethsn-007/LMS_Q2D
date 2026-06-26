@@ -8,6 +8,7 @@ import Footer from './Components/Footer';
 import AuthModal from './Components/AuthModal';
 import Dashboard from './Components/Dashboard/Dashboard';
 import CourseProposalModal from './Components/CourseProposalModal';
+import FeedbackPage from './Components/FeedbackPage';
 
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
   const [stats, setStats] = useState([]);
   const [courses, setCourses] = useState([]);
   const [experts, setExperts] = useState([]);
+  const [activePage, setActivePage] = useState('home');
   
   // Search & Filter State
   const [activeCategory, setActiveCategory] = useState('All');
@@ -203,26 +205,34 @@ function App() {
           <Header 
             user={user} 
             onLogout={handleLogout} 
-            onOpenAuth={() => setIsAuthOpen(true)} 
+            onOpenAuth={() => setIsAuthOpen(true)}
+            activePage={activePage}
+            onNavigate={setActivePage}
           />
           
           <main style={{ flexGrow: 1 }}>
-            <Hero 
-              stats={stats} 
-              onStartFree={handleStartFree} 
-              onBrowseCourses={handleBrowseCourses} 
-            />
-            
-            <CoursesGrid 
-              courses={courses}
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              onEnrollCourse={handleEnrollCourse}
-            />
-            
-            <ExpertsList experts={experts} />
+            {activePage === 'feedback' ? (
+              <FeedbackPage user={user} onOpenAuth={() => setIsAuthOpen(true)} />
+            ) : (
+              <>
+                <Hero 
+                  stats={stats} 
+                  onStartFree={handleStartFree} 
+                  onBrowseCourses={handleBrowseCourses} 
+                />
+                
+                <CoursesGrid 
+                  courses={courses}
+                  activeCategory={activeCategory}
+                  setActiveCategory={setActiveCategory}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  onEnrollCourse={handleEnrollCourse}
+                />
+                
+                <ExpertsList experts={experts} />
+              </>
+            )}
           </main>
 
           <Footer />
