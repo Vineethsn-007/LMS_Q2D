@@ -9,7 +9,8 @@ import {
   Wand2, 
   Shield,
   LogOut,
-  Settings
+  Settings,
+  MessageSquare
 } from 'lucide-react';
 import logoImg from '../../logo.png';
 import './Dashboard.css';
@@ -144,6 +145,16 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
       <div className="sidebar-section">
         <div className="sidebar-section-title">Account</div>
         <nav className="sidebar-nav">
+          <div 
+            className={`sidebar-link ${activeView === 'feedback' ? 'active' : ''}`}
+            onClick={() => onViewChange('feedback')}
+            id="sidebar-feedback-link"
+          >
+            <div className="sidebar-link-content">
+              <MessageSquare size={18} />
+              <span>Feedback</span>
+            </div>
+          </div>
           <div 
             className={`sidebar-link ${activeView === 'settings' ? 'active' : ''}`}
             onClick={() => onViewChange('settings')}

@@ -459,7 +459,7 @@ const modalStyles = {
 };
 
 // ─── Main FeedbackPage ───────────────────────────────────────────────────────
-export default function FeedbackPage({ user, onOpenAuth }) {
+export default function FeedbackPage({ user, onOpenAuth, insideDashboard = false }) {
   const [courses, setCourses] = useState([]);
   const [feedbackList, setFeedbackList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -542,9 +542,9 @@ export default function FeedbackPage({ user, onOpenAuth }) {
   }));
 
   return (
-    <div style={pageStyles.page}>
+    <div style={insideDashboard ? { ...pageStyles.page, flex: 1, overflowY: 'auto', minHeight: 0 } : pageStyles.page}>
       {/* ── Hero Banner ─────────────────────────────────── */}
-      <section style={pageStyles.heroBanner}>
+      <section style={{ ...pageStyles.heroBanner, padding: insideDashboard ? '40px 0 36px' : '100px 0 60px' }}>
         <div className="container" style={pageStyles.heroInner}>
           <div style={pageStyles.heroText}>
             <div style={pageStyles.heroBadge}>
@@ -561,7 +561,10 @@ export default function FeedbackPage({ user, onOpenAuth }) {
             <button
               id="write-review-hero-btn"
               className="btn-primary"
-              onClick={() => user ? setShowModal(true) : onOpenAuth()}
+              onClick={() => {
+                if (user) setShowModal(true);
+                else if (onOpenAuth) onOpenAuth();
+              }}
               style={{ padding: '0.85rem 2rem', fontSize: '0.95rem', borderRadius: '12px', marginTop: '8px' }}
             >
               <MessageSquare size={17} />
@@ -596,7 +599,10 @@ export default function FeedbackPage({ user, onOpenAuth }) {
       )}
 
       {/* ── Filters Bar ─────────────────────────────────── */}
-      <section style={pageStyles.filtersSection}>
+      <section style={insideDashboard
+        ? { ...pageStyles.filtersSection, position: 'static', top: 'unset', background: 'rgba(250,247,242,0.6)' }
+        : pageStyles.filtersSection
+      }>
         <div className="container" style={pageStyles.filtersRow}>
           {/* Search */}
           <div style={pageStyles.searchWrap}>
@@ -680,15 +686,6 @@ export default function FeedbackPage({ user, onOpenAuth }) {
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                   Showing <strong>{filteredFeedback.length}</strong> review{filteredFeedback.length !== 1 ? 's' : ''}
                 </span>
-                <button
-                  id="write-review-inline-btn"
-                  className="btn-secondary"
-                  onClick={() => user ? setShowModal(true) : onOpenAuth()}
-                  style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', borderRadius: '10px' }}
-                >
-                  <MessageSquare size={14} />
-                  Add Review
-                </button>
               </div>
 
               <div style={pageStyles.grid}>

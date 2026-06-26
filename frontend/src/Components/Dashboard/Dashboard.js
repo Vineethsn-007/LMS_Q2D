@@ -15,6 +15,7 @@ import ExpertPanel from './ExpertPanel';
 import SettingsPanel from './SettingsPanel';
 import Cart from './Cart';
 import Checkout from './Checkout';
+import FeedbackPage from '../FeedbackPage';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
@@ -175,6 +176,9 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         )}
         {activeView === 'settings' && (
           <SettingsPanel user={user} onUserUpdate={onUserUpdate} />
+        )}
+        {activeView === 'feedback' && (
+          <FeedbackPage user={user} insideDashboard />
         )}
       </main>
     </div>
