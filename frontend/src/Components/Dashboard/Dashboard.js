@@ -13,6 +13,7 @@ import AdminPanel from './AdminPanel';
 import ExpertProtectedRoute from '../ExpertProtectedRoute';
 import ExpertPanel from './ExpertPanel';
 import SettingsPanel from './SettingsPanel';
+import FeedbackPage from '../FeedbackPage';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
@@ -107,6 +108,9 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         )}
         {activeView === 'settings' && (
           <SettingsPanel user={user} onUserUpdate={onUserUpdate} />
+        )}
+        {activeView === 'feedback' && (
+          <FeedbackPage user={user} insideDashboard />
         )}
       </main>
     </div>
