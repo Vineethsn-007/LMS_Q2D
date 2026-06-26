@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw } from 'lucide-react';
 import './Marketplace.css';
 
-const Marketplace = ({ onStartCourse }) => {
+const Marketplace = ({ onStartCourse, onCheckout }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -10,11 +10,31 @@ const Marketplace = ({ onStartCourse }) => {
   const [selectedLevel, setSelectedLevel] = useState("All levels");
   const [selectedStatus, setSelectedStatus] = useState("All status");
   const [completedCourses, setCompletedCourses] = useState([]);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [expandedCourses, setExpandedCourses] = useState([]);
+  const [paymentCourse, setPaymentCourse] = useState(null);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
-    setCompletedCourses(saved);
+    const savedCompleted = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
+    setCompletedCourses(savedCompleted);
+    const savedEnrolled = JSON.parse(localStorage.getItem('sf_enrolled_courses') || '[]');
+    setEnrolledCourses(savedEnrolled);
   }, []);
+
+  const handlePaymentSuccess = (course) => {
+    const updatedEnrolled = [...enrolledCourses, course.id];
+    setEnrolledCourses(updatedEnrolled);
+    localStorage.setItem('sf_enrolled_courses', JSON.stringify(updatedEnrolled));
+    
+    setPaymentCourse(null);
+    
+    // Auto-start after payment
+    if (onStartCourse) {
+      onStartCourse(course);
+    } else {
+      alert(`Enrolled and loading learning dashboard for "${course.title}"...`);
+    }
+  };
 
   const fetchCourses = async () => {
     try {
@@ -171,32 +191,107 @@ const Marketplace = ({ onStartCourse }) => {
                     </span>
                   </div>
 
-                  <div style={{ marginTop: '1.25rem', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ marginTop: '1.25rem', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                     <span className={`card-level ${level.toLowerCase()}`} style={{ margin: 0 }}>
                       {level}
                     </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onStartCourse) {
-                          onStartCourse(course);
-                        } else {
-                          alert(`Loading learning dashboard for "${course.title}"...`);
-                        }
-                      }}
-                      className={completedCourses.includes(course.id) ? "btn-success" : (course.id <= 3 ? "btn-primary" : "btn-secondary")}
-                      style={{ 
-                        padding: '0.45rem 1rem', 
-                        fontSize: '0.775rem', 
-                        borderRadius: '9999px', 
-                        cursor: 'pointer',
-                        backgroundColor: completedCourses.includes(course.id) ? '#22c55e' : undefined,
-                        color: completedCourses.includes(course.id) ? '#fff' : undefined,
-                        border: completedCourses.includes(course.id) ? 'none' : undefined
-                      }}
-                    >
-                      {completedCourses.includes(course.id) ? "Completed" : (course.id <= 3 ? "Continue Learning" : "Start Learning")}
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end', flex: 1 }}>
+                      {!enrolledCourses.includes(course.id) ? (
+                        <>
+                          {!expandedCourses.includes(course.id) ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedCourses(prev => [...prev, course.id]);
+                              }}
+                              style={{ 
+                                padding: '0.45rem 0.75rem', 
+                                fontSize: '0.775rem', 
+                                borderRadius: '9999px', 
+                                cursor: 'pointer',
+                                backgroundColor: '#f1f5f9',
+                                border: '1px solid #cbd5e1',
+                                color: '#334155'
+                              }}
+                            >
+                              Get Course
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const currentCart = JSON.parse(localStorage.getItem('sf_cart') || '[]');
+                                  if (!currentCart.find(c => c.id === course.id)) {
+                                    currentCart.push(course);
+                                    localStorage.setItem('sf_cart', JSON.stringify(currentCart));
+                                    window.dispatchEvent(new Event('cart_updated'));
+                                    alert(`"${course.title}" added to cart!`);
+                                  } else {
+                                    alert(`"${course.title}" is already in your cart.`);
+                                  }
+                                }}
+                                style={{ 
+                                  padding: '0.45rem 0.75rem', 
+                                  fontSize: '0.775rem', 
+                                  borderRadius: '9999px', 
+                                  cursor: 'pointer',
+                                  backgroundColor: '#f1f5f9',
+                                  border: '1px solid #cbd5e1',
+                                  color: '#334155'
+                                }}
+                              >
+                                Add to Cart
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onCheckout) {
+                                    onCheckout(course);
+                                  } else {
+                                    setPaymentCourse(course);
+                                  }
+                                }}
+                                style={{ 
+                                  padding: '0.45rem 0.75rem', 
+                                  fontSize: '0.775rem', 
+                                  borderRadius: '9999px', 
+                                  cursor: 'pointer',
+                                  backgroundColor: '#10b981',
+                                  color: 'white',
+                                  border: 'none'
+                                }}
+                              >
+                                Enroll Now
+                              </button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onStartCourse) {
+                              onStartCourse(course);
+                            } else {
+                              alert(`Loading learning dashboard for "${course.title}"...`);
+                            }
+                          }}
+                          className={completedCourses.includes(course.id) ? "btn-success" : (course.id <= 3 ? "btn-primary" : "btn-secondary")}
+                          style={{ 
+                            padding: '0.45rem 0.75rem', 
+                            fontSize: '0.775rem', 
+                            borderRadius: '9999px', 
+                            cursor: 'pointer',
+                            backgroundColor: completedCourses.includes(course.id) ? '#22c55e' : undefined,
+                            color: completedCourses.includes(course.id) ? '#fff' : undefined,
+                            border: completedCourses.includes(course.id) ? 'none' : undefined
+                          }}
+                        >
+                          {completedCourses.includes(course.id) ? "Completed" : (course.id <= 3 ? "Continue Learning" : "Start Learning")}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -204,7 +299,6 @@ const Marketplace = ({ onStartCourse }) => {
           })}
         </div>
       )}
-
     </div>
   );
 };

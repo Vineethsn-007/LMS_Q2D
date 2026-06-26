@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Bell } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Bell, ShoppingCart } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DashboardContent from './DashboardContent';
 import Marketplace from './Marketplace';
@@ -13,6 +13,8 @@ import AdminPanel from './AdminPanel';
 import ExpertProtectedRoute from '../ExpertProtectedRoute';
 import ExpertPanel from './ExpertPanel';
 import SettingsPanel from './SettingsPanel';
+import Cart from './Cart';
+import Checkout from './Checkout';
 import FeedbackPage from '../FeedbackPage';
 import './Dashboard.css';
 import './Marketplace.css';
@@ -31,6 +33,22 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           : 'dashboard'
   );
   const [activeCourse, setActiveCourse] = useState(null);
+  const [cartCourses, setCartCourses] = useState([]);
+  const [checkoutCourse, setCheckoutCourse] = useState(null);
+
+  useEffect(() => {
+    const updateCart = () => {
+      const savedCart = JSON.parse(localStorage.getItem('sf_cart') || '[]');
+      setCartCourses(savedCart);
+    };
+    updateCart();
+    window.addEventListener('storage', updateCart);
+    window.addEventListener('cart_updated', updateCart);
+    return () => {
+      window.removeEventListener('storage', updateCart);
+      window.removeEventListener('cart_updated', updateCart);
+    };
+  }, []);
 
   const handleStartCourse = (course) => {
     setActiveCourse(course);
@@ -58,10 +76,16 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
 
           <div className="header-actions">
             {user?.role !== 'admin' && (
-              <button className="action-btn">
-                <Bell size={20} />
-                <span className="notification-badge">3</span>
-              </button>
+              <>
+                <button className="action-btn" onClick={() => setActiveView('cart')}>
+                  <ShoppingCart size={20} />
+                  {cartCourses.length > 0 && <span className="notification-badge">{cartCourses.length}</span>}
+                </button>
+                <button className="action-btn">
+                  <Bell size={20} />
+                  <span className="notification-badge">3</span>
+                </button>
+              </>
             )}
             <div
               className="user-avatar"
@@ -87,10 +111,54 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             <DashboardContent user={user} onStartCourse={handleStartCourse} />
           )
         )}
-        {activeView === 'marketplace' && <Marketplace onStartCourse={handleStartCourse} />}
+        {activeView === 'marketplace' && (
+          <Marketplace 
+            onStartCourse={handleStartCourse} 
+            onCheckout={(course) => {
+              setCheckoutCourse(course);
+              setActiveView('checkout');
+            }} 
+          />
+        )}
         {activeView === 'mylearning' && <MyLearning course={activeCourse} onBack={() => setActiveView('dashboard')} />}
         {activeView === 'certifications' && <Certifications />}
         {activeView === 'community-voting' && <CommunityVoting />}
+        {activeView === 'cart' && (
+          <Cart 
+            onBack={() => setActiveView('marketplace')} 
+            onCheckout={(course) => {
+              setCheckoutCourse(course);
+              setActiveView('checkout');
+            }} 
+          />
+        )}
+        {activeView === 'checkout' && checkoutCourse && (
+          <Checkout
+            course={checkoutCourse}
+            onBack={() => setActiveView('marketplace')}
+            onSuccess={(course) => {
+              // Note: Success enrollment handled inside Cart/Marketplace or here.
+              // For a uniform approach, we can do enrollment here:
+              if (course.id === 'cart_checkout') {
+                const cartItems = JSON.parse(localStorage.getItem('sf_cart') || '[]');
+                const enrolled = JSON.parse(localStorage.getItem('sf_enrolled_courses') || '[]');
+                const newEnrolled = [...new Set([...enrolled, ...cartItems.map(c => c.id)])];
+                localStorage.setItem('sf_enrolled_courses', JSON.stringify(newEnrolled));
+                localStorage.removeItem('sf_cart');
+                window.dispatchEvent(new Event('cart_updated'));
+                alert('Payment successful! You are now enrolled in all courses.');
+                setActiveView('mylearning');
+              } else {
+                const enrolled = JSON.parse(localStorage.getItem('sf_enrolled_courses') || '[]');
+                if (!enrolled.includes(course.id)) {
+                  localStorage.setItem('sf_enrolled_courses', JSON.stringify([...enrolled, course.id]));
+                }
+                alert(`Payment successful! Loading learning dashboard for "${course.title}"...`);
+                handleStartCourse(course);
+              }
+            }}
+          />
+        )}
         {activeView === 'review-center' && (
           <ReviewerProtectedRoute user={user}>
             <ReviewCenter user={user} />
