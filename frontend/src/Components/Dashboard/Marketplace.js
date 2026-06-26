@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw } from 'lucide-react';
 import './Marketplace.css';
 
-const Marketplace = ({ onStartCourse, onCheckout }) => {
+const Marketplace = ({ onStartCourse, onCheckout, onGoToCart }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -11,15 +11,36 @@ const Marketplace = ({ onStartCourse, onCheckout }) => {
   const [selectedStatus, setSelectedStatus] = useState("All status");
   const [completedCourses, setCompletedCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [cartCourses, setCartCourses] = useState([]);
   const [expandedCourses, setExpandedCourses] = useState([]);
   const [paymentCourse, setPaymentCourse] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
 
   useEffect(() => {
     const savedCompleted = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
     setCompletedCourses(savedCompleted);
     const savedEnrolled = JSON.parse(localStorage.getItem('sf_enrolled_courses') || '[]');
     setEnrolledCourses(savedEnrolled);
+    
+    const updateCart = () => {
+      const savedCart = JSON.parse(localStorage.getItem('sf_cart') || '[]');
+      setCartCourses(savedCart);
+    };
+    updateCart();
+    window.addEventListener('storage', updateCart);
+    window.addEventListener('cart_updated', updateCart);
+    return () => {
+      window.removeEventListener('storage', updateCart);
+      window.removeEventListener('cart_updated', updateCart);
+    };
   }, []);
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
 
   const handlePaymentSuccess = (course) => {
     const updatedEnrolled = [...enrolledCourses, course.id];
@@ -32,7 +53,7 @@ const Marketplace = ({ onStartCourse, onCheckout }) => {
     if (onStartCourse) {
       onStartCourse(course);
     } else {
-      alert(`Enrolled and loading learning dashboard for "${course.title}"...`);
+      showToast(`Enrolled and loading learning dashboard for "${course.title}"...`);
     }
   };
 
@@ -218,31 +239,47 @@ const Marketplace = ({ onStartCourse, onCheckout }) => {
                             </button>
                           ) : (
                             <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const currentCart = JSON.parse(localStorage.getItem('sf_cart') || '[]');
-                                  if (!currentCart.find(c => c.id === course.id)) {
+                              {cartCourses.some(c => c.id === course.id) ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onGoToCart) onGoToCart();
+                                  }}
+                                  style={{ 
+                                    padding: '0.45rem 0.75rem', 
+                                    fontSize: '0.775rem', 
+                                    borderRadius: '9999px', 
+                                    cursor: 'pointer',
+                                    backgroundColor: '#2563eb',
+                                    border: '1px solid #1d4ed8',
+                                    color: 'white'
+                                  }}
+                                >
+                                  Go to Cart
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const currentCart = JSON.parse(localStorage.getItem('sf_cart') || '[]');
                                     currentCart.push(course);
                                     localStorage.setItem('sf_cart', JSON.stringify(currentCart));
                                     window.dispatchEvent(new Event('cart_updated'));
-                                    alert(`"${course.title}" added to cart!`);
-                                  } else {
-                                    alert(`"${course.title}" is already in your cart.`);
-                                  }
-                                }}
-                                style={{ 
-                                  padding: '0.45rem 0.75rem', 
-                                  fontSize: '0.775rem', 
-                                  borderRadius: '9999px', 
-                                  cursor: 'pointer',
-                                  backgroundColor: '#f1f5f9',
-                                  border: '1px solid #cbd5e1',
-                                  color: '#334155'
-                                }}
-                              >
-                                Add to Cart
-                              </button>
+                                    showToast(`"${course.title}" successfully added on cart!`);
+                                  }}
+                                  style={{ 
+                                    padding: '0.45rem 0.75rem', 
+                                    fontSize: '0.775rem', 
+                                    borderRadius: '9999px', 
+                                    cursor: 'pointer',
+                                    backgroundColor: '#f1f5f9',
+                                    border: '1px solid #cbd5e1',
+                                    color: '#334155'
+                                  }}
+                                >
+                                  Add to Cart
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -274,7 +311,7 @@ const Marketplace = ({ onStartCourse, onCheckout }) => {
                             if (onStartCourse) {
                               onStartCourse(course);
                             } else {
-                              alert(`Loading learning dashboard for "${course.title}"...`);
+                              showToast(`Loading learning dashboard for "${course.title}"...`);
                             }
                           }}
                           className={completedCourses.includes(course.id) ? "btn-success" : (course.id <= 3 ? "btn-primary" : "btn-secondary")}
@@ -297,6 +334,27 @@ const Marketplace = ({ onStartCourse, onCheckout }) => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          right: '2rem',
+          backgroundColor: '#0f172a',
+          color: 'white',
+          padding: '1rem 1.5rem',
+          borderRadius: '0.5rem',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          animation: 'slideUpFade 0.3s ease-out'
+        }}>
+          <CheckCircle2 size={18} color="#10b981" />
+          <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>{toastMessage}</span>
         </div>
       )}
     </div>
