@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import Header from './Components/Header';
-import Hero from './Components/Hero';
-import CoursesGrid from './Components/CoursesGrid';
-import ExpertsList from './Components/ExpertsList';
+import LandingHeader from './Components/Landing/LandingHeader';
+import LandingHero from './Components/Landing/LandingHero';
+import LandingMethodology from './Components/Landing/LandingMethodology';
+import LandingCourses from './Components/Landing/LandingCourses';
+import LandingTestimonials from './Components/Landing/LandingTestimonials';
 import Footer from './Components/Footer';
 import AuthModal from './Components/AuthModal';
 import Dashboard from './Components/Dashboard/Dashboard';
@@ -202,26 +203,24 @@ function App() {
         <Dashboard user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
       ) : (
         <>
-          <Header 
-            user={user} 
-            onLogout={handleLogout} 
+          <LandingHeader 
             onOpenAuth={() => setIsAuthOpen(true)}
-            activePage={activePage}
-            onNavigate={setActivePage}
           />
           
           <main style={{ flexGrow: 1 }}>
             {activePage === 'feedback' ? (
               <FeedbackPage user={user} onOpenAuth={() => setIsAuthOpen(true)} />
             ) : (
-              <>
-                <Hero 
+              <div className="bg-white font-sans text-slate-600 antialiased">
+                <LandingHero 
                   stats={stats} 
                   onStartFree={handleStartFree} 
                   onBrowseCourses={handleBrowseCourses} 
                 />
                 
-                <CoursesGrid 
+                <LandingMethodology />
+                
+                <LandingCourses 
                   courses={courses}
                   activeCategory={activeCategory}
                   setActiveCategory={setActiveCategory}
@@ -230,8 +229,8 @@ function App() {
                   onEnrollCourse={handleEnrollCourse}
                 />
                 
-                <ExpertsList experts={experts} />
-              </>
+                <LandingTestimonials />
+              </div>
             )}
           </main>
 

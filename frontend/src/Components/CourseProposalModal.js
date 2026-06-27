@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lightbulb, Send } from 'lucide-react';
+import { X, Lightbulb, Send, ChevronDown } from 'lucide-react';
 
 export default function CourseProposalModal({ isOpen, onClose, user }) {
   const [courseName, setCourseName] = useState('');
@@ -99,310 +99,165 @@ export default function CourseProposalModal({ isOpen, onClose, user }) {
   ];
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
-        <div style={styles.header}>
-          <div style={styles.titleContainer}>
-            <Lightbulb size={24} color="#0ea5e9" />
-            <h2 style={styles.title}>Suggest a Course</h2>
+    <div 
+      className="fixed inset-0 bg-navy-900/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+        <div className="flex justify-between items-start mb-8 gap-3">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 mb-1">
+              <Lightbulb size={24} className="text-blue-500" />
+              <h2 className="text-2xl font-bold text-navy-900">Suggest a Course</h2>
+            </div>
+            <p className="text-sm font-semibold text-slate-500">
+              What skill or technology do you want to learn next? Our AI will generate a tailored curriculum.
+            </p>
           </div>
-          <button onClick={onClose} style={styles.closeBtn}>
+          <button 
+            onClick={onClose} 
+            className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full flex items-center justify-center transition-colors shrink-0"
+          >
             <X size={20} />
           </button>
         </div>
 
         {error && (
-          <div style={styles.errorAlert}>
-            <span>{error}</span>
+          <div className="p-3 mb-6 bg-coral-50 border border-coral-200 text-coral-600 rounded-xl text-sm font-bold">
+            {error}
           </div>
         )}
 
         {submitted ? (
-          <div style={styles.successMessage}>
-            <div style={styles.successIconWrapper}>
-              <Send size={32} color="#10b981" />
+          <div className="flex flex-col items-center justify-center py-12 text-center animate-in zoom-in duration-300">
+            <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-6">
+              <Send size={36} className="ml-1" />
             </div>
-            <h3 style={styles.successTitle}>Thank You!</h3>
-            <p style={styles.successText}>We've received your suggestion and our AI will review it shortly.</p>
+            <h3 className="text-2xl font-bold text-navy-900 mb-2">Thank You!</h3>
+            <p className="text-slate-500 font-medium">We've received your suggestion and our AI will review it shortly.</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={styles.form}>
-            <p style={styles.subtitle}>
-              What skill or technology do you want to learn next? Our AI will generate a tailored curriculum.
-            </p>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Course Name <span style={{color: '#ef4444'}}>*</span></label>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-bold text-navy-900">Course Name <span className="text-coral">*</span></label>
               <input
                 type="text"
                 placeholder="e.g. Advanced Rust for Systems Programming"
                 value={courseName}
                 onChange={(e) => setCourseName(e.target.value)}
                 required
-                style={styles.input}
-                className="form-input"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all"
               />
             </div>
 
-            <div style={styles.row}>
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Reason to Learn <span style={{color: '#ef4444'}}>*</span></label>
-                <select 
-                  value={reasonToLearn} 
-                  onChange={(e) => setReasonToLearn(e.target.value)}
-                  style={styles.input}
-                  className="form-input"
-                >
-                  {reasons.map(r => <option key={r} value={r}>{r}</option>)}
-                </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="flex flex-col gap-2 relative">
+                <label className="text-sm font-bold text-navy-900">Reason to Learn <span className="text-coral">*</span></label>
+                <div className="relative">
+                  <select 
+                    value={reasonToLearn} 
+                    onChange={(e) => setReasonToLearn(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all appearance-none cursor-pointer"
+                  >
+                    {reasons.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
               </div>
 
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Skill Level <span style={{color: '#ef4444'}}>*</span></label>
-                <select 
-                  value={skillLevel} 
-                  onChange={(e) => setSkillLevel(e.target.value)}
-                  style={styles.input}
-                  className="form-input"
-                >
-                  <option value="Beginner">Beginner</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="Advanced">Advanced</option>
-                </select>
+              <div className="flex flex-col gap-2 relative">
+                <label className="text-sm font-bold text-navy-900">Skill Level <span className="text-coral">*</span></label>
+                <div className="relative">
+                  <select 
+                    value={skillLevel} 
+                    onChange={(e) => setSkillLevel(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                  <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
               </div>
             </div>
 
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Preferred Learning Style <span style={{color: '#ef4444'}}>*</span></label>
-              <div style={styles.checkboxGrid}>
+            <div className="flex flex-col gap-3">
+              <label className="text-sm font-bold text-navy-900">Preferred Learning Style <span className="text-coral">*</span></label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {learningStyles.map(style => (
-                  <label key={style} style={styles.checkboxLabel}>
-                    <input 
-                      type="checkbox" 
-                      checked={preferredStyle.includes(style)}
-                      onChange={() => handleStyleChange(style)}
-                      style={styles.checkbox}
-                    />
-                    {style}
+                  <label key={style} className="flex items-center gap-3 text-sm font-semibold text-slate-600 cursor-pointer group">
+                    <div className="relative flex items-center justify-center">
+                      <input 
+                        type="checkbox" 
+                        checked={preferredStyle.includes(style)}
+                        onChange={() => handleStyleChange(style)}
+                        className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded hover:border-navy checked:bg-navy checked:border-navy transition-colors cursor-pointer"
+                      />
+                      <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="group-hover:text-navy-900 transition-colors">{style}</span>
                   </label>
                 ))}
               </div>
             </div>
 
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Expected Outcome <span style={{color: '#ef4444'}}>*</span></label>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-bold text-navy-900">Expected Outcome <span className="text-coral">*</span></label>
               <textarea
                 placeholder="What do you want to achieve by the end of this course?"
                 value={expectedOutcome}
                 onChange={(e) => setExpectedOutcome(e.target.value)}
                 required
-                style={{ ...styles.input, minHeight: '80px', resize: 'vertical' }}
-                className="form-input"
+                rows={3}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all resize-y leading-relaxed"
               />
             </div>
 
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Additional Notes (Optional)</label>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-bold text-navy-900">Additional Notes <span className="text-slate-400 font-medium text-xs">(optional)</span></label>
               <textarea
                 placeholder="Any specific topics, libraries, or tools you'd like included?"
                 value={additionalNotes}
                 onChange={(e) => setAdditionalNotes(e.target.value)}
-                style={{ ...styles.input, minHeight: '60px', resize: 'vertical' }}
-                className="form-input"
+                rows={2}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all resize-y leading-relaxed"
               />
             </div>
 
-            <div style={styles.toggleGroup}>
-              <label style={styles.toggleLabel}>
-                <input 
-                  type="checkbox" 
-                  checked={publicVoting}
-                  onChange={(e) => setPublicVoting(e.target.checked)}
-                  style={styles.checkbox}
-                />
-                Allow public voting on this proposal
+            <div className="flex items-center gap-3 pt-2">
+              <label className="flex items-center gap-3 text-sm font-semibold text-slate-600 cursor-pointer group">
+                <div className="relative flex items-center justify-center">
+                  <input 
+                    type="checkbox" 
+                    checked={publicVoting}
+                    onChange={(e) => setPublicVoting(e.target.checked)}
+                    className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded hover:border-navy checked:bg-navy checked:border-navy transition-colors cursor-pointer"
+                  />
+                  <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="group-hover:text-navy-900 transition-colors">Allow public voting on this proposal</span>
               </label>
             </div>
 
-            <button type="submit" disabled={loading} style={styles.submitBtn} className="btn-primary">
-              <Send size={18} />
-              {loading ? 'Submitting...' : 'Submit Suggestion'}
-            </button>
+            <div className="pt-4 border-t border-slate-100 mt-2">
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full px-8 py-3.5 bg-navy hover:bg-navy-800 text-white font-bold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Send size={18} />
+                {loading ? 'Submitting...' : 'Submit Suggestion'}
+              </button>
+            </div>
           </form>
         )}
       </div>
     </div>
   );
 }
-
-const styles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(5, 7, 10, 0.85)',
-    backdropFilter: 'blur(8px)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-    padding: '1.5rem',
-  },
-  modal: {
-    width: '100%',
-    maxWidth: '600px',
-    maxHeight: '85vh',
-    overflowY: 'auto',
-    borderRadius: '1rem',
-    padding: '2rem',
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-    animation: 'modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '1rem',
-  },
-  titleContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-  },
-  title: {
-    fontSize: '1.5rem',
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  subtitle: {
-    fontSize: '0.875rem',
-    color: '#475569',
-    marginBottom: '1.5rem',
-    lineHeight: 1.5,
-  },
-  closeBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#64748b',
-    cursor: 'pointer',
-    padding: '0.25rem',
-    borderRadius: '50%',
-    transition: 'all 0.2s',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  errorAlert: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
-    color: '#ef4444',
-    padding: '0.75rem 1rem',
-    borderRadius: '0.5rem',
-    marginBottom: '1.25rem',
-    fontSize: '0.875rem',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.25rem',
-  },
-  row: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '1rem',
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-  },
-  label: {
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    color: '#475569',
-  },
-  input: {
-    width: '100%',
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
-    border: '1px solid #cbd5e1',
-    borderRadius: '0.5rem',
-    padding: '0.75rem 1rem',
-    fontSize: '0.875rem',
-    outline: 'none',
-  },
-  checkboxGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '0.5rem',
-  },
-  checkboxLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    fontSize: '0.875rem',
-    color: '#334155',
-    cursor: 'pointer',
-  },
-  checkbox: {
-    accentColor: '#0ea5e9',
-    width: '16px',
-    height: '16px',
-    cursor: 'pointer',
-  },
-  toggleGroup: {
-    marginTop: '0.5rem',
-  },
-  toggleLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    color: '#334155',
-    cursor: 'pointer',
-  },
-  submitBtn: {
-    marginTop: '1rem',
-    padding: '0.85rem',
-    fontSize: '1rem',
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-  },
-  successMessage: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '3rem 0',
-    textAlign: 'center',
-  },
-  successIconWrapper: {
-    width: '64px',
-    height: '64px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '1rem',
-  },
-  successTitle: {
-    fontSize: '1.5rem',
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: '0.5rem',
-  },
-  successText: {
-    color: '#475569',
-    fontSize: '1rem',
-  }
-};
