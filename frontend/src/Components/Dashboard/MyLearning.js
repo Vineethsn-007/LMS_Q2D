@@ -67,10 +67,10 @@ const MyLearning = ({ course, onBack }) => {
   };
   
   return (
-    <div className="mylearning-container" style={{ background: '#f8fafc', display: 'flex' }}>
+    <div className="flex h-full flex-1 w-full bg-slate-50 overflow-hidden">
       
       {/* Sidebar: Curriculum */}
-      <aside className="curriculum-sidebar" style={{ width: '320px', background: '#f8fafc', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+      <aside className="curriculum-sidebar" style={{ width: '320px', background: '#f8fafc', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         <div className="curriculum-header" style={{ padding: '2rem 1.5rem 1rem', borderBottom: '1px solid #e2e8f0' }}>
           <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', padding: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             ← Back to Courses

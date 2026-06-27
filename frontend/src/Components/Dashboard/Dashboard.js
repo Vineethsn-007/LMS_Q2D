@@ -85,7 +85,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   };
 
   return (
-    <div className="dashboard-container">
+    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-600">
       <Sidebar
         user={user}
         onLogout={onLogout}
@@ -93,39 +93,43 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         onViewChange={setActiveView}
       />
 
-      <main className="dashboard-main">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Dashboard Header */}
-        <header className="dashboard-header">
-          {user?.role !== 'admin' && (
-            <div className="header-search">
-              <Search size={18} color="#94a3b8" />
-              <input type="text" placeholder="Search courses, skills, experts..." />
+        <header className="h-20 bg-white/90 backdrop-blur-md border-b border-slate-200 px-8 flex items-center justify-between shrink-0 sticky top-0 z-40">
+          {user?.role !== 'admin' ? (
+            <div className="relative flex items-center w-full max-w-md">
+              <Search className="absolute left-3 text-slate-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search courses, skills, experts..." 
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-navy focus:ring-2 focus:ring-navy/20 transition-all outline-none"
+              />
             </div>
-          )}
+          ) : <div></div>}
 
-          <div className="header-actions">
+          <div className="flex items-center gap-4">
             {user?.role !== 'admin' && (
               <>
-                <button className="action-btn" onClick={() => setActiveView('cart')}>
+                <button className="relative p-2 text-slate-400 hover:text-navy transition-colors rounded-full hover:bg-slate-100" onClick={() => setActiveView('cart')}>
                   <ShoppingCart size={20} />
-                  {cartCourses.length > 0 && <span className="notification-badge">{cartCourses.length}</span>}
+                  {cartCourses.length > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-coral text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">{cartCourses.length}</span>}
                 </button>
-                <div style={{ position: 'relative' }}>
-                  <button className="action-btn" onClick={() => setShowNotifications(!showNotifications)}>
+                <div className="relative">
+                  <button className="relative p-2 text-slate-400 hover:text-navy transition-colors rounded-full hover:bg-slate-100" onClick={() => setShowNotifications(!showNotifications)}>
                     <Bell size={20} />
-                    {notifications.length > 0 && <span className="notification-badge">{notifications.length}</span>}
+                    {notifications.length > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-coral text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">{notifications.length}</span>}
                   </button>
                   {showNotifications && (
-                    <div style={{ position: 'absolute', top: '100%', right: 0, width: '300px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)', zIndex: 50, border: '1px solid #e2e8f0', marginTop: '0.5rem' }}>
-                      <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', fontWeight: '600', fontSize: '0.875rem' }}>Notifications</div>
-                      <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-slate-100 font-semibold text-navy-900 text-sm">Notifications</div>
+                      <div className="max-h-[300px] overflow-y-auto">
                         {notifications.length === 0 ? (
-                          <div style={{ padding: '1.5rem 1rem', textAlign: 'center', color: '#64748b', fontSize: '0.875rem' }}>No new notifications</div>
+                          <div className="p-6 text-center text-slate-500 text-sm">No new notifications</div>
                         ) : (
                           notifications.map(n => (
-                            <div key={n.id} style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9', fontSize: '0.875rem', cursor: 'pointer', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }} onClick={() => handleNotificationClick(n.id)}>
-                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6', marginTop: '0.25rem', flexShrink: 0 }}></div>
-                              <div style={{ lineHeight: '1.4' }}>{n.text}</div>
+                            <div key={n.id} className="p-4 border-b border-slate-50 text-sm cursor-pointer flex gap-3 items-start hover:bg-slate-50 transition-colors" onClick={() => handleNotificationClick(n.id)}>
+                              <div className="w-2 h-2 rounded-full bg-navy mt-1 shrink-0"></div>
+                              <div className="leading-relaxed text-slate-700">{n.text}</div>
                             </div>
                           ))
                         )}
@@ -136,8 +140,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
               </>
             )}
             <div
-              className="user-avatar"
-              style={{ width: '32px', height: '32px', cursor: 'pointer' }}
+              className="w-9 h-9 rounded-full bg-navy text-white flex items-center justify-center font-bold cursor-pointer hover:shadow-md transition-shadow ml-2"
               onClick={() => setActiveView('settings')}
             >
               {user?.name?.charAt(0) || 'A'}
@@ -146,9 +149,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         </header>
 
         {/* Dashboard Content Area */}
-        {activeView === 'dashboard' && <DashboardContent user={user} />}
-        {activeView === 'marketplace' && <Marketplace />}
-        {activeView === 'mylearning' && <MyLearning />}
+
         {activeView === 'ai-assistant' && <AIAssistant user={user} />}
 
         {activeView === 'dashboard' && (
