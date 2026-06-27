@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, AlertTriangle, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw, BarChart2, ArrowUp, ArrowDown, MessageSquare } from 'lucide-react';
+import { Sparkles, AlertTriangle, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw, BarChart2, ArrowUp, ArrowDown, MessageSquare, Award, Edit2, Save } from 'lucide-react';
 import './ReviewCenter.css';
 
 const ReviewCenter = ({ user }) => {
+  const [viewType, setViewType] = useState('proposals'); // 'proposals' or 'certificates'
   const [proposals, setProposals] = useState([]);
+  const [certificateIssues, setCertificateIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('pending');
@@ -12,6 +14,10 @@ const ReviewCenter = ({ user }) => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [reviewerFeedback, setReviewerFeedback] = useState('');
   const [rejecting, setRejecting] = useState(false);
+  
+  // States for inline editing certificate issues
+  const [editingIssueId, setEditingIssueId] = useState(null);
+  const [editForm, setEditForm] = useState({ learner_name: '', learner_email: '', course_name: '' });
 
   const rejectionReasonsList = [
     "Duplicate Course",
@@ -24,6 +30,18 @@ const ReviewCenter = ({ user }) => {
   ];
 
   const fetchProposals = async () => {
+    if (viewType === 'certificates') {
+      // Fetch from local storage for certificate issues
+      setLoading(true);
+      setTimeout(() => {
+        const issues = JSON.parse(localStorage.getItem('sf_certificate_issues') || '[]');
+        // Filter out resolved if we want, or just show all. We'll show all for now.
+        setCertificateIssues(issues);
+        setLoading(false);
+      }, 300); // Simulate network
+      return;
+    }
+
     setLoading(true);
     try {
       const token = localStorage.getItem('sf_token');
@@ -56,7 +74,7 @@ const ReviewCenter = ({ user }) => {
 
   useEffect(() => {
     fetchProposals();
-  }, [activeTab]);
+  }, [activeTab, viewType]);
 
   const handleStatusUpdate = async (id, newStatus, extraPayload = {}) => {
     try {
@@ -104,37 +122,84 @@ const ReviewCenter = ({ user }) => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const handleEditIssue = (issue) => {
+    setEditingIssueId(issue.id);
+    setEditForm({
+      learner_name: issue.learner_name,
+      learner_email: issue.learner_email,
+      course_name: issue.course_name
+    });
+  };
+
+  const handleSaveIssue = (id) => {
+    const issues = JSON.parse(localStorage.getItem('sf_certificate_issues') || '[]');
+    const updatedIssues = issues.map(issue => {
+      if (issue.id === id) {
+        return {
+          ...issue,
+          learner_name: editForm.learner_name,
+          learner_email: editForm.learner_email,
+          course_name: editForm.course_name,
+          status: 'resolved',
+          notified: false
+        };
+      }
+      return issue;
+    });
+    localStorage.setItem('sf_certificate_issues', JSON.stringify(updatedIssues));
+    setCertificateIssues(updatedIssues);
+    setEditingIssueId(null);
+  };
+
   return (
     <div className="review-center-container">
-      <div className="review-header">
-        <h2>Review Center</h2>
-        
-        <div className="review-tabs">
-          <button 
-            className={`review-tab ${activeTab === 'pending' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pending')}
-          >
-            Pending
-          </button>
-          <button 
-            className={`review-tab ${activeTab === 'ai_flagged' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ai_flagged')}
-          >
-            AI Flagged
-          </button>
-          <button 
-            className={`review-tab ${activeTab === 'approved' ? 'active' : ''}`}
-            onClick={() => setActiveTab('approved')}
-          >
-            Approved
-          </button>
-          <button 
-            className={`review-tab ${activeTab === 'rejected' ? 'active' : ''}`}
-            onClick={() => setActiveTab('rejected')}
-          >
-            Rejected
-          </button>
+      <div className="review-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+          <h2>Review Center</h2>
+          <div className="view-type-toggle">
+            <button 
+              className={`view-toggle-btn ${viewType === 'proposals' ? 'active' : ''}`}
+              onClick={() => setViewType('proposals')}
+            >
+              Course Proposals
+            </button>
+            <button 
+              className={`view-toggle-btn ${viewType === 'certificates' ? 'active' : ''}`}
+              onClick={() => setViewType('certificates')}
+            >
+              Certificate Issues
+            </button>
+          </div>
         </div>
+        
+        {viewType === 'proposals' && (
+          <div className="review-tabs">
+            <button 
+              className={`review-tab ${activeTab === 'pending' ? 'active' : ''}`}
+              onClick={() => setActiveTab('pending')}
+            >
+              Pending
+            </button>
+            <button 
+              className={`review-tab ${activeTab === 'ai_flagged' ? 'active' : ''}`}
+              onClick={() => setActiveTab('ai_flagged')}
+            >
+              AI Flagged
+            </button>
+            <button 
+              className={`review-tab ${activeTab === 'approved' ? 'active' : ''}`}
+              onClick={() => setActiveTab('approved')}
+            >
+              Approved
+            </button>
+            <button 
+              className={`review-tab ${activeTab === 'rejected' ? 'active' : ''}`}
+              onClick={() => setActiveTab('rejected')}
+            >
+              Rejected
+            </button>
+          </div>
+        )}
       </div>
 
       {error && <div style={{ color: '#ef4444', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>{error}</div>}
@@ -142,8 +207,101 @@ const ReviewCenter = ({ user }) => {
       {loading ? (
         <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
           <RefreshCw className="spin" size={32} style={{ margin: '0 auto 1rem', display: 'block' }} />
-          Loading proposals...
+          Loading...
         </div>
+      ) : viewType === 'certificates' ? (
+        certificateIssues.length === 0 ? (
+          <div style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '16px' }}>
+            <CheckCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+            <h3>No Certificate Issues!</h3>
+            <p>There are no reported issues with certificates.</p>
+          </div>
+        ) : (
+          <div className="proposals-grid">
+            {certificateIssues.map(issue => (
+              <div key={issue.id} className="proposal-card">
+                <div className="proposal-card-header">
+                  <div>
+                    <h3 className="proposal-card-title">Certificate Details Issue</h3>
+                    <div className="proposal-card-meta">
+                      <Award size={14} />
+                      <span>{issue.course_name}</span>
+                      <span>•</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={12}/> {formatDate(issue.created_at)}</span>
+                    </div>
+                  </div>
+                  <span className={`status-badge ${issue.status}`}>{issue.status}</span>
+                </div>
+                
+                <div style={{ padding: '1rem' }}>
+                  <p style={{ fontSize: '0.875rem', color: '#cbd5e1', marginBottom: '1rem', background: 'rgba(15, 23, 42, 0.5)', padding: '0.75rem', borderRadius: '6px' }}>
+                    <strong>Learner Note:</strong><br/>
+                    {issue.issue_description}
+                  </p>
+                  
+                  {editingIssueId === issue.id ? (
+                    <div className="edit-issue-form">
+                      <div className="rc-form-group">
+                        <label>Learner Name</label>
+                        <input 
+                          type="text" 
+                          className="rc-input" 
+                          value={editForm.learner_name}
+                          onChange={(e) => setEditForm({...editForm, learner_name: e.target.value})}
+                        />
+                      </div>
+                      <div className="rc-form-group">
+                        <label>Learner Email</label>
+                        <input 
+                          type="email" 
+                          className="rc-input" 
+                          value={editForm.learner_email}
+                          onChange={(e) => setEditForm({...editForm, learner_email: e.target.value})}
+                        />
+                      </div>
+                      <div className="rc-form-group">
+                        <label>Course Name</label>
+                        <input 
+                          type="text" 
+                          className="rc-input" 
+                          value={editForm.course_name}
+                          onChange={(e) => setEditForm({...editForm, course_name: e.target.value})}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                        <button className="action-btn-small btn-approve" onClick={() => handleSaveIssue(issue.id)} style={{ flex: 1, justifyContent: 'center' }}>
+                          <Save size={16} /> Save & Resolve
+                        </button>
+                        <button className="action-btn-small btn-reject" onClick={() => setEditingIssueId(null)} style={{ flex: 1, justifyContent: 'center' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.5rem', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                        <span style={{ color: '#94a3b8' }}>Learner:</span>
+                        <span>{issue.learner_name}</span>
+                        <span style={{ color: '#94a3b8' }}>Email:</span>
+                        <span>{issue.learner_email}</span>
+                        <span style={{ color: '#94a3b8' }}>Course:</span>
+                        <span>{issue.course_name}</span>
+                      </div>
+                      
+                      {issue.status !== 'resolved' && (
+                        <div className="proposal-actions">
+                          <button className="action-btn-small btn-changes" onClick={() => handleEditIssue(issue)} style={{ width: '100%', justifyContent: 'center' }}>
+                            <Edit2 size={16} /> Edit Details
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       ) : proposals.length === 0 ? (
         <div style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8', background: 'rgba(30, 41, 59, 0.4)', borderRadius: '16px' }}>
           <CheckCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />

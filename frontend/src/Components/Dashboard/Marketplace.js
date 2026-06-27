@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw } from 'lucide-react';
+import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw, Award } from 'lucide-react';
+import CertificateModal from './CertificateModal';
 import './Marketplace.css';
 
-const Marketplace = ({ onStartCourse, onCheckout, onGoToCart }) => {
+const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -14,7 +15,10 @@ const Marketplace = ({ onStartCourse, onCheckout, onGoToCart }) => {
   const [cartCourses, setCartCourses] = useState([]);
   const [expandedCourses, setExpandedCourses] = useState([]);
   const [paymentCourse, setPaymentCourse] = useState(null);
+  const [certificateCourse, setCertificateCourse] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+
+
 
   useEffect(() => {
     const savedCompleted = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
@@ -41,6 +45,8 @@ const Marketplace = ({ onStartCourse, onCheckout, onGoToCart }) => {
       setToastMessage(null);
     }, 3000);
   };
+
+
 
   const handlePaymentSuccess = (course) => {
     const updatedEnrolled = [...enrolledCourses, course.id];
@@ -308,7 +314,9 @@ const Marketplace = ({ onStartCourse, onCheckout, onGoToCart }) => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (onStartCourse) {
+                            if (completedCourses.includes(course.id)) {
+                              setCertificateCourse(course);
+                            } else if (onStartCourse) {
                               onStartCourse(course);
                             } else {
                               showToast(`Loading learning dashboard for "${course.title}"...`);
@@ -322,10 +330,17 @@ const Marketplace = ({ onStartCourse, onCheckout, onGoToCart }) => {
                             cursor: 'pointer',
                             backgroundColor: completedCourses.includes(course.id) ? '#22c55e' : undefined,
                             color: completedCourses.includes(course.id) ? '#fff' : undefined,
-                            border: completedCourses.includes(course.id) ? 'none' : undefined
+                            border: completedCourses.includes(course.id) ? 'none' : undefined,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.35rem'
                           }}
                         >
-                          {completedCourses.includes(course.id) ? "Completed" : (course.id <= 3 ? "Continue Learning" : "Start Learning")}
+                          {completedCourses.includes(course.id) ? (
+                            <>
+                              <Award size={14} /> Get Certificate
+                            </>
+                          ) : (course.id <= 3 ? "Continue Learning" : "Start Learning")}
                         </button>
                       )}
                     </div>
@@ -356,6 +371,15 @@ const Marketplace = ({ onStartCourse, onCheckout, onGoToCart }) => {
           <CheckCircle2 size={18} color="#10b981" />
           <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>{toastMessage}</span>
         </div>
+      )}
+
+      {certificateCourse && (
+        <CertificateModal 
+          user={user}
+          course={certificateCourse}
+          onClose={() => setCertificateCourse(null)}
+          onShowToast={showToast}
+        />
       )}
     </div>
   );

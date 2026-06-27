@@ -36,6 +36,8 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [activeCourse, setActiveCourse] = useState(null);
   const [cartCourses, setCartCourses] = useState([]);
   const [checkoutCourse, setCheckoutCourse] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const updateCart = () => {
@@ -50,6 +52,32 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
       window.removeEventListener('cart_updated', updateCart);
     };
   }, []);
+
+  useEffect(() => {
+    const updateNotifications = () => {
+      const issues = JSON.parse(localStorage.getItem('sf_certificate_issues') || '[]');
+      const userEmail = user?.email || 'learner@example.com';
+      const unnotifiedIssues = issues.filter(i => i.original_email === userEmail && i.status === 'resolved' && i.notified === false);
+      setNotifications(unnotifiedIssues.map(issue => ({
+        id: issue.id,
+        text: `Your certificate issue for "${issue.course_name}" has been resolved!`
+      })));
+    };
+    updateNotifications();
+    window.addEventListener('storage', updateNotifications);
+    window.addEventListener('certificate_issue_updated', updateNotifications);
+    return () => {
+      window.removeEventListener('storage', updateNotifications);
+      window.removeEventListener('certificate_issue_updated', updateNotifications);
+    };
+  }, [user]);
+
+  const handleNotificationClick = (id) => {
+    const issues = JSON.parse(localStorage.getItem('sf_certificate_issues') || '[]');
+    const updatedIssues = issues.map(i => i.id === id ? { ...i, notified: true } : i);
+    localStorage.setItem('sf_certificate_issues', JSON.stringify(updatedIssues));
+    window.dispatchEvent(new Event('certificate_issue_updated'));
+  };
 
   const handleStartCourse = (course) => {
     setActiveCourse(course);
@@ -82,10 +110,29 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
                   <ShoppingCart size={20} />
                   {cartCourses.length > 0 && <span className="notification-badge">{cartCourses.length}</span>}
                 </button>
-                <button className="action-btn">
-                  <Bell size={20} />
-                  <span className="notification-badge">3</span>
-                </button>
+                <div style={{ position: 'relative' }}>
+                  <button className="action-btn" onClick={() => setShowNotifications(!showNotifications)}>
+                    <Bell size={20} />
+                    {notifications.length > 0 && <span className="notification-badge">{notifications.length}</span>}
+                  </button>
+                  {showNotifications && (
+                    <div style={{ position: 'absolute', top: '100%', right: 0, width: '300px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)', zIndex: 50, border: '1px solid #e2e8f0', marginTop: '0.5rem' }}>
+                      <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', fontWeight: '600', fontSize: '0.875rem' }}>Notifications</div>
+                      <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                        {notifications.length === 0 ? (
+                          <div style={{ padding: '1.5rem 1rem', textAlign: 'center', color: '#64748b', fontSize: '0.875rem' }}>No new notifications</div>
+                        ) : (
+                          notifications.map(n => (
+                            <div key={n.id} style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9', fontSize: '0.875rem', cursor: 'pointer', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }} onClick={() => handleNotificationClick(n.id)}>
+                              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6', marginTop: '0.25rem', flexShrink: 0 }}></div>
+                              <div style={{ lineHeight: '1.4' }}>{n.text}</div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </>
             )}
             <div
@@ -119,6 +166,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         )}
         {activeView === 'marketplace' && (
           <Marketplace 
+            user={user}
             onStartCourse={handleStartCourse} 
             onCheckout={(course) => {
               setCheckoutCourse(course);
