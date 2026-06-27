@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users, Trash2, Edit, Plus, Shield, RefreshCw, X, ShieldAlert, Check
+  Users, Trash2, Edit, Plus, Shield, RefreshCw, X, ShieldAlert, Check, Mail
 } from 'lucide-react';
 
 export default function AdminPanel({ user }) {
@@ -10,6 +10,7 @@ export default function AdminPanel({ user }) {
 
   // Data lists
   const [usersList, setUsersList] = useState([]);
+  const [subscribersList, setSubscribersList] = useState([]);
 
   // Modals & form state
   const [isUserRoleModalOpen, setIsUserRoleModalOpen] = useState(false);
@@ -49,10 +50,24 @@ export default function AdminPanel({ user }) {
     }
   };
 
+  const fetchSubscribers = async () => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/subscribers`, { headers });
+      if (!res.ok) {
+        throw new Error('Failed to fetch subscribers');
+      }
+      const data = await res.json();
+      setSubscribersList(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
     if (activeTab === 'users') await fetchUsers();
+    if (activeTab === 'subscribers') await fetchSubscribers();
     setLoading(false);
   };
 
@@ -149,6 +164,12 @@ export default function AdminPanel({ user }) {
               onClick={() => setActiveTab('users')}
             >
               <Users size={16} /> Users Management
+            </button>
+            <button 
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'subscribers' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy'}`}
+              onClick={() => setActiveTab('subscribers')}
+            >
+              <Mail size={16} /> Subscribers
             </button>
           </div>
         </div>
@@ -288,6 +309,36 @@ export default function AdminPanel({ user }) {
                     </div>
                   </div>
                 </>
+              )}
+
+              {activeTab === 'subscribers' && (
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-lg font-bold text-navy-900 px-2">Newsletter Subscribers</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Email</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Subscribed At</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subscribersList.length === 0 ? (
+                          <tr>
+                            <td colSpan="2" className="px-4 py-8 text-center text-slate-500 font-medium">No subscribers yet.</td>
+                          </tr>
+                        ) : (
+                          subscribersList.map(sub => (
+                            <tr key={sub.id} className="hover:bg-slate-50 transition-colors group">
+                              <td className="px-4 py-4 text-sm font-bold text-navy-900 border-b border-slate-50">{sub.email}</td>
+                              <td className="px-4 py-4 text-sm text-slate-500 border-b border-slate-50">{new Date(sub.created_at).toLocaleString()}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </div>
           )}

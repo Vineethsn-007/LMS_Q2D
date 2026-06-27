@@ -36,9 +36,13 @@ const PaymentModal = ({ course, onClose, onSuccess }) => {
         <div className="payment-modal-body">
           <div className="course-summary">
             <img 
-              src={course.image_url?.startsWith('http') ? course.image_url : process.env.REACT_APP_API_URL + course.image_url} 
+              src={course.image_url ? (course.image_url.startsWith('http') ? course.image_url : `${process.env.REACT_APP_API_URL || ''}${course.image_url}`) : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
               alt={course.title} 
               className="course-summary-img"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+              }}
             />
             <div className="course-summary-info">
               <h3>{course.title}</h3>

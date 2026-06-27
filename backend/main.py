@@ -785,3 +785,25 @@ def mark_helpful(
     fb.helpful_count += 1
     db.commit()
     return {"helpful_count": fb.helpful_count}
+
+@app.post("/api/subscribe", response_model=schemas.SubscriberResponse, status_code=status.HTTP_201_CREATED)
+def subscribe(
+    subscriber_in: schemas.SubscriberCreate,
+    db: Session = Depends(get_db)
+):
+    existing = db.query(models.Subscriber).filter(models.Subscriber.email == subscriber_in.email).first()
+    if existing:
+        return existing
+    
+    new_sub = models.Subscriber(email=subscriber_in.email)
+    db.add(new_sub)
+    db.commit()
+    db.refresh(new_sub)
+    return new_sub
+
+@app.get("/api/admin/subscribers", response_model=List[schemas.SubscriberResponse])
+def get_subscribers(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(verifyAdminRole)
+):
+    return db.query(models.Subscriber).order_by(models.Subscriber.created_at.desc()).all()

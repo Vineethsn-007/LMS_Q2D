@@ -220,3 +220,14 @@ class CourseFeedbackResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class SubscriberCreate(BaseModel):
+    email: str
+
+class SubscriberResponse(BaseModel):
+    id: int
+    email: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True

@@ -197,7 +197,15 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart }) => {
                     {status}
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-navy-900/60 to-transparent z-0"></div>
-                  <img src={course.image_url?.startsWith('http') ? course.image_url : process.env.REACT_APP_API_URL + course.image_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img 
+                    src={course.image_url ? (course.image_url.startsWith('http') ? course.image_url : `${process.env.REACT_APP_API_URL || ''}${course.image_url}`) : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
+                    alt={course.title} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+                    }}
+                  />
                   
                   <div className="absolute bottom-4 left-4 z-10">
                      <span className="px-2.5 py-1 bg-white/20 backdrop-blur-md border border-white/20 rounded-md text-xs font-bold text-white">

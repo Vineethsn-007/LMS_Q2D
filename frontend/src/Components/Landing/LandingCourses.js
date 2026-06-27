@@ -55,7 +55,15 @@ const LandingCourses = ({ courses, activeCategory, setActiveCategory, searchQuer
                     Expert Validated
                   </span>
                 )}
-                <img src={course.image_url} alt={course.title} className="w-full h-full object-cover" />
+                <img 
+                  src={course.image_url ? (course.image_url.startsWith('http') ? course.image_url : `${process.env.REACT_APP_API_URL || ''}${course.image_url}`) : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
+                  alt={course.title} 
+                  className="w-full h-full object-cover" 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+                  }}
+                />
               </div>
               <div className="p-6 flex-1 flex flex-col">
                 <h3 className="text-xl font-semibold text-navy-900 mb-2 tracking-tight">{course.title}</h3>

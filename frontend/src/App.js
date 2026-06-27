@@ -10,7 +10,7 @@ import AuthModal from './Components/AuthModal';
 import Dashboard from './Components/Dashboard/Dashboard';
 import CourseProposalModal from './Components/CourseProposalModal';
 import FeedbackPage from './Components/FeedbackPage';
-
+import FAQPage from './Components/FAQPage';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -205,11 +205,15 @@ function App() {
         <>
           <LandingHeader 
             onOpenAuth={() => setIsAuthOpen(true)}
+            setActivePage={setActivePage}
+            activePage={activePage}
           />
           
           <main style={{ flexGrow: 1 }}>
             {activePage === 'feedback' ? (
               <FeedbackPage user={user} onOpenAuth={() => setIsAuthOpen(true)} />
+            ) : activePage === 'faq' ? (
+              <FAQPage />
             ) : (
               <div className="bg-white font-sans text-slate-600 antialiased">
                 <LandingHero 
@@ -234,7 +238,7 @@ function App() {
             )}
           </main>
 
-          <Footer />
+          <Footer setActivePage={setActivePage} />
         </>
       )}
 

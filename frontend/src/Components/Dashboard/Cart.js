@@ -93,9 +93,13 @@ const Cart = ({ onBack, onCheckoutSuccess, onCheckout }) => {
                 <div key={course.id} className="flex flex-col sm:flex-row gap-6 p-6 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors group">
                   <div className="w-full sm:w-40 h-28 shrink-0 rounded-xl overflow-hidden shadow-sm border border-slate-100">
                     <img 
-                      src={course.image_url?.startsWith('http') ? course.image_url : process.env.REACT_APP_API_URL + course.image_url} 
+                      src={course.image_url ? (course.image_url.startsWith('http') ? course.image_url : `${process.env.REACT_APP_API_URL || ''}${course.image_url}`) : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
                       alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+                      }}
                     />
                   </div>
                   <div className="flex-1 flex flex-col justify-center">
