@@ -7,14 +7,18 @@ import ExpertsList from './Components/ExpertsList';
 import Footer from './Components/Footer';
 import AuthModal from './Components/AuthModal';
 import Dashboard from './Components/Dashboard/Dashboard';
-import CourseSuggestionOrb from './Components/CourseSuggestionOrb';
+import CourseProposalModal from './Components/CourseProposalModal';
+import FeedbackPage from './Components/FeedbackPage';
+
 
 function App() {
   const [user, setUser] = useState(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isProposalOpen, setIsProposalOpen] = useState(false);
   const [stats, setStats] = useState([]);
   const [courses, setCourses] = useState([]);
   const [experts, setExperts] = useState([]);
+  const [activePage, setActivePage] = useState('home');
   
   // Search & Filter State
   const [activeCategory, setActiveCategory] = useState('All');
@@ -24,13 +28,13 @@ function App() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const statsRes = await fetch(`${process.env.REACT_APP_API_URL }/api/stats`);
+        const statsRes = await fetch(`${process.env.REACT_APP_API_URL}/api/stats`);
         if (statsRes.ok) {
           const statsData = await statsRes.json();
           setStats(statsData);
         }
 
-        const expertsRes = await fetch(`${process.env.REACT_APP_API_URL }/api/experts`);
+        const expertsRes = await fetch(`${process.env.REACT_APP_API_URL}/api/experts`);
         if (expertsRes.ok) {
           const expertsData = await expertsRes.json();
           setExperts(expertsData);
@@ -55,7 +59,7 @@ function App() {
           queryParams.append('search', searchQuery);
         }
 
-        const url = `${process.env.REACT_APP_API_URL }/api/courses?${queryParams.toString()}`;
+        const url = `${process.env.REACT_APP_API_URL}/api/courses?${queryParams.toString()}`;
         const res = await fetch(url);
         if (res.ok) {
           const coursesData = await res.json();
@@ -160,6 +164,11 @@ function App() {
     localStorage.removeItem('sf_user');
   };
 
+  const handleUserUpdate = (newUserData) => {
+    setUser(newUserData);
+    localStorage.setItem('sf_user', JSON.stringify(newUserData));
+  };
+
   const handleEnrollCourse = (course) => {
     if (!user) {
       // Prompt user to sign in before enrolling
@@ -190,32 +199,40 @@ function App() {
   return (
     <div className="App skillforge-gradient-bg">
       {user ? (
-        <Dashboard user={user} onLogout={handleLogout} />
+        <Dashboard user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
       ) : (
         <>
           <Header 
             user={user} 
             onLogout={handleLogout} 
-            onOpenAuth={() => setIsAuthOpen(true)} 
+            onOpenAuth={() => setIsAuthOpen(true)}
+            activePage={activePage}
+            onNavigate={setActivePage}
           />
           
           <main style={{ flexGrow: 1 }}>
-            <Hero 
-              stats={stats} 
-              onStartFree={handleStartFree} 
-              onBrowseCourses={handleBrowseCourses} 
-            />
-            
-            <CoursesGrid 
-              courses={courses}
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              onEnrollCourse={handleEnrollCourse}
-            />
-            
-            <ExpertsList experts={experts} />
+            {activePage === 'feedback' ? (
+              <FeedbackPage user={user} onOpenAuth={() => setIsAuthOpen(true)} />
+            ) : (
+              <>
+                <Hero 
+                  stats={stats} 
+                  onStartFree={handleStartFree} 
+                  onBrowseCourses={handleBrowseCourses} 
+                />
+                
+                <CoursesGrid 
+                  courses={courses}
+                  activeCategory={activeCategory}
+                  setActiveCategory={setActiveCategory}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  onEnrollCourse={handleEnrollCourse}
+                />
+                
+                <ExpertsList experts={experts} />
+              </>
+            )}
           </main>
 
           <Footer />
@@ -227,7 +244,24 @@ function App() {
         onClose={() => setIsAuthOpen(false)} 
         onAuthSuccess={handleAuthSuccess}
       />
-      <CourseSuggestionOrb user={user} />
+
+      {user?.role !== 'admin' && user?.role !== 'reviewer' && user?.role !== 'expert' && (
+        <>
+          <button 
+            className="course-request-tag"
+            onClick={() => setIsProposalOpen(true)}
+            aria-label="Suggest a Course"
+          >
+            <span>Suggest a Course</span>
+          </button>
+
+          <CourseProposalModal 
+            isOpen={isProposalOpen} 
+            onClose={() => setIsProposalOpen(false)} 
+            user={user}
+          />
+        </>
+      )}
     </div>
   );
 }

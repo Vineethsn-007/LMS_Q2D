@@ -84,3 +84,58 @@ def verifyReviewerRole(token: str = Depends(oauth2_scheme), db: Session = Depend
         raise access_denied_exception
         
     return user
+
+def verifyAdminRole(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    access_denied_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access Denied: Admin role required",
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except jwt.PyJWTError:
+        raise credentials_exception
+        
+    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+    if user is None:
+        raise credentials_exception
+        
+    if user.role != "admin":
+        raise access_denied_exception
+        
+    return user
+
+def verifyExpertRole(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    access_denied_exception = HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Access Denied: Expert role required",
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except jwt.PyJWTError:
+        raise credentials_exception
+        
+    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+    if user is None:
+        raise credentials_exception
+        
+    if user.role not in ["expert", "admin"]:
+        raise access_denied_exception
+        
+    return user
+

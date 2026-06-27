@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 
 class UserCreate(BaseModel):
@@ -7,9 +8,24 @@ class UserCreate(BaseModel):
     name: str
     password: str
 
+class UserCreateByAdmin(BaseModel):
+    email: EmailStr
+    name: str
+    password: str
+    role: str
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class UserGoogleLogin(BaseModel):
+    id_token: str
+
+class UserUpdate(BaseModel):
+    email: EmailStr
+    name: str
+    weekly_goal_hours: float
+    password: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: int
@@ -17,6 +33,10 @@ class UserResponse(BaseModel):
     name: str
     is_active: bool
     role: str
+    streak: Optional[int] = 0
+    xp_points: Optional[int] = 0
+    weekly_goal_hours: Optional[float] = 8.0
+    weekly_progress_hours: Optional[float] = 0.0
 
     class Config:
         orm_mode = True
@@ -32,6 +52,7 @@ class CourseResponse(BaseModel):
     is_ai_generated: bool
     is_expert_validated: bool
     image_url: Optional[str] = None
+    modules_data: Optional[List[Any]] = None
 
     class Config:
         orm_mode = True
@@ -144,3 +165,58 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
 
+class RoleUpdate(BaseModel):
+    role: str
+
+class CourseCreateUpdate(BaseModel):
+    title: str
+    description: str
+    category: str
+    rating: float
+    students_count: int
+    hours: int
+    is_ai_generated: bool
+    is_expert_validated: bool
+    image_url: Optional[str] = None
+    modules_data: Optional[List[Any]] = None
+
+class CourseMaterialCreate(BaseModel):
+    title: str
+    type: str  # 'video', 'text', 'pdf', 'image'
+    content_url: Optional[str] = None
+    text_content: Optional[str] = None
+
+class CourseMaterialsUpdate(BaseModel):
+    video_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    image_url: Optional[str] = None
+    text_content: Optional[str] = None
+
+class CourseMaterialResponse(CourseMaterialCreate):
+    id: int
+    course_id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# --- Course Feedback ---
+class CourseFeedbackCreate(BaseModel):
+    course_id: int
+    rating: int          # 1-5
+    title: Optional[str] = None
+    comment: str
+
+class CourseFeedbackResponse(BaseModel):
+    id: int
+    course_id: int
+    user_id: Optional[int] = None
+    user_name: str
+    rating: int
+    title: Optional[str] = None
+    comment: str
+    helpful_count: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True

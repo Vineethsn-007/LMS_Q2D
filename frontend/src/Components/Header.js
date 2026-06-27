@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X, LogOut, User as UserIcon } from 'lucide-react';
 import logoImg from '../logo.png';
 
-export default function Header({ user, onLogout, onOpenAuth }) {
+export default function Header({ user, onLogout, onOpenAuth, activePage, onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -29,8 +29,8 @@ export default function Header({ user, onLogout, onOpenAuth }) {
   return (
     <header style={{
       ...styles.header,
-      backgroundColor: scrolled ? 'rgba(7, 9, 14, 0.85)' : 'rgba(7, 9, 14, 0.4)',
-      borderBottomColor: scrolled ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)',
+      backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.85)' : 'rgba(250, 247, 242, 0.4)',
+      borderBottomColor: scrolled ? 'rgba(0, 0, 0, 0.08)' : 'rgba(0, 0, 0, 0.03)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
     }}>
@@ -45,10 +45,23 @@ export default function Header({ user, onLogout, onOpenAuth }) {
 
         {/* Desktop Nav Links */}
         <nav style={styles.desktopNav}>
-          <button onClick={() => scrollToSection('courses')} style={styles.navLink}>Courses</button>
-          <a href="#teams" style={styles.navLink}>For Teams</a>
-          <button onClick={() => scrollToSection('experts')} style={styles.navLink}>Experts</button>
-          <a href="#pricing" style={styles.navLink}>Pricing</a>
+          <button
+            onClick={() => { onNavigate && onNavigate('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            style={{ ...styles.navLink, ...(activePage === 'home' || !activePage ? styles.navLinkActive : {}) }}
+          >Home</button>
+          <button
+            onClick={() => { onNavigate && onNavigate('home'); setTimeout(() => { const el = document.getElementById('courses'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); }}
+            style={styles.navLink}
+          >Courses</button>
+          <button
+            onClick={() => { onNavigate && onNavigate('home'); setTimeout(() => { const el = document.getElementById('experts'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50); }}
+            style={styles.navLink}
+          >Experts</button>
+          <button
+            onClick={() => { setIsOpen(false); onNavigate && onNavigate('feedback'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            style={{ ...styles.navLink, ...(activePage === 'feedback' ? styles.navLinkActive : {}) }}
+            id="nav-feedback-link"
+          >Feedback</button>
         </nav>
 
         {/* Desktop Auth */}
@@ -83,10 +96,10 @@ export default function Header({ user, onLogout, onOpenAuth }) {
       {isOpen && (
         <div style={styles.mobileDrawer} className="glass">
           <nav style={styles.mobileNav}>
-            <button onClick={() => scrollToSection('courses')} style={styles.mobileNavLink}>Courses</button>
-            <a href="#teams" onClick={() => setIsOpen(false)} style={styles.mobileNavLink}>For Teams</a>
-            <button onClick={() => scrollToSection('experts')} style={styles.mobileNavLink}>Experts</button>
-            <a href="#pricing" onClick={() => setIsOpen(false)} style={styles.mobileNavLink}>Pricing</a>
+            <button onClick={() => { setIsOpen(false); onNavigate && onNavigate('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ ...styles.mobileNavLink, ...(activePage === 'home' || !activePage ? styles.mobileNavLinkActive : {}) }}>Home</button>
+            <button onClick={() => { setIsOpen(false); onNavigate && onNavigate('home'); setTimeout(() => { const el = document.getElementById('courses'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 50); }} style={styles.mobileNavLink}>Courses</button>
+            <button onClick={() => { setIsOpen(false); onNavigate && onNavigate('home'); setTimeout(() => { const el = document.getElementById('experts'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 50); }} style={styles.mobileNavLink}>Experts</button>
+            <button onClick={() => { setIsOpen(false); onNavigate && onNavigate('feedback'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ ...styles.mobileNavLink, ...(activePage === 'feedback' ? styles.mobileNavLinkActive : {}) }} id="mobile-nav-feedback-link">Feedback</button>
             <hr style={styles.divider} />
             {user ? (
               <div style={styles.mobileUserInfo}>
@@ -146,7 +159,7 @@ const styles = {
     fontFamily: "var(--font-heading)",
     fontSize: '1.25rem',
     fontWeight: '800',
-    color: '#fff',
+    color: '#0f172a',
     letterSpacing: '-0.02em',
   },
   desktopNav: {
@@ -163,6 +176,10 @@ const styles = {
     cursor: 'pointer',
     textDecoration: 'none',
     transition: 'color var(--transition-fast)',
+  },
+  navLinkActive: {
+    color: 'var(--color-accent-blue)',
+    fontWeight: '600',
   },
   // We handle hover style dynamically or simple styles.
   desktopAuth: {
@@ -204,7 +221,7 @@ const styles = {
   userName: {
     fontSize: '0.875rem',
     fontWeight: '600',
-    color: '#fff',
+    color: '#0f172a',
   },
   logoutBtn: {
     background: 'none',
@@ -221,7 +238,7 @@ const styles = {
   menuBtn: {
     background: 'none',
     border: 'none',
-    color: '#fff',
+    color: '#0f172a',
     cursor: 'pointer',
     display: 'none',
   },
@@ -248,6 +265,10 @@ const styles = {
     fontWeight: '500',
     cursor: 'pointer',
     textDecoration: 'none',
+  },
+  mobileNavLinkActive: {
+    color: 'var(--color-accent-blue)',
+    fontWeight: '700',
   },
   divider: {
     border: 'none',

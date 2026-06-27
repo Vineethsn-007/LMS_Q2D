@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, JSON
 from sqlalchemy.sql import func
 from database import Base
 
@@ -11,6 +11,10 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="learner")
     is_active = Column(Boolean, default=True)
+    streak = Column(Integer, default=0)
+    xp_points = Column(Integer, default=0)
+    weekly_goal_hours = Column(Float, default=8.0)
+    weekly_progress_hours = Column(Float, default=0.0)
 
 class Course(Base):
     __tablename__ = "courses"
@@ -25,6 +29,7 @@ class Course(Base):
     is_ai_generated = Column(Boolean, default=True)
     is_expert_validated = Column(Boolean, default=True)
     image_url = Column(String, nullable=True)
+    modules_data = Column(JSON, nullable=True)
 
 class Expert(Base):
     __tablename__ = "experts"
@@ -105,3 +110,28 @@ class ProposalComment(Base):
     content = Column(Text, nullable=False)
     likes = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class CourseFeedback(Base):
+    __tablename__ = "course_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, index=True, nullable=False)
+    user_id = Column(Integer, index=True, nullable=True)   # nullable for anonymous
+    user_name = Column(String, nullable=False)
+    rating = Column(Integer, nullable=False)               # 1-5 stars
+    title = Column(String, nullable=True)
+    comment = Column(Text, nullable=False)
+    helpful_count = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class CourseMaterial(Base):
+    __tablename__ = "course_materials"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, index=True, nullable=False)
+    title = Column(String, nullable=False)
+    type = Column(String, nullable=False)  # 'video', 'text', 'pdf', 'image'
+    content_url = Column(String, nullable=True)
+    text_content = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+

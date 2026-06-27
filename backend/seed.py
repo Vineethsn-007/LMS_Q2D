@@ -1,4 +1,5 @@
 import logging
+import hashlib
 from database import SessionLocal, engine, Base
 from models import Course, Expert, Stat, User
 
@@ -14,9 +15,64 @@ def seed_db():
     try:
         # Clear existing data to avoid duplicates
         logger.info("Cleaning up existing records...")
+        db.query(User).delete()
         db.query(Course).delete()
         db.query(Expert).delete()
         db.query(Stat).delete()
+        
+        # 0. Seed Users
+        logger.info("Seeding users...")
+        admin_pwd = hashlib.sha256("admin123".encode()).hexdigest()
+        reviewer_pwd = hashlib.sha256("reviewer123".encode()).hexdigest()
+        expert_pwd = hashlib.sha256("expert123".encode()).hexdigest()
+        learner_pwd = hashlib.sha256("learner123".encode()).hexdigest()
+        users = [
+            User(
+                email="admin@skillforge.com",
+                name="Admin User",
+                hashed_password=admin_pwd,
+                role="admin",
+                is_active=True,
+                streak=5,
+                xp_points=1200,
+                weekly_goal_hours=10.0,
+                weekly_progress_hours=4.5
+            ),
+            User(
+                email="reviewer@skillforge.com",
+                name="Reviewer User",
+                hashed_password=reviewer_pwd,
+                role="reviewer",
+                is_active=True,
+                streak=8,
+                xp_points=1800,
+                weekly_goal_hours=8.0,
+                weekly_progress_hours=5.0
+            ),
+            User(
+                email="expert@skillforge.com",
+                name="Expert User",
+                hashed_password=expert_pwd,
+                role="expert",
+                is_active=True,
+                streak=15,
+                xp_points=3500,
+                weekly_goal_hours=12.0,
+                weekly_progress_hours=8.5
+            ),
+            User(
+                email="learner@skillforge.com",
+                name="Alex Learner",
+                hashed_password=learner_pwd,
+                role="learner",
+                is_active=True,
+                streak=12,
+                xp_points=2840,
+                weekly_goal_hours=8.0,
+                weekly_progress_hours=6.5
+            )
+        ]
+        db.add_all(users)
         
         # 1. Seed Stats
         logger.info("Seeding statistics...")
@@ -126,6 +182,7 @@ def seed_db():
             )
         ]
         db.add_all(courses)
+        
         db.commit()
         logger.info("Successfully seeded database with sample data!")
     except Exception as e:

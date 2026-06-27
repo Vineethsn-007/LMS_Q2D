@@ -1,0 +1,269 @@
+.cart-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 100%;
+  overflow-y: auto;
+  background-color: #f1f3f6; /* Flipkart background color */
+}
+
+.cart-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.cart-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #212121;
+  margin: 0;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: #2874f0; /* Flipkart blue */
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.back-btn:hover {
+  text-decoration: underline;
+}
+
+/* Empty Cart */
+.empty-cart {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh;
+}
+
+.empty-cart-content {
+  background: white;
+  padding: 3rem;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 100%;
+  max-width: 800px;
+}
+
+.empty-cart-img {
+  width: 250px;
+  margin-bottom: 1.5rem;
+}
+
+.empty-cart-content h2 {
+  font-size: 1.25rem;
+  color: #000;
+  margin-bottom: 0.5rem;
+}
+
+.empty-cart-content p {
+  color: #878787;
+  font-size: 0.875rem;
+  margin-bottom: 2rem;
+}
+
+.shop-now-btn {
+  background-color: #fb641b; /* Flipkart orange */
+  color: white;
+  border: none;
+  padding: 0.75rem 4rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 2px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.shop-now-btn:hover {
+  background-color: #f3580a;
+}
+
+/* Cart Content */
+.cart-content {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.cart-items-section {
+  flex: 1;
+  background-color: white;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.cart-items-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.cart-items-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #212121;
+}
+
+.cart-items-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-item {
+  display: flex;
+  padding: 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 1.5rem;
+}
+
+.cart-item-image img {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.cart-item-details {
+  flex: 1;
+}
+
+.cart-item-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #212121;
+}
+
+.cart-item-author {
+  font-size: 0.875rem;
+  color: #878787;
+  margin: 0 0 0.5rem 0;
+}
+
+.cart-item-rating {
+  font-size: 0.75rem;
+  color: #878787;
+  margin: 0 0 1rem 0;
+}
+
+.cart-item-actions {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  color: #212121;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+}
+
+.remove-btn:hover {
+  color: #2874f0;
+}
+
+.cart-item-price {
+  text-align: right;
+  min-width: 100px;
+}
+
+.current-price {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212121;
+}
+
+/* Cart Summary */
+.cart-summary-section {
+  width: 350px;
+  position: sticky;
+  top: 1rem;
+}
+
+.cart-summary-card {
+  background-color: white;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  padding: 0;
+}
+
+.cart-summary-card h3 {
+  margin: 0;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #878787;
+  text-transform: uppercase;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  color: #212121;
+}
+
+.discount-text {
+  color: #388e3c; /* Flipkart green */
+}
+
+.total-row {
+  border-top: 1px dashed #e0e0e0;
+  border-bottom: 1px dashed #e0e0e0;
+  font-weight: 600;
+  font-size: 1.125rem;
+  margin: 0.5rem 0;
+}
+
+.savings-msg {
+  color: #388e3c;
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 0 1.5rem 1rem 1.5rem;
+}
+
+.place-order-btn {
+  width: 100%;
+  background-color: #10b981; /* Green color */
+  color: white;
+  border: none;
+  padding: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.place-order-btn:hover {
+  background-color: #059669; /* Darker green */
+}
+
+.secure-checkout-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.5rem 0;
+  color: #878787;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}

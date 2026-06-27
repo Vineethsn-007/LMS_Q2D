@@ -35,7 +35,15 @@ const ReviewCenter = ({ user }) => {
         }
       });
       
-      if (!res.ok) throw new Error('Failed to fetch proposals');
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('sf_token');
+          localStorage.removeItem('sf_user');
+          window.location.reload();
+          return;
+        }
+        throw new Error('Failed to fetch proposals');
+      }
       
       const data = await res.json();
       setProposals(data);

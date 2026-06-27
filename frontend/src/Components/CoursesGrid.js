@@ -30,24 +30,6 @@ export default function CoursesGrid({
 
         {/* Filters and Search Bar Row */}
         <div style={styles.filterRow}>
-          {/* Category Tabs */}
-          <div style={styles.tabsContainer}>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                style={{
-                  ...styles.tabBtn,
-                  backgroundColor: activeCategory === cat ? 'var(--color-accent-blue)' : 'rgba(255, 255, 255, 0.03)',
-                  borderColor: activeCategory === cat ? 'var(--color-accent-sky)' : 'var(--border-color)',
-                  color: activeCategory === cat ? '#ffffff' : 'var(--text-secondary)',
-                }}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
           {/* Search Input Box */}
           <div style={styles.searchWrapper}>
             <Search size={18} style={styles.searchIcon} />
@@ -74,7 +56,7 @@ export default function CoursesGrid({
                 {/* Image Cover */}
                 <div style={styles.cardImageContainer}>
                   <img 
-                    src={course.image_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=400'} 
+                    src={course.image_url ? (course.image_url.startsWith('http') ? course.image_url : `${process.env.REACT_APP_API_URL}${course.image_url}`) : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=400'} 
                     alt={course.title} 
                     style={styles.cardImage} 
                   />
@@ -85,11 +67,6 @@ export default function CoursesGrid({
                 <div style={styles.cardBody}>
                   {/* Validation Badges */}
                   <div style={styles.badgeRow}>
-                    {course.is_ai_generated && (
-                      <span style={{ ...styles.badge, backgroundColor: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8' }}>
-                        <Sparkles size={12} /> AI-Generated
-                      </span>
-                    )}
                     {course.is_expert_validated && (
                       <span style={{ ...styles.badge, backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
                         <CheckCircle2 size={12} /> Expert-Approved
@@ -141,8 +118,8 @@ export default function CoursesGrid({
 const styles = {
   section: {
     padding: '5rem 0',
-    backgroundColor: '#090c12',
-    borderTop: '1px solid rgba(255, 255, 255, 0.02)',
+    backgroundColor: 'var(--bg-deep)',
+    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
   },
   header: {
     textAlign: 'center',
@@ -150,7 +127,7 @@ const styles = {
   },
   title: {
     fontSize: '2.25rem',
-    color: '#ffffff',
+    color: '#0f172a',
     marginBottom: '1rem',
   },
   subtitle: {
@@ -204,6 +181,7 @@ const styles = {
     gap: '2rem',
   },
   card: {
+    backgroundColor: '#ffffff',
     borderRadius: '1rem',
     overflow: 'hidden',
     border: '1px solid var(--border-color)',
@@ -233,22 +211,24 @@ const styles = {
     borderRadius: '0.25rem',
     fontSize: '0.75rem',
     fontWeight: '600',
-    color: '#fff',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    color: '#0f172a',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     backdropFilter: 'blur(4px)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
+    border: '1px solid rgba(0, 0, 0, 0.08)',
   },
   cardBody: {
     padding: '1.5rem',
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,
+    textAlign: 'center',
   },
   badgeRow: {
     display: 'flex',
     gap: '0.5rem',
     marginBottom: '1rem',
     flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   badge: {
     display: 'inline-flex',
@@ -263,7 +243,7 @@ const styles = {
   },
   cardTitle: {
     fontSize: '1.25rem',
-    color: '#fff',
+    color: '#0f172a',
     marginBottom: '0.75rem',
     lineHeight: '1.35',
   },
@@ -279,8 +259,9 @@ const styles = {
     gap: '1.5rem',
     alignItems: 'center',
     marginBottom: '1.5rem',
-    borderTop: '1px solid rgba(255, 255, 255, 0.04)',
+    borderTop: '1px solid rgba(0, 0, 0, 0.06)',
     paddingTop: '1rem',
+    justifyContent: 'center',
   },
   metaItem: {
     display: 'flex',
@@ -315,7 +296,7 @@ if (typeof document !== 'undefined') {
     div[class*="glass"]:hover {
       transform: translateY(-5px);
       border-color: var(--border-hover) !important;
-      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(56, 189, 248, 0.1) !important;
+      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.15), 0 0 20px -5px rgba(37, 99, 235, 0.05) !important;
     }
     div[class*="glass"]:hover img {
       transform: scale(1.05);

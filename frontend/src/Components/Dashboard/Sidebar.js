@@ -7,8 +7,10 @@ import {
   Award, 
   FileEdit, 
   Wand2, 
-
-  LogOut
+  Shield,
+  LogOut,
+  Settings,
+  MessageSquare
 } from 'lucide-react';
 import logoImg from '../../logo.png';
 import './Dashboard.css';
@@ -21,7 +23,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         SkillForge
       </div>
 
-      {user?.role !== 'reviewer' && (
+      {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'expert' && (
         <div className="sidebar-section">
           <div className="sidebar-section-title">Learn</div>
           <nav className="sidebar-nav">
@@ -74,7 +76,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         </div>
       )}
 
-      {user?.role !== 'reviewer' && (
+      {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'expert' && (
         <div className="sidebar-section">
           <div className="sidebar-section-title">Create</div>
           <nav className="sidebar-nav">
@@ -84,7 +86,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
             >
               <div className="sidebar-link-content">
                 <FileEdit size={18} />
-                <span>Proposals & Voting</span>
+                <span>Community feed</span>
               </div>
               <span className="sidebar-badge">12</span>
             </div>
@@ -111,11 +113,62 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
                 <span>Review Center</span>
               </div>
             </div>
+            {user?.role === 'admin' && (
+              <div 
+                className={`sidebar-link ${activeView === 'admin-panel' ? 'active' : ''}`}
+                onClick={() => onViewChange('admin-panel')}
+              >
+                <div className="sidebar-link-content">
+                  <Shield size={18} />
+                  <span>Admin Panel</span>
+                </div>
+              </div>
+            )}
           </nav>
         </div>
       )}
 
+      {(user?.role === 'expert' || user?.role === 'admin') && (
+        <div className="sidebar-section">
+          <div className="sidebar-section-title">Expert Console</div>
+          <nav className="sidebar-nav">
+            <div 
+              className={`sidebar-link ${activeView === 'expert-panel' ? 'active' : ''}`}
+              onClick={() => onViewChange('expert-panel')}
+            >
+              <div className="sidebar-link-content">
+                <BookOpen size={18} />
+                <span>Expert Panel</span>
+              </div>
+            </div>
+          </nav>
+        </div>
+      )}
 
+      <div className="sidebar-section">
+        <div className="sidebar-section-title">Account</div>
+        <nav className="sidebar-nav">
+          <div 
+            className={`sidebar-link ${activeView === 'feedback' ? 'active' : ''}`}
+            onClick={() => onViewChange('feedback')}
+            id="sidebar-feedback-link"
+          >
+            <div className="sidebar-link-content">
+              <MessageSquare size={18} />
+              <span>Feedback</span>
+            </div>
+          </div>
+          <div 
+            className={`sidebar-link ${activeView === 'settings' ? 'active' : ''}`}
+            onClick={() => onViewChange('settings')}
+          >
+            <div className="sidebar-link-content">
+              <Settings size={18} />
+              <span>Settings</span>
+            </div>
+          </div>
+        </nav>
+      </div>
 
       <div className="sidebar-user" onClick={onLogout}>
         <div className="user-avatar">
