@@ -118,6 +118,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
               setCheckoutCourse(course);
               setActiveView('checkout');
             }} 
+            onGoToCart={() => setActiveView('cart')}
           />
         )}
         {activeView === 'mylearning' && <MyLearning course={activeCourse} onBack={() => setActiveView('dashboard')} />}
