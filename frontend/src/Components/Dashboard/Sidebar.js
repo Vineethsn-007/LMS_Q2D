@@ -60,7 +60,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
             <SidebarLink icon={LayoutDashboard} label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => onViewChange('dashboard')} />
             <SidebarLink icon={ShoppingBag} label="Marketplace" isActive={activeView === 'marketplace'} onClick={() => onViewChange('marketplace')} />
             <SidebarLink icon={BookOpen} label="My Learning" isActive={activeView === 'mylearning'} onClick={() => onViewChange('mylearning')} />
-            <SidebarLink icon={Bot} label="AI Assistant" isActive={activeView === 'ai-assistant'} onClick={() => onViewChange('ai-assistant')} />
+            <SidebarLink icon={Bot} label="Expert Guide" isActive={activeView === 'ai-assistant'} onClick={() => onViewChange('ai-assistant')} />
             <SidebarLink icon={Award} label="Certifications" isActive={activeView === 'certifications'} onClick={() => onViewChange('certifications')} />
           </SidebarSection>
         )}

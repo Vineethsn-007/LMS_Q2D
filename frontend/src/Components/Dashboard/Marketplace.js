@@ -118,27 +118,6 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart }) => {
         </div>
 
         <div className="flex gap-4">
-          <select
-            className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-navy shadow-sm cursor-pointer"
-            value={selectedLevel}
-            onChange={(e) => setSelectedLevel(e.target.value)}
-          >
-            <option value="All levels">All levels</option>
-            <option value="Beginner">Beginner</option>
-            <option value="Intermediate">Intermediate</option>
-            <option value="Advanced">Advanced</option>
-          </select>
-
-          <select
-            className="px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-navy shadow-sm cursor-pointer"
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-          >
-            <option value="All status">All status</option>
-            <option value="Expert Approved">Expert Approved</option>
-            <option value="Pending Review">Pending Review</option>
-          </select>
-
           <button 
             className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-navy transition-colors shadow-sm"
             onClick={fetchCourses}
