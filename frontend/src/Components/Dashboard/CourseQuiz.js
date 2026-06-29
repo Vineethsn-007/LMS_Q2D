@@ -10,6 +10,7 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [passed, setPassed] = useState(false);
+  const [score, setScore] = useState(0);
   
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -58,6 +59,8 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
         if (selectedAnswers[i] === q.answer) correct++;
       });
       const isPassed = correct >= Math.ceil(questions.length * 0.6); // 60% to pass
+      const percentage = Math.round((correct / questions.length) * 100);
+      setScore(percentage);
       setPassed(isPassed);
       setShowResults(true);
     }
@@ -68,6 +71,7 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
     setSelectedAnswers({});
     setShowResults(false);
     setPassed(false);
+    setScore(0);
   };
 
   if (loading) {
@@ -94,6 +98,13 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
           {passed ? <CheckCircle size={40} /> : <XCircle size={40} />}
         </div>
         <h2 className="text-3xl font-bold text-navy-900 mb-3">{passed ? 'Congratulations!' : 'Keep Practicing'}</h2>
+        
+        <div className="flex justify-center mb-6">
+          <div className={`px-6 py-2 rounded-2xl font-black text-3xl border-2 ${passed ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-coral-50 text-coral-600 border-coral-100'}`}>
+            {score}%
+          </div>
+        </div>
+
         <p className="text-slate-500 font-medium mb-8 max-w-md mx-auto">
           {passed 
             ? "You've successfully demonstrated your understanding of the material. Your certificate is ready!" 

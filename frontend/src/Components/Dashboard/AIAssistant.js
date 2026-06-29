@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, User, Sparkles } from 'lucide-react';
+import { GraduationCap, Send, User } from 'lucide-react';
 
 // Simple markdown formatter to handle bold and basic code blocks
 const formatMessage = (text) => {
@@ -16,7 +16,7 @@ const AIAssistant = ({ user }) => {
   const [messages, setMessages] = useState([
     {
       role: 'ai',
-      content: `Hi ${user?.name?.split(' ')[0] || 'there'}! I am SkillForge AI, your expert mentor. I can provide personalized course recommendations, explain complex concepts, or help you map out your learning journey. Ask me anything!`
+      content: `Hi ${user?.name?.split(' ')[0] || 'there'}! I am the SkillForge Expert mentor. I can provide personalized course recommendations, explain complex concepts, or help you map out your learning journey. Ask me anything!`
     }
   ]);
   const [inputValue, setInputValue] = useState('');
@@ -81,11 +81,11 @@ const AIAssistant = ({ user }) => {
       <div className="h-20 bg-white/90 backdrop-blur-md border-b border-slate-200 px-8 flex items-center justify-between shrink-0 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-navy-800 to-navy-900 text-white flex items-center justify-center shadow-md">
-            <Bot size={24} />
+            <GraduationCap size={24} />
           </div>
           <div>
             <h2 className="text-lg font-bold text-navy-900 flex items-center gap-2">
-              SkillForge AI <Sparkles size={16} className="text-amber-500" />
+              SkillForge Expert
             </h2>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Expert Mentor & Course Guide</p>
           </div>
@@ -102,7 +102,7 @@ const AIAssistant = ({ user }) => {
           <div key={idx} className={`flex items-end gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             
             <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm ${msg.role === 'ai' ? 'bg-navy text-white' : 'bg-coral text-white'}`}>
-              {msg.role === 'ai' ? <Bot size={20} /> : <User size={20} />}
+              {msg.role === 'ai' ? <GraduationCap size={20} /> : <User size={20} />}
             </div>
             
             <div 
@@ -119,7 +119,7 @@ const AIAssistant = ({ user }) => {
         {isLoading && (
           <div className="flex items-end gap-3">
             <div className="w-10 h-10 rounded-full bg-navy text-white flex items-center justify-center shrink-0 shadow-sm">
-              <Bot size={20} />
+              <GraduationCap size={20} />
             </div>
             <div className="p-5 bg-white border border-slate-200 rounded-2xl rounded-bl-none shadow-sm flex items-center gap-1.5">
               <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>

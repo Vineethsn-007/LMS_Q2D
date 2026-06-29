@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw, Award, ArrowRight } from 'lucide-react';
+import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw, Award, ArrowRight, Play } from 'lucide-react';
 import CertificateModal from './CertificateModal';
 
 const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart, onViewChange }) => {
@@ -278,42 +278,61 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart, onViewChange
                           )}
                         </>
                       ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (completedCourses.includes(course.id) && !issuedCertificates.includes(course.id)) {
-                              setCertificateCourse(course);
-                            } else if (issuedCertificates.includes(course.id) && onViewChange) {
-                              onViewChange('certifications');
-                            } else if (onStartCourse) {
-                              onStartCourse(course);
-                            } else {
-                              showToast(`Loading learning dashboard for "${course.title}"...`);
-                            }
-                          }}
-                          className={`px-4 py-2 flex items-center gap-2 rounded-lg text-sm font-semibold transition-colors ${
-                            completedCourses.includes(course.id) && !issuedCertificates.includes(course.id)
-                              ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20' 
-                              : issuedCertificates.includes(course.id)
-                              ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm shadow-purple-500/20'
-                              : (course.id <= 3 ? 'bg-navy hover:bg-navy-800 text-white shadow-sm' : 'bg-slate-100 hover:bg-slate-200 text-navy-900')
-                          }`}
-                        >
-                          {completedCourses.includes(course.id) && !issuedCertificates.includes(course.id) ? (
-                            <>
-                              <Award size={16} /> Get Certificate
-                            </>
-                          ) : issuedCertificates.includes(course.id) ? (
-                            <>
-                              <Award size={16} /> View Certificate
-                            </>
-                          ) : (
-                            <>
-                              {course.id <= 3 ? "Continue Learning" : "Start Learning"}
-                              <ArrowRight size={16} />
-                            </>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (completedCourses.includes(course.id) && !issuedCertificates.includes(course.id)) {
+                                setCertificateCourse(course);
+                              } else if (issuedCertificates.includes(course.id) && onViewChange) {
+                                onViewChange('certifications');
+                              } else if (onStartCourse) {
+                                onStartCourse(course);
+                              } else {
+                                showToast(`Loading learning dashboard for "${course.title}"...`);
+                              }
+                            }}
+                            className={`px-4 py-2 flex items-center gap-2 rounded-lg text-sm font-semibold transition-colors ${
+                              completedCourses.includes(course.id) && !issuedCertificates.includes(course.id)
+                                ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20' 
+                                : issuedCertificates.includes(course.id)
+                                ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm shadow-purple-500/20'
+                                : (course.id <= 3 ? 'bg-navy hover:bg-navy-800 text-white shadow-sm' : 'bg-slate-100 hover:bg-slate-200 text-navy-900')
+                            }`}
+                          >
+                            {completedCourses.includes(course.id) && !issuedCertificates.includes(course.id) ? (
+                              <>
+                                <Award size={16} /> Get Certificate
+                              </>
+                            ) : issuedCertificates.includes(course.id) ? (
+                              <>
+                                <Award size={16} /> View Certificate
+                              </>
+                            ) : (
+                              <>
+                                {course.id <= 3 ? "Continue Learning" : "Start Learning"}
+                                <ArrowRight size={16} />
+                              </>
+                            )}
+                          </button>
+                          
+                          {completedCourses.includes(course.id) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onStartCourse) {
+                                  onStartCourse(course);
+                                } else {
+                                  showToast(`Re-opening learning dashboard for "${course.title}"...`);
+                                }
+                              }}
+                              className="px-3 py-2 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors shadow-sm"
+                              title="Watch Again"
+                            >
+                              <Play size={16} />
+                            </button>
                           )}
-                        </button>
+                        </div>
                       )}
                     </div>
                   </div>

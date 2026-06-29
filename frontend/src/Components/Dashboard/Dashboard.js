@@ -17,6 +17,7 @@ import SettingsPanel from './SettingsPanel';
 import Cart from './Cart';
 import Checkout from './Checkout';
 import FeedbackPage from '../FeedbackPage';
+import CourseProposalModal from '../CourseProposalModal';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
@@ -39,6 +40,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('sf_welcome_shown'));
+  const [isProposalOpen, setIsProposalOpen] = useState(false);
 
   useEffect(() => {
     if (showWelcome) {
@@ -121,6 +123,12 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           <div className="flex items-center gap-4">
             {user?.role !== 'admin' && (
               <>
+                <button 
+                  className="px-5 py-1.5 border-2 border-blue-600 text-blue-600 font-bold rounded-full hover:bg-blue-50 transition-colors text-sm shadow-sm whitespace-nowrap"
+                  onClick={() => setIsProposalOpen(true)}
+                >
+                  Suggest a Course
+                </button>
                 <button className="relative p-2 text-slate-400 hover:text-navy transition-colors rounded-full hover:bg-slate-100" onClick={() => setActiveView('cart')}>
                   <ShoppingCart size={20} />
                   {cartCourses.length > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-coral text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">{cartCourses.length}</span>}
@@ -249,6 +257,12 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           <FeedbackPage user={user} insideDashboard />
         )}
       </main>
+
+      <CourseProposalModal 
+        isOpen={isProposalOpen} 
+        onClose={() => setIsProposalOpen(false)} 
+        user={user}
+      />
       
       {showWelcome && (
         <div className="fixed inset-0 flex items-center justify-center z-[1100] bg-navy-900/40 backdrop-blur-sm animate-in fade-in">

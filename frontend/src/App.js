@@ -250,7 +250,7 @@ function App() {
         onAuthSuccess={handleAuthSuccess}
       />
 
-      {user?.role !== 'admin' && user?.role !== 'reviewer' && user?.role !== 'expert' && (
+      {!user && (
         <>
           <button 
             className="course-request-tag"
