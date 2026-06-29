@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Award, X, MessageSquareWarning, Send, ArrowLeft } from 'lucide-react';
 import { getCertificateHTML } from './certificateTemplate';
 
-const CertificateModal = ({ user, course, onClose, onShowToast }) => {
+const CertificateModal = ({ user, course, onClose, onShowToast, onSuccess }) => {
   const [isContacting, setIsContacting] = useState(false);
   const [issueMessage, setIssueMessage] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
   
   const [displayDetails, setDisplayDetails] = useState({
     name: user?.name || user?.username || 'Learner Name',
@@ -51,32 +52,35 @@ const CertificateModal = ({ user, course, onClose, onShowToast }) => {
     onClose();
   };
 
+  const saveCertificateToDB = async (dateString) => {
+    if (isSaved || !user || !course) return;
+    try {
+      const certId = `SF-${course.id}-${Math.floor(Math.random() * 100000)}`;
+      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/certificates`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          course_id: course.id,
+          course_name: course.title,
+          cert_id: certId,
+          issue_date: dateString
+        })
+      });
+      setIsSaved(true);
+    } catch (err) {
+      console.error('Failed to save certificate', err);
+    }
+  };
+
   const handleDownload = async () => {
     const today = new Date();
     const dateString = `${String(today.getDate()).padStart(2, '0')} / ${String(today.getMonth() + 1).padStart(2, '0')} / ${today.getFullYear()}`;
     const htmlContent = getCertificateHTML(displayDetails.name, displayDetails.courseName, dateString);
     
-    // Save certificate to backend
-    if (user && course) {
-      try {
-        const certId = `SF-${course.id}-${Math.floor(Math.random() * 100000)}`;
-        await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/certificates`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            user_id: user.id,
-            course_id: course.id,
-            course_name: course.title,
-            cert_id: certId,
-            issue_date: dateString
-          })
-        });
-      } catch (err) {
-        console.error('Failed to save certificate', err);
-      }
-    }
+    await saveCertificateToDB(dateString);
 
     const printWindow = window.open('', '_blank');
     if (printWindow) {
@@ -95,7 +99,7 @@ const CertificateModal = ({ user, course, onClose, onShowToast }) => {
     if (onShowToast) {
       onShowToast('Certificate generated successfully!');
     }
-    onClose();
+    // We do not redirect automatically anymore
   };
 
   return (
@@ -158,6 +162,19 @@ const CertificateModal = ({ user, course, onClose, onShowToast }) => {
                   onClick={handleDownload}
                 >
                   Issue & Download Certificate
+                </button>
+                <button 
+                  type="button" 
+                  className="w-full py-3.5 bg-white border border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-sm font-bold rounded-xl shadow-sm transition-all" 
+                  onClick={async () => {
+                    const today = new Date();
+                    const dateString = `${String(today.getDate()).padStart(2, '0')} / ${String(today.getMonth() + 1).padStart(2, '0')} / ${today.getFullYear()}`;
+                    await saveCertificateToDB(dateString);
+                    if (onSuccess) onSuccess();
+                    else onClose();
+                  }}
+                >
+                  Move to Certifications
                 </button>
                 <button 
                   type="button" 

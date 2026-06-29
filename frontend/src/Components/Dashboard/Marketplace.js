@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw, Award, ArrowRight } from 'lucide-react';
 import CertificateModal from './CertificateModal';
 
-const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart }) => {
+const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart, onViewChange }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -11,6 +11,7 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart }) => {
   const [selectedStatus, setSelectedStatus] = useState("All status");
   const [completedCourses, setCompletedCourses] = useState([]);
   const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [issuedCertificates, setIssuedCertificates] = useState([]);
   const [cartCourses, setCartCourses] = useState([]);
   const [expandedCourses, setExpandedCourses] = useState([]);
   const [paymentCourse, setPaymentCourse] = useState(null);
@@ -30,11 +31,21 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart }) => {
     updateCart();
     window.addEventListener('storage', updateCart);
     window.addEventListener('cart_updated', updateCart);
+    
+    if (user) {
+      fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/certificates/${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setIssuedCertificates(data.map(c => c.course_id));
+        })
+        .catch(err => console.error(err));
+    }
+
     return () => {
       window.removeEventListener('storage', updateCart);
       window.removeEventListener('cart_updated', updateCart);
     };
-  }, []);
+  }, [user]);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -270,8 +281,10 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart }) => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (completedCourses.includes(course.id)) {
+                            if (completedCourses.includes(course.id) && !issuedCertificates.includes(course.id)) {
                               setCertificateCourse(course);
+                            } else if (issuedCertificates.includes(course.id) && onViewChange) {
+                              onViewChange('certifications');
                             } else if (onStartCourse) {
                               onStartCourse(course);
                             } else {
@@ -279,14 +292,20 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart }) => {
                             }
                           }}
                           className={`px-4 py-2 flex items-center gap-2 rounded-lg text-sm font-semibold transition-colors ${
-                            completedCourses.includes(course.id) 
+                            completedCourses.includes(course.id) && !issuedCertificates.includes(course.id)
                               ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/20' 
+                              : issuedCertificates.includes(course.id)
+                              ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm shadow-purple-500/20'
                               : (course.id <= 3 ? 'bg-navy hover:bg-navy-800 text-white shadow-sm' : 'bg-slate-100 hover:bg-slate-200 text-navy-900')
                           }`}
                         >
-                          {completedCourses.includes(course.id) ? (
+                          {completedCourses.includes(course.id) && !issuedCertificates.includes(course.id) ? (
                             <>
                               <Award size={16} /> Get Certificate
+                            </>
+                          ) : issuedCertificates.includes(course.id) ? (
+                            <>
+                              <Award size={16} /> View Certificate
                             </>
                           ) : (
                             <>
@@ -317,7 +336,11 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart }) => {
           user={user}
           course={certificateCourse}
           onClose={() => setCertificateCourse(null)}
-          onShowToast={showToast}
+          onShowToast={setToastMessage}
+          onSuccess={() => {
+            setCertificateCourse(null);
+            if (onViewChange) onViewChange('certifications');
+          }}
         />
       )}
     </div>

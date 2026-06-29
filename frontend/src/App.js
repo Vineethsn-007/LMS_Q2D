@@ -156,6 +156,7 @@ function App() {
     setUser(userData);
     localStorage.setItem('sf_token', token);
     localStorage.setItem('sf_user', JSON.stringify(userData));
+    sessionStorage.removeItem('sf_welcome_shown');
     setIsAuthOpen(false);
   };
 
@@ -163,6 +164,7 @@ function App() {
     setUser(null);
     localStorage.removeItem('sf_token');
     localStorage.removeItem('sf_user');
+    sessionStorage.removeItem('sf_welcome_shown');
   };
 
   const handleUserUpdate = (newUserData) => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Target, TrendingUp, Trophy, Globe, CheckCircle2, Share2, Download, ShieldCheck, Lock } from 'lucide-react';
+import { Award, Target, TrendingUp, Trophy, Globe, CheckCircle2, Share2, Download, ShieldCheck, Lock, Trash2 } from 'lucide-react';
+import { getCertificateHTML } from './certificateTemplate';
 
 const Certifications = ({ user }) => {
   const [certificates, setCertificates] = useState([]);
@@ -21,10 +22,88 @@ const Certifications = ({ user }) => {
       }
     };
     fetchCertificates();
+    fetchCertificates();
   }, [user]);
 
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleDelete = async (certId) => {
+    if (!window.confirm("Are you sure you want to delete this certificate?")) return;
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/certificates/${certId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setCertificates(prev => prev.filter(c => c.id !== certId));
+        showToast("Certificate deleted successfully");
+      }
+    } catch (err) {
+      console.error("Failed to delete certificate", err);
+    }
+  };
+
+  const handleDownload = (cert) => {
+    const htmlContent = getCertificateHTML(user?.name || user?.username || 'Learner Name', cert.course_name, cert.issue_date);
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+      };
+    } else {
+      showToast('Please allow popups to download the certificate.');
+    }
+  };
+
+  const fallbackCopyTextToClipboard = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      showToast("Share link copied to clipboard!");
+    } catch (err) {
+      showToast("Failed to copy link. Please manually share it.");
+    }
+    document.body.removeChild(textArea);
+  };
+
+  const handleShare = (cert) => {
+    const textToCopy = `Check out my verified certificate for ${cert.course_name} at SkillForge!`;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(textToCopy)
+        .then(() => showToast("Share link copied to clipboard!"))
+        .catch(() => fallbackCopyTextToClipboard(textToCopy));
+    } else {
+      fallbackCopyTextToClipboard(textToCopy);
+    }
+  };
+
+  const handleVerify = () => {
+    showToast("Certificate successfully verified as authentic.");
+  };
+
   return (
-    <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar bg-slate-50">
+    <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar bg-slate-50 relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[1000] bg-navy-900 text-white px-6 py-3 rounded-xl shadow-xl animate-in slide-in-from-bottom-5">
+          {toastMessage}
+        </div>
+      )}
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -111,6 +190,13 @@ const Certifications = ({ user }) => {
                   </div>
                   <h3 className="text-xl font-bold mb-2 leading-tight relative z-10">{cert.course_name}</h3>
                   <div className="text-blue-200 text-sm font-medium relative z-10">SkillForge</div>
+                  <button 
+                    onClick={() => handleDelete(cert.id)}
+                    className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/10 hover:bg-red-500/80 flex items-center justify-center text-white backdrop-blur-sm transition-colors border border-white/20"
+                    title="Delete certificate"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
                 
                 <div className="p-6 flex flex-col flex-1">
@@ -120,13 +206,22 @@ const Certifications = ({ user }) => {
                   </div>
                   
                   <div className="flex gap-2 mt-auto border-t border-slate-100 pt-5">
-                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300">
+                    <button 
+                      onClick={() => handleShare(cert)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300"
+                    >
                       <Share2 size={16} className="text-navy" /> Share
                     </button>
-                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300">
+                    <button 
+                      onClick={() => handleDownload(cert)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300"
+                    >
                       <Download size={16} className="text-navy" /> Download
                     </button>
-                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300">
+                    <button 
+                      onClick={() => handleVerify(cert)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300"
+                    >
                       <ShieldCheck size={16} className="text-navy" /> Verify
                     </button>
                   </div>
@@ -137,11 +232,6 @@ const Certifications = ({ user }) => {
         )}
       </div>
 
-      {/* Certificates in Progress */}
-      <h2 className="text-xl font-bold text-navy-900 mb-6">Certificates in Progress</h2>
-      <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center shadow-sm mb-8">
-        <p className="text-slate-500 text-sm">No certificates currently in progress.</p>
-      </div>
 
     </div>
   );

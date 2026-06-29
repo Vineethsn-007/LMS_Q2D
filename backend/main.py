@@ -807,3 +807,26 @@ def get_subscribers(
     current_user: models.User = Depends(verifyAdminRole)
 ):
     return db.query(models.Subscriber).order_by(models.Subscriber.created_at.desc()).all()
+
+# Certificates
+@app.post("/api/certificates", response_model=schemas.CertificateResponse, status_code=status.HTTP_201_CREATED)
+def create_certificate(cert_in: schemas.CertificateCreate, db: Session = Depends(get_db)):
+    db_cert = models.Certificate(**cert_in.dict())
+    db.add(db_cert)
+    db.commit()
+    db.refresh(db_cert)
+    return db_cert
+
+@app.get("/api/certificates/{user_id}", response_model=List[schemas.CertificateResponse])
+def get_user_certificates(user_id: int, db: Session = Depends(get_db)):
+    certs = db.query(models.Certificate).filter(models.Certificate.user_id == user_id).all()
+    return certs
+
+@app.delete("/api/certificates/{cert_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_certificate(cert_id: int, db: Session = Depends(get_db)):
+    cert = db.query(models.Certificate).filter(models.Certificate.id == cert_id).first()
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    db.delete(cert)
+    db.commit()
+    return None

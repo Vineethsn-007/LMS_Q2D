@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, ShoppingCart } from 'lucide-react';
+import { Search, Bell, ShoppingCart, Sparkles } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DashboardContent from './DashboardContent';
 import Marketplace from './Marketplace';
@@ -38,6 +38,17 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [checkoutCourse, setCheckoutCourse] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('sf_welcome_shown'));
+
+  useEffect(() => {
+    if (showWelcome) {
+      sessionStorage.setItem('sf_welcome_shown', 'true');
+      const timer = setTimeout(() => {
+        setShowWelcome(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcome]);
 
   useEffect(() => {
     const updateCart = () => {
@@ -174,6 +185,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
               setActiveView('checkout');
             }} 
             onGoToCart={() => setActiveView('cart')}
+            onViewChange={setActiveView}
           />
         )}
         {activeView === 'mylearning' && <MyLearning course={activeCourse} onBack={() => setActiveView('dashboard')} />}
@@ -237,6 +249,18 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           <FeedbackPage user={user} insideDashboard />
         )}
       </main>
+      
+      {showWelcome && (
+        <div className="fixed inset-0 flex items-center justify-center z-[1100] bg-navy-900/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center animate-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+              <Sparkles size={32} />
+            </div>
+            <h2 className="text-2xl font-bold text-navy-900 mb-2">Welcome back, {user?.name || user?.username}!</h2>
+            <p className="text-slate-500 text-sm">Ready to learn something new today?</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
