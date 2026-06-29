@@ -52,11 +52,33 @@ const CertificateModal = ({ user, course, onClose, onShowToast }) => {
     onClose();
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const today = new Date();
     const dateString = `${String(today.getDate()).padStart(2, '0')} / ${String(today.getMonth() + 1).padStart(2, '0')} / ${today.getFullYear()}`;
     const htmlContent = getCertificateHTML(displayDetails.name, displayDetails.courseName, dateString);
     
+    // Save certificate to backend
+    if (user && course) {
+      try {
+        const certId = `SF-${course.id}-${Math.floor(Math.random() * 100000)}`;
+        await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/certificates`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            course_id: course.id,
+            course_name: course.title,
+            cert_id: certId,
+            issue_date: dateString
+          })
+        });
+      } catch (err) {
+        console.error('Failed to save certificate', err);
+      }
+    }
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.open();

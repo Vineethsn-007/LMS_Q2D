@@ -1,9 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Award, Target, TrendingUp, Trophy, Globe, CheckCircle2, Share2, Download, ShieldCheck, Lock } from 'lucide-react';
 
-const MOCK_CERTIFICATES = [];
+const Certifications = ({ user }) => {
+  const [certificates, setCertificates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-const Certifications = () => {
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      if (!user) return;
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/certificates/${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCertificates(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch certificates:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCertificates();
+  }, [user]);
+
   return (
     <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar bg-slate-50">
       
@@ -23,7 +42,7 @@ const Certifications = () => {
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:shadow-md transition-shadow">
           <div className="flex flex-col">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Earned Certs</span>
-            <span className="text-2xl font-bold text-navy-900">0</span>
+            <span className="text-2xl font-bold text-navy-900">{certificates.length}</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center group-hover:scale-110 transition-transform">
             <Award size={24} />
@@ -67,7 +86,11 @@ const Certifications = () => {
       {/* Earned Certificates */}
       <h2 className="text-xl font-bold text-navy-900 mb-6">Earned Certificates</h2>
       <div className="mb-12">
-        {MOCK_CERTIFICATES.length === 0 ? (
+        {loading ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
+            <p className="text-slate-500 text-sm">Loading certificates...</p>
+          </div>
+        ) : certificates.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center shadow-sm">
             <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
               <Award size={32} />
@@ -77,7 +100,7 @@ const Certifications = () => {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {MOCK_CERTIFICATES.map(cert => (
+            {certificates.map(cert => (
               <div key={cert.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
                 <div className="bg-gradient-to-br from-navy-800 to-navy-900 p-6 text-white relative">
                   <div className="absolute top-0 right-0 -mt-10 -mr-10 w-32 h-32 bg-white opacity-5 rounded-full blur-2xl"></div>
@@ -86,25 +109,14 @@ const Certifications = () => {
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-lg text-xs font-bold mb-6 border border-white/20">
                     <CheckCircle2 size={14} className="text-emerald-400" /> Verified
                   </div>
-                  <h3 className="text-xl font-bold mb-2 leading-tight relative z-10">{cert.title}</h3>
-                  <div className="text-blue-200 text-sm font-medium relative z-10">{cert.org}</div>
+                  <h3 className="text-xl font-bold mb-2 leading-tight relative z-10">{cert.course_name}</h3>
+                  <div className="text-blue-200 text-sm font-medium relative z-10">SkillForge</div>
                 </div>
                 
                 <div className="p-6 flex flex-col flex-1">
                   <div className="flex justify-between items-center text-xs font-semibold text-slate-400 mb-5">
-                    <span>Issued {cert.issueDate}</span>
-                    <span className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-slate-500">{cert.id}</span>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2 mb-8">
-                    {cert.tags.map(tag => (
-                      <span key={tag} className="px-3 py-1 bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold border border-slate-200">
-                        {tag}
-                      </span>
-                    ))}
-                    <span className={`px-3 py-1 rounded-lg text-xs font-bold ${cert.levelClass}`}>
-                      {cert.level}
-                    </span>
+                    <span>Issued {cert.issue_date}</span>
+                    <span className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-slate-500">{cert.cert_id}</span>
                   </div>
                   
                   <div className="flex gap-2 mt-auto border-t border-slate-100 pt-5">

@@ -141,3 +141,14 @@ class Subscriber(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Certificate(Base):
+    __tablename__ = "certificates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    course_id = Column(Integer, index=True, nullable=False)
+    course_name = Column(String, nullable=False)
+    cert_id = Column(String, unique=True, index=True, nullable=False)
+    issue_date = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -68,7 +68,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'expert' && (
           <SidebarSection title="Create">
             <SidebarLink icon={FileEdit} label="Community feed" isActive={activeView === 'community-voting'} onClick={() => onViewChange('community-voting')} badge="12" />
-            <SidebarLink icon={Wand2} label="AI Generator" isActive={false} onClick={() => {}} />
+
           </SidebarSection>
         )}
 

@@ -182,7 +182,7 @@ class CourseCreateUpdate(BaseModel):
 
 class CourseMaterialCreate(BaseModel):
     title: str
-    type: str  # 'video', 'text', 'pdf', 'image'
+    type: str
     content_url: Optional[str] = None
     text_content: Optional[str] = None
 
@@ -199,6 +199,21 @@ class CourseMaterialResponse(CourseMaterialCreate):
 
     class Config:
         orm_mode = True
+
+class CertificateCreate(BaseModel):
+    user_id: int
+    course_id: int
+    course_name: str
+    cert_id: str
+    issue_date: str
+
+class CertificateResponse(CertificateCreate):
+    id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
 
 # --- Course Feedback ---
 class CourseFeedbackCreate(BaseModel):

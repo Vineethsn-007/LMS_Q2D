@@ -177,7 +177,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           />
         )}
         {activeView === 'mylearning' && <MyLearning course={activeCourse} onBack={() => setActiveView('dashboard')} />}
-        {activeView === 'certifications' && <Certifications />}
+        {activeView === 'certifications' && <Certifications user={user} />}
         {activeView === 'community-voting' && <CommunityVoting />}
         {activeView === 'cart' && (
           <Cart 
