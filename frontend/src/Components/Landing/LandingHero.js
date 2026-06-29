@@ -8,7 +8,7 @@ const LandingHero = ({ stats, onStartFree, onBrowseCourses }) => {
   const satisfactionRate = '98%';
 
   return (
-    <section className="relative pt-32 pb-40 lg:pt-48 lg:pb-48 overflow-hidden">
+    <section className="relative pt-32 pb-64 md:pb-40 lg:pt-48 lg:pb-48 overflow-hidden">
       {/* Background with Overlay */}
       <div className="absolute inset-0 z-0">
         <img 

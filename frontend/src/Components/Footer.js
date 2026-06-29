@@ -38,7 +38,7 @@ export default function Footer({ setActivePage }) {
   return (
     <footer style={styles.footer}>
       <div className="container" style={styles.container}>
-        <div style={styles.grid}>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-[2fr_1fr_2fr] gap-12">
           {/* Brand Column */}
           <div style={styles.brandCol}>
             <div style={styles.logoRow}>
@@ -151,11 +151,6 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '4rem',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr 2fr',
-    gap: '3rem',
   },
   brandCol: {
     display: 'flex',
