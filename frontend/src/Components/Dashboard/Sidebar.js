@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   ShoppingBag, 
@@ -47,6 +47,28 @@ const SidebarSection = ({ title, children }) => (
 );
 
 const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
+  const [communityCount, setCommunityCount] = useState(0);
+
+  useEffect(() => {
+    const fetchCommunityCount = async () => {
+      try {
+        const url = new URL(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/community/proposals`);
+        const token = localStorage.getItem('sf_token');
+        const headers = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        
+        const res = await fetch(url.toString(), { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setCommunityCount(data.length || 0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch community proposals count", err);
+      }
+    };
+    fetchCommunityCount();
+  }, []);
+
   return (
     <aside className="w-64 bg-white border-r border-slate-200 h-screen flex flex-col flex-shrink-0 sticky top-0 overflow-y-auto no-scrollbar font-sans">
       <div className="h-20 flex items-center px-6 border-b border-slate-100 shrink-0">
@@ -67,8 +89,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
 
         {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'expert' && (
           <SidebarSection title="Create">
-            <SidebarLink icon={FileEdit} label="Community feed" isActive={activeView === 'community-voting'} onClick={() => onViewChange('community-voting')} badge="12" />
-
+            <SidebarLink icon={FileEdit} label="Community feed" isActive={activeView === 'community-voting'} onClick={() => onViewChange('community-voting')} badge={communityCount > 0 ? communityCount : null} />
           </SidebarSection>
         )}
 

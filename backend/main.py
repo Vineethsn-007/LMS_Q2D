@@ -74,6 +74,36 @@ def get_courses(
         
     return query.all()
 
+@app.get("/api/courses/{course_id}/quiz", response_model=List[schemas.QuizQuestion])
+def generate_course_quiz(course_id: int, db: Session = Depends(get_db)):
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+        
+    if course.quiz_questions and len(course.quiz_questions) > 0:
+        return course.quiz_questions
+    
+    # Gather context from modules or course materials
+    context_parts = [f"Course: {course.title}", f"Description: {course.description}"]
+    
+    materials = db.query(models.CourseMaterial).filter(models.CourseMaterial.course_id == course_id).all()
+    if materials:
+        for m in materials:
+            if m.text_content:
+                context_parts.append(m.text_content)
+    elif course.modules_data:
+        import json
+        context_parts.append(json.dumps(course.modules_data))
+        
+    context_text = "\n\n".join(context_parts)
+    
+    # Truncate context to avoid token limits (approx 10,000 characters)
+    if len(context_text) > 10000:
+        context_text = context_text[:10000]
+        
+    quiz_questions = groq_service.generate_quiz(context_text)
+    return quiz_questions
+
 # Experts endpoint
 @app.get("/api/experts", response_model=List[schemas.ExpertResponse])
 def get_experts(db: Session = Depends(get_db)):
@@ -716,9 +746,25 @@ def create_course_material(
         import uuid
         filename = f"{uuid.uuid4()}{file_ext}"
         filepath = os.path.join("uploads", filename)
+        
+        file_bytes = file.file.read()
         with open(filepath, "wb") as buffer:
-            buffer.write(file.file.read())
+            buffer.write(file_bytes)
         content_url = f"/uploads/{filename}"
+
+        if file_ext.lower() == '.pdf':
+            try:
+                import io
+                from pypdf import PdfReader
+                pdf = PdfReader(io.BytesIO(file_bytes))
+                extracted_text = ""
+                for page in pdf.pages:
+                    extracted_text += page.extract_text() + "\n"
+                
+                if extracted_text.strip():
+                    text_content = (text_content or "") + "\n\n" + extracted_text.strip()
+            except Exception as e:
+                print(f"Error extracting PDF text: {e}")
 
     db_material = models.CourseMaterial(
         course_id=course_id,

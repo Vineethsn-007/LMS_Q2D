@@ -29,6 +29,7 @@ export default function ExpertPanel({ user }) {
 
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [modulesData, setModulesData] = useState([]);
+  const [quizQuestionsData, setQuizQuestionsData] = useState([]);
 
   const token = localStorage.getItem('sf_token');
   const headers = {
@@ -226,7 +227,8 @@ export default function ExpertPanel({ user }) {
         is_ai_generated: courseFormData.is_ai_generated,
         is_expert_validated: courseFormData.is_expert_validated,
         image_url: updatedImageUrl,
-        modules_data: newModulesData
+        modules_data: newModulesData,
+        quiz_questions: quizQuestionsData
       };
 
       const res = await fetch(url, {
@@ -711,6 +713,7 @@ export default function ExpertPanel({ user }) {
                                           <option value="pdf">📄 PDF</option>
                                           <option value="image">🖼️ Image</option>
                                           <option value="text">📝 Text</option>
+                                          <option value="quiz">❓ Quiz (MCQ)</option>
                                         </select>
                                       </div>
                                       
@@ -726,6 +729,56 @@ export default function ExpertPanel({ user }) {
                                           className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-y min-h-[80px]"
                                           required
                                         />
+                                      ) : content.type === 'quiz' ? (
+                                        <div className="flex flex-col gap-3 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                                          <input
+                                            type="text"
+                                            placeholder="Question text"
+                                            value={content.quiz_data?.question || ''}
+                                            onChange={(e) => {
+                                              const newData = [...modulesData];
+                                              if (!newData[mIndex].lessons[lIndex].contents[cIndex].quiz_data) {
+                                                newData[mIndex].lessons[lIndex].contents[cIndex].quiz_data = { question: '', options: ['', '', '', ''], answer: 0 };
+                                              }
+                                              newData[mIndex].lessons[lIndex].contents[cIndex].quiz_data.question = e.target.value;
+                                              setModulesData(newData);
+                                            }}
+                                            className="w-full px-3 py-2 bg-white border border-blue-200 rounded-lg text-sm font-medium focus:outline-none focus:border-blue-400"
+                                            required
+                                          />
+                                          {Array.from({length: 4}).map((_, i) => (
+                                            <div key={i} className="flex items-center gap-2">
+                                              <input
+                                                type="radio"
+                                                name={`quiz-${mIndex}-${lIndex}-${cIndex}`}
+                                                checked={content.quiz_data?.answer === i}
+                                                onChange={() => {
+                                                  const newData = [...modulesData];
+                                                  if (!newData[mIndex].lessons[lIndex].contents[cIndex].quiz_data) {
+                                                    newData[mIndex].lessons[lIndex].contents[cIndex].quiz_data = { question: '', options: ['', '', '', ''], answer: 0 };
+                                                  }
+                                                  newData[mIndex].lessons[lIndex].contents[cIndex].quiz_data.answer = i;
+                                                  setModulesData(newData);
+                                                }}
+                                              />
+                                              <input
+                                                type="text"
+                                                placeholder={`Option ${i + 1}`}
+                                                value={content.quiz_data?.options?.[i] || ''}
+                                                onChange={(e) => {
+                                                  const newData = [...modulesData];
+                                                  if (!newData[mIndex].lessons[lIndex].contents[cIndex].quiz_data) {
+                                                    newData[mIndex].lessons[lIndex].contents[cIndex].quiz_data = { question: '', options: ['', '', '', ''], answer: 0 };
+                                                  }
+                                                  newData[mIndex].lessons[lIndex].contents[cIndex].quiz_data.options[i] = e.target.value;
+                                                  setModulesData(newData);
+                                                }}
+                                                className="w-full px-3 py-1.5 bg-white border border-blue-100 rounded-md text-xs font-medium focus:outline-none focus:border-blue-300"
+                                                required
+                                              />
+                                            </div>
+                                          ))}
+                                        </div>
                                       ) : (
                                         <div className="flex flex-col gap-2">
                                           <input
@@ -761,6 +814,78 @@ export default function ExpertPanel({ user }) {
                           Click "Add Module" to start building curriculum.
                         </div>
                       )}
+                    </div>
+                  </div>
+
+
+                  {/* Final Assessment (Quiz) Section */}
+                  <div className="flex flex-col gap-6 pb-8 border-b border-slate-100">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-lg font-bold text-navy-900 flex items-center gap-2"><CheckCircle size={18} className="text-blue-500" /> Final Assessment Quiz</h4>
+                      <button 
+                        type="button" 
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all" 
+                        onClick={() => setQuizQuestionsData([...quizQuestionsData, { question: '', options: ['', '', '', ''], answer: 0 }])}
+                      >
+                        <Plus size={16} /> Add Question
+                      </button>
+                    </div>
+                    <div className="text-xs font-medium text-slate-500 mb-2">
+                      Leave empty to automatically generate the final quiz using AI.
+                    </div>
+                    
+                    <div className="flex flex-col gap-6">
+                      {quizQuestionsData.map((q, qIndex) => (
+                        <div key={qIndex} className="bg-slate-50 border border-blue-200 rounded-2xl p-5 shadow-sm">
+                          <div className="flex justify-between mb-4">
+                            <span className="font-bold text-blue-800 text-sm">Question {qIndex + 1}</span>
+                            <button type="button" onClick={() => setQuizQuestionsData(quizQuestionsData.filter((_, i) => i !== qIndex))} className="text-coral hover:text-coral-600"><Trash2 size={16}/></button>
+                          </div>
+                          <div className="flex flex-col gap-4">
+                            <input
+                              type="text"
+                              placeholder="Question text..."
+                              value={q.question}
+                              onChange={(e) => {
+                                const newQ = [...quizQuestionsData];
+                                newQ[qIndex].question = e.target.value;
+                                setQuizQuestionsData(newQ);
+                              }}
+                              className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-navy-900 focus:outline-none focus:border-blue-500 transition-all"
+                              required
+                            />
+                            <div className="flex flex-col gap-2">
+                              {q.options.map((opt, oIndex) => (
+                                <div key={oIndex} className="flex items-center gap-3">
+                                  <input
+                                    type="radio"
+                                    name={`final-quiz-${qIndex}`}
+                                    checked={q.answer === oIndex}
+                                    onChange={() => {
+                                      const newQ = [...quizQuestionsData];
+                                      newQ[qIndex].answer = oIndex;
+                                      setQuizQuestionsData(newQ);
+                                    }}
+                                    className="cursor-pointer"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder={`Option ${oIndex + 1}`}
+                                    value={opt}
+                                    onChange={(e) => {
+                                      const newQ = [...quizQuestionsData];
+                                      newQ[qIndex].options[oIndex] = e.target.value;
+                                      setQuizQuestionsData(newQ);
+                                    }}
+                                    className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md text-sm font-medium focus:outline-none focus:border-blue-400"
+                                    required
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 

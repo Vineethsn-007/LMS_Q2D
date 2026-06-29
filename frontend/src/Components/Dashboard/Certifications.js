@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Target, TrendingUp, Trophy, Globe, CheckCircle2, Share2, Download, ShieldCheck, Lock, Trash2 } from 'lucide-react';
+import { Award, Target, TrendingUp, Trophy, Globe, CheckCircle2, Share2, Download, ShieldCheck, Lock, Trash2, Eye } from 'lucide-react';
 import { getCertificateHTML } from './certificateTemplate';
 
 const Certifications = ({ user }) => {
@@ -63,37 +63,21 @@ const Certifications = ({ user }) => {
     }
   };
 
-  const fallbackCopyTextToClipboard = (text) => {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.top = "0";
-    textArea.style.left = "0";
-    textArea.style.position = "fixed";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      showToast("Share link copied to clipboard!");
-    } catch (err) {
-      showToast("Failed to copy link. Please manually share it.");
-    }
-    document.body.removeChild(textArea);
-  };
 
-  const handleShare = (cert) => {
-    const textToCopy = `Check out my verified certificate for ${cert.course_name} at SkillForge!`;
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(textToCopy)
-        .then(() => showToast("Share link copied to clipboard!"))
-        .catch(() => fallbackCopyTextToClipboard(textToCopy));
+
+  const handleView = (cert) => {
+    const htmlContent = getCertificateHTML(user?.name || user?.username || 'Learner Name', cert.course_name, cert.issue_date);
+    const viewWindow = window.open('', '_blank');
+    if (viewWindow) {
+      viewWindow.document.open();
+      viewWindow.document.write(htmlContent);
+      viewWindow.document.close();
+      viewWindow.onload = () => {
+        viewWindow.focus();
+      };
     } else {
-      fallbackCopyTextToClipboard(textToCopy);
+      showToast('Please allow popups to view the certificate.');
     }
-  };
-
-  const handleVerify = () => {
-    showToast("Certificate successfully verified as authentic.");
   };
 
   return (
@@ -206,23 +190,18 @@ const Certifications = ({ user }) => {
                   </div>
                   
                   <div className="flex gap-2 mt-auto border-t border-slate-100 pt-5">
-                    <button 
-                      onClick={() => handleShare(cert)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300"
-                    >
-                      <Share2 size={16} className="text-navy" /> Share
-                    </button>
+
                     <button 
                       onClick={() => handleDownload(cert)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300"
                     >
-                      <Download size={16} className="text-navy" /> Download
+                      <Download size={16} className="text-navy" /> Download PDF
                     </button>
                     <button 
-                      onClick={() => handleVerify(cert)}
+                      onClick={() => handleView(cert)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300"
                     >
-                      <ShieldCheck size={16} className="text-navy" /> Verify
+                      <Eye size={16} className="text-navy" /> View
                     </button>
                   </div>
                 </div>

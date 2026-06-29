@@ -30,6 +30,7 @@ class Course(Base):
     is_expert_validated = Column(Boolean, default=True)
     image_url = Column(String, nullable=True)
     modules_data = Column(JSON, nullable=True)
+    quiz_questions = Column(JSON, nullable=True)
 
 class Expert(Base):
     __tablename__ = "experts"

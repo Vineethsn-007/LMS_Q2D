@@ -53,6 +53,7 @@ class CourseResponse(BaseModel):
     is_expert_validated: bool
     image_url: Optional[str] = None
     modules_data: Optional[List[Any]] = None
+    quiz_questions: Optional[List[Any]] = None
 
     class Config:
         orm_mode = True
@@ -179,6 +180,7 @@ class CourseCreateUpdate(BaseModel):
     is_expert_validated: bool
     image_url: Optional[str] = None
     modules_data: Optional[List[Any]] = None
+    quiz_questions: Optional[List[Any]] = None
 
 class CourseMaterialCreate(BaseModel):
     title: str
@@ -246,3 +248,8 @@ class SubscriberResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class QuizQuestion(BaseModel):
+    question: str
+    options: List[str]
+    answer: int

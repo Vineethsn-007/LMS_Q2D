@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Play, CheckCircle2, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import './MyLearning.css';
 
-const MyLearning = ({ course, onBack }) => {
+import CourseQuiz from './CourseQuiz';
+
+const MyLearning = ({ course, onBack, onComplete }) => {
   const [activeLesson, setActiveLesson] = useState(null);
   const [expandedModules, setExpandedModules] = useState({});
+  const [showQuiz, setShowQuiz] = useState(false);
   
   useEffect(() => {
     if (course && course.modules_data && course.modules_data.length > 0) {
@@ -52,19 +55,37 @@ const MyLearning = ({ course, onBack }) => {
     }
   };
 
+  const completeCourse = () => {
+    const saved = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
+    if (course && course.id && !saved.includes(course.id)) {
+      saved.push(course.id);
+      localStorage.setItem('sf_completed_courses', JSON.stringify(saved));
+    }
+    if (onComplete) onComplete();
+    else if (onBack) onBack();
+  };
+
   const handleNext = () => {
     if (nextLessonItem) {
       setActiveLesson(nextLessonItem.lesson);
       setExpandedModules(prev => ({ ...prev, [nextLessonItem.moduleIndex]: true }));
     } else {
-      const saved = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
-      if (course && course.id && !saved.includes(course.id)) {
-        saved.push(course.id);
-        localStorage.setItem('sf_completed_courses', JSON.stringify(saved));
-      }
-      if (onBack) onBack();
+      setShowQuiz(true);
     }
   };
+
+  if (showQuiz) {
+    return (
+      <div className="flex-1 w-full bg-slate-50 overflow-y-auto p-8">
+        <CourseQuiz 
+          courseId={course.id} 
+          courseName={course.title}
+          onComplete={completeCourse} 
+          onCancel={() => setShowQuiz(false)} 
+        />
+      </div>
+    );
+  }
   
   return (
     <div className="flex h-full flex-1 w-full bg-slate-50 overflow-hidden">
@@ -183,6 +204,41 @@ const MyLearning = ({ course, onBack }) => {
                         <FileText size={64} color="#ef4444" />
                         <h3 style={{ margin: 0, color: '#0f172a' }}>PDF Document</h3>
                         <a href={`${process.env.REACT_APP_API_URL}${content.content_url}`} target="_blank" rel="noreferrer" style={{ padding: '0.75rem 2rem', background: '#3b82f6', color: '#fff', textDecoration: 'none', fontWeight: '600', borderRadius: '8px', marginTop: '1rem' }}>Download / View PDF</a>
+                      </div>
+                    );
+                  } else if (content.type === 'quiz' && content.quiz_data) {
+                    return (
+                      <div style={{ padding: '3rem', backgroundColor: '#fff', minHeight: '400px' }}>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '2rem' }}>
+                          {content.quiz_data.question}
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                          {content.quiz_data.options.map((opt, i) => (
+                            <button 
+                              key={i} 
+                              onClick={() => {
+                                if (i === content.quiz_data.answer) alert("Correct!");
+                                else alert("Incorrect, try again.");
+                              }}
+                              style={{ 
+                                padding: '1rem 1.5rem', 
+                                textAlign: 'left', 
+                                background: '#f8fafc', 
+                                border: '2px solid #e2e8f0', 
+                                borderRadius: '12px', 
+                                fontSize: '1.1rem',
+                                color: '#334155',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                fontWeight: '500'
+                              }}
+                              onMouseOver={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = '#eff6ff'; }}
+                              onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     );
                   }
