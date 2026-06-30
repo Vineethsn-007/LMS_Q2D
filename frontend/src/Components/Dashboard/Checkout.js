@@ -26,9 +26,9 @@ const Checkout = ({ course, onBack, onSuccess }) => {
     <div className="checkout-container">
       <div className="checkout-header">
         <button className="back-btn" onClick={onBack}>
-          <ArrowLeft size={20} /> Back
+          <ArrowLeft size={18} /> Back
         </button>
-        <h1>Secure Checkout</h1>
+        <h1 className="text-gradient-cyan">Secure Checkout</h1>
       </div>
 
       <div className="checkout-content">
@@ -36,10 +36,10 @@ const Checkout = ({ course, onBack, onSuccess }) => {
           {/* Step 1: Login (Mocked as done) */}
           <div className="checkout-step completed">
             <div className="step-header">
-              <span className="step-number">1</span>
+              <span className="step-number">✓</span>
               <div className="step-title">
                 <h3>Login</h3>
-                <CheckCircle2 size={18} color="#2874f0" />
+                <CheckCircle2 size={18} color="var(--color-accent-cyan)" />
               </div>
             </div>
             <div className="step-body">
@@ -50,10 +50,10 @@ const Checkout = ({ course, onBack, onSuccess }) => {
           {/* Step 2: Order Summary */}
           <div className="checkout-step completed">
             <div className="step-header">
-              <span className="step-number">2</span>
+              <span className="step-number">✓</span>
               <div className="step-title">
                 <h3>Order Summary</h3>
-                <CheckCircle2 size={18} color="#2874f0" />
+                <CheckCircle2 size={18} color="var(--color-accent-cyan)" />
               </div>
             </div>
             <div className="step-body">
@@ -152,25 +152,27 @@ const Checkout = ({ course, onBack, onSuccess }) => {
           </div>
         </div>
 
-        <div className="checkout-sidebar">
-          <div className="price-details-card">
+        <div className="checkout-summary">
+          <div className="summary-header">
             <h3>Price Details</h3>
-            <div className="price-row">
+          </div>
+          <div className="summary-body">
+            <div className="summary-row">
               <span>Price</span>
               <span>{price}</span>
             </div>
-            <div className="price-row">
+            <div className="summary-row discount">
               <span>Discount</span>
-              <span className="discount-text">-$0.00</span>
+              <span>-$0.00</span>
             </div>
-            <div className="price-row total">
+            <div className="summary-total">
               <span>Amount Payable</span>
               <span>{price}</span>
             </div>
-            <div className="secure-badge-checkout">
-              <ShieldCheck size={24} color="#878787" />
-              <p>Safe and Secure Payments. Easy returns. 100% Authentic products.</p>
-            </div>
+          </div>
+          <div className="secure-badge">
+            <ShieldCheck size={20} />
+            <p>Safe and Secure Payments. Easy returns. 100% Authentic products.</p>
           </div>
         </div>
       </div>
