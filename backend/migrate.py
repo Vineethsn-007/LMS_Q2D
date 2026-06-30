@@ -14,6 +14,12 @@ def migrate():
         ("course_proposals", "ai_recommendation", "TEXT"),
         ("course_proposals", "duplicate_status", "BOOLEAN DEFAULT FALSE"),
         ("course_proposals", "ai_flagged_reason", "TEXT"),
+        ("course_proposals", "created_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+        ("course_proposals", "rejection_reason", "TEXT"),
+        ("course_proposals", "reviewer_feedback", "TEXT"),
+        ("course_proposals", "upvotes", "INTEGER DEFAULT 0"),
+        ("course_proposals", "downvotes", "INTEGER DEFAULT 0"),
+        ("course_proposals", "comment_count", "INTEGER DEFAULT 0"),
     ]
 
     for table, column, col_type in columns_to_add:
