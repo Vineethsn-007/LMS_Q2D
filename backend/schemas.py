@@ -253,3 +253,9 @@ class QuizQuestion(BaseModel):
     question: str
     options: List[str]
     answer: int
+
+class QuizGenerationRequest(BaseModel):
+    count: int = 5
+    course_title: Optional[str] = None
+    course_description: Optional[str] = None
+    modules_data: Optional[List[Any]] = None

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BookOpen, Video, FileText, Image, File, Upload, 
+import {
+  BookOpen, Video, FileText, Image, File, Upload,
   ExternalLink, Sparkles, RefreshCw, CheckCircle, AlertCircle, Plus, X, Trash2, Edit, Star, LayoutGrid, Check, PlayCircle, Users, Clock
 } from 'lucide-react';
 
 export default function ExpertPanel({ user }) {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
-  
+
   // Loading & states
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [error, setError] = useState(null);
@@ -34,6 +34,48 @@ export default function ExpertPanel({ user }) {
   const token = localStorage.getItem('sf_token');
   const headers = {
     'Authorization': `Bearer ${token}`
+  };
+
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [isQuizPromptOpen, setIsQuizPromptOpen] = useState(false);
+  const [quizCountInput, setQuizCountInput] = useState("5");
+
+  const submitGenerateQuiz = async () => {
+    const count = parseInt(quizCountInput, 10);
+    if (isNaN(count) || count < 1 || count > 50) {
+      alert("Please enter a valid number of questions between 1 and 50.");
+      return;
+    }
+
+    setIsQuizPromptOpen(false);
+
+    try {
+      setIsGeneratingQuiz(true);
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/courses/quiz/generate`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          count,
+          course_title: courseFormData.title,
+          course_description: courseFormData.description,
+          modules_data: modulesData
+        })
+      });
+      if (!res.ok) throw new Error("Failed to generate quiz");
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setQuizQuestionsData(data);
+      } else {
+        alert("No quiz questions generated.");
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
   };
 
   const handleDeleteCourse = async (id) => {
@@ -117,10 +159,10 @@ export default function ExpertPanel({ user }) {
 
   const handleAddLesson = (mIndex) => {
     const newData = [...modulesData];
-    newData[mIndex].lessons.push({ 
-      id: Date.now().toString(), 
-      title: '', 
-      contents: [{ id: Date.now().toString() + 'c', type: 'video', content_url: null, text_content: '', file: null }] 
+    newData[mIndex].lessons.push({
+      id: Date.now().toString(),
+      title: '',
+      contents: [{ id: Date.now().toString() + 'c', type: 'video', content_url: null, text_content: '', file: null }]
     });
     setModulesData(newData);
   };
@@ -241,15 +283,15 @@ export default function ExpertPanel({ user }) {
       });
 
       if (!res.ok) throw new Error('Failed to save course');
-      
+
       setIsCourseModalOpen(false);
-      
+
       // Update selected course if we just edited it
       if (currentCourse && selectedCourse && currentCourse.id === selectedCourse.id) {
         const updatedCourse = await res.json();
         setSelectedCourse(updatedCourse);
       }
-      
+
       fetchCourses();
     } catch (err) {
       alert(err.message);
@@ -270,7 +312,7 @@ export default function ExpertPanel({ user }) {
     <div className="flex-1 overflow-hidden bg-slate-50 flex flex-col relative h-full">
       <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar w-full">
         <div className="max-w-7xl mx-auto w-full flex flex-col gap-6 h-full">
-          
+
           {/* Header Section */}
           <div className="flex flex-col gap-1 mb-2">
             <h1 className="text-3xl font-bold text-navy-900 leading-tight flex items-center gap-3">
@@ -298,7 +340,7 @@ export default function ExpertPanel({ user }) {
                   <LayoutGrid size={18} className="text-slate-400" /> Course Catalog
                 </h3>
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={() => handleOpenCourseModal(null)}
                     className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors tooltip-trigger relative group"
                     title="Add Course"
@@ -306,8 +348,8 @@ export default function ExpertPanel({ user }) {
                     <Plus size={16} />
                     <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Add Course</span>
                   </button>
-                  <button 
-                    onClick={fetchCourses} 
+                  <button
+                    onClick={fetchCourses}
                     disabled={loadingCourses}
                     className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-lg transition-colors tooltip-trigger relative group"
                     title="Refresh"
@@ -331,13 +373,12 @@ export default function ExpertPanel({ user }) {
                 ) : (
                   <div className="flex flex-col gap-1">
                     {courses.map(course => (
-                      <div 
+                      <div
                         key={course.id}
-                        className={`p-4 rounded-xl cursor-pointer flex gap-3 transition-all ${
-                          selectedCourse?.id === course.id 
-                            ? 'bg-purple-50 shadow-inner' 
+                        className={`p-4 rounded-xl cursor-pointer flex gap-3 transition-all ${selectedCourse?.id === course.id
+                            ? 'bg-purple-50 shadow-inner'
                             : 'hover:bg-slate-50'
-                        }`}
+                          }`}
                         onClick={() => setSelectedCourse(course)}
                       >
                         <div className={`mt-0.5 shrink-0 ${selectedCourse?.id === course.id ? 'text-purple-500' : 'text-slate-400'}`}>
@@ -368,20 +409,19 @@ export default function ExpertPanel({ user }) {
                     <div className="absolute top-0 right-0 p-8 opacity-5">
                       <BookOpen size={120} />
                     </div>
-                    
+
                     <div className="flex justify-between items-start mb-4 relative z-10">
                       <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold uppercase tracking-widest">
                         {selectedCourse.category}
                       </span>
-                      <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                        selectedCourse.is_expert_validated ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {selectedCourse.is_expert_validated ? <><Check size={12}/> Expert Validated</> : <><AlertCircle size={12}/> Needs Validation</>}
+                      <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${selectedCourse.is_expert_validated ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                        {selectedCourse.is_expert_validated ? <><Check size={12} /> Expert Validated</> : <><AlertCircle size={12} /> Needs Validation</>}
                       </span>
                     </div>
                     <h2 className="text-2xl font-bold text-navy-900 mb-2 relative z-10">{selectedCourse.title}</h2>
                     <p className="text-sm font-medium text-slate-600 leading-relaxed max-w-3xl relative z-10">{selectedCourse.description}</p>
-                    
+
                     <div className="flex items-center gap-6 mt-6 relative z-10 text-sm font-bold text-slate-500">
                       <div className="flex items-center gap-1.5"><Star size={16} className="text-amber-400 fill-amber-400" /> {selectedCourse.rating}</div>
                       <div className="flex items-center gap-1.5"><Users size={16} /> {selectedCourse.students_count.toLocaleString()} Students</div>
@@ -396,21 +436,21 @@ export default function ExpertPanel({ user }) {
                         <BookOpen size={20} className="text-blue-500" /> Course Curriculum
                       </h3>
                       <div className="flex gap-3">
-                        <button 
-                          className="flex items-center gap-2 px-4 py-2 bg-coral-50 hover:bg-coral-100 text-coral-600 text-sm font-bold rounded-xl transition-all border border-coral-200" 
+                        <button
+                          className="flex items-center gap-2 px-4 py-2 bg-coral-50 hover:bg-coral-100 text-coral-600 text-sm font-bold rounded-xl transition-all border border-coral-200"
                           onClick={() => handleDeleteCourse(selectedCourse.id)}
                         >
                           <Trash2 size={16} /> Delete Course
                         </button>
-                        <button 
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all" 
+                        <button
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all"
                           onClick={() => handleOpenCourseModal(selectedCourse)}
                         >
                           <Edit size={16} /> Edit Curriculum
                         </button>
                       </div>
                     </div>
-                    
+
                     {selectedCourse.modules_data && selectedCourse.modules_data.length > 0 ? (
                       <div className="flex flex-col gap-6 pb-8">
                         {selectedCourse.modules_data.map((mod, mIdx) => (
@@ -421,12 +461,12 @@ export default function ExpertPanel({ user }) {
                                 {mod.title}
                               </h4>
                             </div>
-                            
+
                             <div className="flex flex-col gap-4 p-6">
                               {mod.lessons && mod.lessons.map((less, lIdx) => (
                                 <div key={less.id || lIdx} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:border-blue-200 transition-colors group">
                                   <h5 className="font-bold text-navy-900 mb-3 flex items-center gap-2 group-hover:text-blue-600 transition-colors">
-                                    <PlayCircle size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors"/> 
+                                    <PlayCircle size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
                                     Lesson {lIdx + 1}: {less.title}
                                   </h5>
                                   <div className="flex flex-wrap gap-2 ml-6">
@@ -455,7 +495,7 @@ export default function ExpertPanel({ user }) {
                         <BookOpen size={48} className="text-slate-300 mb-4" />
                         <h4 className="text-lg font-bold text-navy-900 mb-2">No Curriculum Built</h4>
                         <p className="text-sm font-medium text-slate-500 max-w-sm text-center mb-6">This course doesn't have any modules or lessons yet. Start building the curriculum to provide rich content.</p>
-                        <button 
+                        <button
                           onClick={() => handleOpenCourseModal(selectedCourse)}
                           className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all"
                         >
@@ -491,18 +531,18 @@ export default function ExpertPanel({ user }) {
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">{currentCourse ? "Update catalog details and curriculum" : "Add a new course to the catalog"}</p>
                 </div>
               </div>
-              <button 
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors" 
+              <button
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
                 onClick={() => setIsCourseModalOpen(false)}
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleSaveCourse} className="flex flex-col overflow-hidden">
               <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar bg-white">
                 <div className="flex flex-col gap-8 max-w-4xl mx-auto">
-                  
+
                   {/* Basic Info Section */}
                   <div className="flex flex-col gap-6 pb-8 border-b border-slate-100">
                     <h4 className="text-lg font-bold text-navy-900 flex items-center gap-2"><BookOpen size={18} className="text-blue-500" /> Basic Details</h4>
@@ -568,7 +608,7 @@ export default function ExpertPanel({ user }) {
                           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                         />
                       </div>
-                      
+
                       <div className="flex flex-col gap-2">
                         <label className="text-sm font-bold text-navy-900">Students Enrolled</label>
                         <input
@@ -604,15 +644,15 @@ export default function ExpertPanel({ user }) {
                   <div className="flex flex-col gap-6 pb-8 border-b border-slate-100">
                     <div className="flex justify-between items-center">
                       <h4 className="text-lg font-bold text-navy-900 flex items-center gap-2"><LayoutGrid size={18} className="text-blue-500" /> Curriculum Builder</h4>
-                      <button 
-                        type="button" 
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all" 
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all"
                         onClick={handleAddModule}
                       >
                         <Plus size={16} /> Add Module
                       </button>
                     </div>
-                    
+
                     <div className="flex flex-col gap-6">
                       {modulesData.map((module, mIndex) => (
                         <div key={module.id} className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden p-5 shadow-sm">
@@ -633,16 +673,16 @@ export default function ExpertPanel({ user }) {
                               />
                             </div>
                             <div className="flex gap-2 w-full sm:w-auto">
-                              <button 
-                                type="button" 
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-lg transition-colors border border-blue-100" 
+                              <button
+                                type="button"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-lg transition-colors border border-blue-100"
                                 onClick={() => handleAddLesson(mIndex)}
                               >
                                 <Plus size={14} /> Add Lesson
                               </button>
-                              <button 
-                                type="button" 
-                                className="flex items-center justify-center w-10 h-10 bg-coral-50 hover:bg-coral-100 text-coral-600 rounded-lg transition-colors border border-coral-100" 
+                              <button
+                                type="button"
+                                className="flex items-center justify-center w-10 h-10 bg-coral-50 hover:bg-coral-100 text-coral-600 rounded-lg transition-colors border border-coral-100"
                                 onClick={() => handleRemoveModule(mIndex)}
                                 title="Remove Module"
                               >
@@ -668,9 +708,9 @@ export default function ExpertPanel({ user }) {
                                     className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-navy-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                                     required
                                   />
-                                  <button 
-                                    type="button" 
-                                    className="p-2 text-slate-400 hover:text-coral hover:bg-coral-50 rounded-lg transition-colors" 
+                                  <button
+                                    type="button"
+                                    className="p-2 text-slate-400 hover:text-coral hover:bg-coral-50 rounded-lg transition-colors"
                                     onClick={() => handleRemoveLesson(mIndex, lIndex)}
                                   >
                                     <X size={16} />
@@ -680,25 +720,25 @@ export default function ExpertPanel({ user }) {
                                 <div className="flex flex-col gap-3 ml-2 pl-3 border-l-2 border-slate-100">
                                   <div className="flex justify-between items-center mb-1">
                                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Contents</span>
-                                    <button 
-                                      type="button" 
+                                    <button
+                                      type="button"
                                       className="text-xs font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
                                       onClick={() => handleAddContent(mIndex, lIndex)}
                                     >
                                       <Plus size={12} /> Add Content
                                     </button>
                                   </div>
-                                  
+
                                   {lesson.contents.map((content, cIndex) => (
                                     <div key={content.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col gap-3 relative group/content">
-                                      <button 
-                                        type="button" 
+                                      <button
+                                        type="button"
                                         className="absolute -right-2 -top-2 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-coral hover:border-coral transition-colors opacity-0 group-hover/content:opacity-100 shadow-sm"
                                         onClick={() => handleRemoveContent(mIndex, lIndex, cIndex)}
                                       >
                                         <X size={12} />
                                       </button>
-                                      
+
                                       <div className="flex items-center gap-3">
                                         <select
                                           value={content.type}
@@ -716,7 +756,7 @@ export default function ExpertPanel({ user }) {
                                           <option value="quiz">❓ Quiz (MCQ)</option>
                                         </select>
                                       </div>
-                                      
+
                                       {content.type === 'text' ? (
                                         <textarea
                                           placeholder="Write text content or enter URL..."
@@ -746,7 +786,7 @@ export default function ExpertPanel({ user }) {
                                             className="w-full px-3 py-2 bg-white border border-blue-200 rounded-lg text-sm font-medium focus:outline-none focus:border-blue-400"
                                             required
                                           />
-                                          {Array.from({length: 4}).map((_, i) => (
+                                          {Array.from({ length: 4 }).map((_, i) => (
                                             <div key={i} className="flex items-center gap-2">
                                               <input
                                                 type="radio"
@@ -822,24 +862,35 @@ export default function ExpertPanel({ user }) {
                   <div className="flex flex-col gap-6 pb-8 border-b border-slate-100">
                     <div className="flex justify-between items-center">
                       <h4 className="text-lg font-bold text-navy-900 flex items-center gap-2"><CheckCircle size={18} className="text-blue-500" /> Final Assessment Quiz</h4>
-                      <button 
-                        type="button" 
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all" 
-                        onClick={() => setQuizQuestionsData([...quizQuestionsData, { question: '', options: ['', '', '', ''], answer: 0 }])}
-                      >
-                        <Plus size={16} /> Add Question
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-sm font-bold rounded-xl transition-all border border-blue-200"
+                          onClick={() => setIsQuizPromptOpen(true)}
+                          disabled={isGeneratingQuiz}
+                        >
+                          {isGeneratingQuiz ? <RefreshCw size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                          Generate Quiz
+                        </button>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all"
+                          onClick={() => setQuizQuestionsData([...quizQuestionsData, { question: '', options: ['', '', '', ''], answer: 0 }])}
+                        >
+                          <Plus size={16} /> Add Question
+                        </button>
+                      </div>
                     </div>
                     <div className="text-xs font-medium text-slate-500 mb-2">
                       Leave empty to automatically generate the final quiz using AI.
                     </div>
-                    
+
                     <div className="flex flex-col gap-6">
                       {quizQuestionsData.map((q, qIndex) => (
                         <div key={qIndex} className="bg-slate-50 border border-blue-200 rounded-2xl p-5 shadow-sm">
                           <div className="flex justify-between mb-4">
                             <span className="font-bold text-blue-800 text-sm">Question {qIndex + 1}</span>
-                            <button type="button" onClick={() => setQuizQuestionsData(quizQuestionsData.filter((_, i) => i !== qIndex))} className="text-coral hover:text-coral-600"><Trash2 size={16}/></button>
+                            <button type="button" onClick={() => setQuizQuestionsData(quizQuestionsData.filter((_, i) => i !== qIndex))} className="text-coral hover:text-coral-600"><Trash2 size={16} /></button>
                           </div>
                           <div className="flex flex-col gap-4">
                             <input
@@ -848,7 +899,7 @@ export default function ExpertPanel({ user }) {
                               value={q.question}
                               onChange={(e) => {
                                 const newQ = [...quizQuestionsData];
-                                newQ[qIndex].question = e.target.value;
+                                newQ[qIndex] = { ...newQ[qIndex], question: e.target.value };
                                 setQuizQuestionsData(newQ);
                               }}
                               className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-navy-900 focus:outline-none focus:border-blue-500 transition-all"
@@ -858,15 +909,28 @@ export default function ExpertPanel({ user }) {
                               {q.options.map((opt, oIndex) => (
                                 <div key={oIndex} className="flex items-center gap-3">
                                   <input
-                                    type="radio"
-                                    name={`final-quiz-${qIndex}`}
-                                    checked={q.answer === oIndex}
-                                    onChange={() => {
+                                    type="checkbox"
+                                    checked={
+                                      Array.isArray(q.answer)
+                                        ? q.answer.includes(oIndex)
+                                        : (Number(q.answer) === oIndex || (q.answer == null && oIndex === 0))
+                                    }
+                                    onChange={(e) => {
                                       const newQ = [...quizQuestionsData];
-                                      newQ[qIndex].answer = oIndex;
+                                      const isChecked = e.target.checked;
+                                      let currentAnswers = Array.isArray(newQ[qIndex].answer)
+                                        ? [...newQ[qIndex].answer]
+                                        : (newQ[qIndex].answer != null ? [Number(newQ[qIndex].answer)] : [0]);
+
+                                      if (isChecked) {
+                                        if (!currentAnswers.includes(oIndex)) currentAnswers.push(oIndex);
+                                      } else {
+                                        currentAnswers = currentAnswers.filter((a) => a !== oIndex);
+                                      }
+                                      newQ[qIndex] = { ...newQ[qIndex], answer: currentAnswers };
                                       setQuizQuestionsData(newQ);
                                     }}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 transition-all"
                                   />
                                   <input
                                     type="text"
@@ -874,7 +938,9 @@ export default function ExpertPanel({ user }) {
                                     value={opt}
                                     onChange={(e) => {
                                       const newQ = [...quizQuestionsData];
-                                      newQ[qIndex].options[oIndex] = e.target.value;
+                                      const newOptions = [...newQ[qIndex].options];
+                                      newOptions[oIndex] = e.target.value;
+                                      newQ[qIndex] = { ...newQ[qIndex], options: newOptions };
                                       setQuizQuestionsData(newQ);
                                     }}
                                     className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-md text-sm font-medium focus:outline-none focus:border-blue-400"
@@ -911,23 +977,61 @@ export default function ExpertPanel({ user }) {
 
                 </div>
               </div>
-              
+
               <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 shrink-0">
-                <button 
-                  type="button" 
-                  className="px-6 py-3 bg-white border-2 border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all" 
+                <button
+                  type="button"
+                  className="px-6 py-3 bg-white border-2 border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all"
                   onClick={() => setIsCourseModalOpen(false)}
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
                 >
                   Save Course Entry
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quiz Generation Prompt Modal */}
+      {isQuizPromptOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 p-6">
+            <h3 className="text-xl font-bold text-navy-900 mb-2 flex items-center gap-2">
+              <Sparkles className="text-blue-500" size={24} /> Generate Quiz
+            </h3>
+            <p className="text-sm text-slate-500 mb-4 font-medium">How many questions would you like the AI to generate? (Max 50)</p>
+            
+            <input
+              type="number"
+              min="1"
+              max="50"
+              value={quizCountInput}
+              onChange={(e) => setQuizCountInput(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-navy-900 focus:outline-none focus:border-blue-500 transition-all mb-6"
+            />
+            
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl transition-all"
+                onClick={() => setIsQuizPromptOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm"
+                onClick={submitGenerateQuiz}
+              >
+                Generate
+              </button>
+            </div>
           </div>
         </div>
       )}
