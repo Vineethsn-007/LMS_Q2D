@@ -63,6 +63,33 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
       setScore(percentage);
       setPassed(isPassed);
       setShowResults(true);
+
+      if (isPassed) {
+        try {
+          const userStr = localStorage.getItem('sf_user');
+          const token = localStorage.getItem('sf_token');
+          const user = userStr ? JSON.parse(userStr) : { id: 1 };
+          fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/certificates/generate`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              user_id: user?.id || 1,
+              course_id: courseId || 1,
+              course_name: courseName || 'SkillForge Course',
+              completion_percentage: 100,
+              assessment_status: 'passed'
+            })
+          })
+          .then(res => res.json())
+          .then(data => console.log('Certificate generated automatically:', data))
+          .catch(err => console.error('Failed to auto-generate certificate:', err));
+        } catch (err) {
+          console.error("Error initiating auto certificate generation:", err);
+        }
+      }
     }
   };
 

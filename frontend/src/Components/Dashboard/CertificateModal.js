@@ -52,35 +52,44 @@ const CertificateModal = ({ user, course, onClose, onShowToast, onSuccess }) => 
     onClose();
   };
 
-  const saveCertificateToDB = async (dateString) => {
-    if (isSaved || !user || !course) return;
+  const saveCertificateToDB = async () => {
+    if (!user || !course) return null;
     try {
-      const certId = `SF-${course.id}-${Math.floor(Math.random() * 100000)}`;
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/certificates`, {
+      const token = localStorage.getItem('sf_token');
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/certificates/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           user_id: user.id,
           course_id: course.id,
           course_name: course.title,
-          cert_id: certId,
-          issue_date: dateString
+          completion_percentage: 100,
+          assessment_status: 'passed'
         })
       });
+      if (!res.ok) throw new Error('Failed to generate certificate');
+      const data = await res.json();
       setIsSaved(true);
+      return data;
     } catch (err) {
       console.error('Failed to save certificate', err);
+      return null;
     }
   };
 
   const handleDownload = async () => {
     const today = new Date();
     const dateString = `${String(today.getDate()).padStart(2, '0')} / ${String(today.getMonth() + 1).padStart(2, '0')} / ${today.getFullYear()}`;
-    const htmlContent = getCertificateHTML(displayDetails.name, displayDetails.courseName, dateString);
     
-    await saveCertificateToDB(dateString);
+    const cert = await saveCertificateToDB();
+    const certId = cert?.certificate_id || cert?.cert_id || `SF-${course?.id || 1}-2026-0001`;
+    const qrUrl = cert?.qr_code_path || '';
+    const issueDate = cert?.issue_date || dateString;
+
+    const htmlContent = getCertificateHTML(displayDetails.name, displayDetails.courseName, issueDate, certId, qrUrl);
 
     const printWindow = window.open('', '_blank');
     if (printWindow) {

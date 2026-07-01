@@ -18,6 +18,29 @@ from auth import create_access_token, verifyReviewerRole, get_current_user, get_
 
 # Initialize database tables and run seed if database is empty
 Base.metadata.create_all(bind=engine)
+
+# Auto-migrate certificates table schema if upgrading sqlite local db
+try:
+    with engine.connect() as conn:
+        from sqlalchemy import text
+        try:
+            conn.execute(text("SELECT qr_code_path, certificate_id, certificate_status, certificate_url FROM certificates LIMIT 1"))
+        except Exception:
+            print("Migrating certificates table schema...")
+            for col_def in [
+                "ADD COLUMN qr_code_path TEXT",
+                "ADD COLUMN certificate_id VARCHAR(100)",
+                "ADD COLUMN certificate_status VARCHAR(50) DEFAULT 'valid'",
+                "ADD COLUMN certificate_url TEXT"
+            ]:
+                try:
+                    conn.execute(text(f"ALTER TABLE certificates {col_def}"))
+                except Exception:
+                    pass
+            conn.commit()
+except Exception as e_mig:
+    print(f"Migration check completed: {e_mig}")
+
 db = next(get_db())
 try:
     if db.query(models.Course).count() == 0:
@@ -878,25 +901,9 @@ def get_subscribers(
 ):
     return db.query(models.Subscriber).order_by(models.Subscriber.created_at.desc()).all()
 
-# Certificates
-@app.post("/api/certificates", response_model=schemas.CertificateResponse, status_code=status.HTTP_201_CREATED)
-def create_certificate(cert_in: schemas.CertificateCreate, db: Session = Depends(get_db)):
-    db_cert = models.Certificate(**cert_in.dict())
-    db.add(db_cert)
-    db.commit()
-    db.refresh(db_cert)
-    return db_cert
-
-@app.get("/api/certificates/{user_id}", response_model=List[schemas.CertificateResponse])
-def get_user_certificates(user_id: int, db: Session = Depends(get_db)):
-    certs = db.query(models.Certificate).filter(models.Certificate.user_id == user_id).all()
-    return certs
-
-@app.delete("/api/certificates/{cert_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_certificate(cert_id: int, db: Session = Depends(get_db)):
-    cert = db.query(models.Certificate).filter(models.Certificate.id == cert_id).first()
-    if not cert:
-        raise HTTPException(status_code=404, detail="Certificate not found")
-    db.delete(cert)
-    db.commit()
-    return None
+# Certificates and Verification Routers
+from routes.certificates import router as certificates_router, verify_router
+app.include_router(certificates_router, prefix="/api/certificates", tags=["Certificates"])
+app.include_router(certificates_router, prefix="/certificates", tags=["Certificates"])
+app.include_router(verify_router, prefix="/api/verify", tags=["Verification"])
+app.include_router(verify_router, prefix="/verify", tags=["Verification"])

@@ -48,7 +48,8 @@ const Certifications = ({ user }) => {
   };
 
   const handleDownload = (cert) => {
-    const htmlContent = getCertificateHTML(user?.name || user?.username || 'Learner Name', cert.course_name, cert.issue_date);
+    const certId = cert.certificate_id || cert.cert_id || '';
+    const htmlContent = getCertificateHTML(user?.name || user?.username || 'Learner Name', cert.course_name, cert.issue_date, certId, cert.qr_code_path);
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.open();
@@ -63,10 +64,9 @@ const Certifications = ({ user }) => {
     }
   };
 
-
-
   const handleView = (cert) => {
-    const htmlContent = getCertificateHTML(user?.name || user?.username || 'Learner Name', cert.course_name, cert.issue_date);
+    const certId = cert.certificate_id || cert.cert_id || '';
+    const htmlContent = getCertificateHTML(user?.name || user?.username || 'Learner Name', cert.course_name, cert.issue_date, certId, cert.qr_code_path);
     const viewWindow = window.open('', '_blank');
     if (viewWindow) {
       viewWindow.document.open();
@@ -184,13 +184,34 @@ const Certifications = ({ user }) => {
                 </div>
                 
                 <div className="p-6 flex flex-col flex-1">
-                  <div className="flex justify-between items-center text-xs font-semibold text-slate-400 mb-5">
+                  <div className="flex justify-between items-center text-xs font-semibold text-slate-400 mb-4">
                     <span>Issued {cert.issue_date}</span>
-                    <span className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-slate-500">{cert.cert_id}</span>
+                    <span className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-slate-500 font-mono text-[11px]">{cert.certificate_id || cert.cert_id}</span>
                   </div>
-                  
-                  <div className="flex gap-2 mt-auto border-t border-slate-100 pt-5">
 
+                  {cert.qr_code_path && (
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-4 border border-slate-100">
+                      <img 
+                        src={cert.qr_code_path.startsWith('http') ? cert.qr_code_path : `http://localhost:8000${cert.qr_code_path}`} 
+                        alt="QR Code" 
+                        className="w-12 h-12 rounded-lg bg-white p-1 border border-slate-200 shrink-0 object-contain" 
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-navy-900">QR Code Verified</span>
+                        <span className="text-[10px] text-slate-500">Scan to validate authenticity</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-2 mt-auto border-t border-slate-100 pt-4">
+                    <a 
+                      href={`/verify/${cert.certificate_id || cert.cert_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition-colors border border-emerald-200 mb-1"
+                    >
+                      <CheckCircle2 size={15} /> Verify Certificate
+                    </a>
                     <button 
                       onClick={() => handleDownload(cert)}
                       className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors border border-slate-200 hover:border-slate-300"
