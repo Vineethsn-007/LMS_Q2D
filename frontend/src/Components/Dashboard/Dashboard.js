@@ -18,6 +18,7 @@ import Cart from './Cart';
 import Checkout from './Checkout';
 import FeedbackPage from '../FeedbackPage';
 import CourseProposalModal from '../CourseProposalModal';
+import useDynamicGreeting from '../../utils/useDynamicGreeting';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
@@ -41,6 +42,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('sf_welcome_shown'));
   const [isProposalOpen, setIsProposalOpen] = useState(false);
+  const greeting = useDynamicGreeting();
 
   useEffect(() => {
     if (showWelcome) {
@@ -270,7 +272,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-4">
               <Sparkles size={32} />
             </div>
-            <h2 className="text-2xl font-bold text-navy-900 mb-2">Welcome back, {user?.name || user?.username}!</h2>
+            <h2 className="text-2xl font-bold text-navy-900 mb-2">{greeting.text}, {user?.name || user?.username}! {greeting.emoji}</h2>
             <p className="text-slate-500 text-sm">Ready to learn something new today?</p>
           </div>
         </div>
