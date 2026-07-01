@@ -159,13 +159,6 @@ const CertificateModal = ({ user, course, onClose, onShowToast, onSuccess }) => 
                 <button 
                   type="button" 
                   className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5" 
-                  onClick={handleDownload}
-                >
-                  Issue & Download Certificate
-                </button>
-                <button 
-                  type="button" 
-                  className="w-full py-3.5 bg-white border border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-sm font-bold rounded-xl shadow-sm transition-all" 
                   onClick={async () => {
                     const today = new Date();
                     const dateString = `${String(today.getDate()).padStart(2, '0')} / ${String(today.getMonth() + 1).padStart(2, '0')} / ${today.getFullYear()}`;
@@ -174,7 +167,7 @@ const CertificateModal = ({ user, course, onClose, onShowToast, onSuccess }) => 
                     else onClose();
                   }}
                 >
-                  Move to Certifications
+                  Certificate
                 </button>
                 <button 
                   type="button" 

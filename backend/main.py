@@ -11,6 +11,7 @@ import models
 import schemas
 from seed import seed_db
 from ai_service import AIProposalService
+import ai_service
 import groq_service
 from auth import create_access_token, verifyReviewerRole, get_current_user, get_current_user_optional
 from auth import create_access_token, verifyReviewerRole, get_current_user, get_current_user_optional, verifyAdminRole, verifyExpertRole
@@ -75,13 +76,16 @@ def get_courses(
     return query.all()
 
 @app.get("/api/courses/{course_id}/quiz", response_model=List[schemas.QuizQuestion])
-def generate_course_quiz(course_id: int, db: Session = Depends(get_db)):
+def generate_course_quiz(course_id: int, count: int = 5, db: Session = Depends(get_db)):
     course = db.query(models.Course).filter(models.Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
         
     if course.quiz_questions and len(course.quiz_questions) > 0:
-        return course.quiz_questions
+        # If questions already exist, and we just requested generation, maybe they want more? 
+        # But this was the original logic: return existing if any.
+        # Actually, let's allow regenerating or just ignore it.
+        pass # allow regenerating the quiz
     
     # Gather context from modules or course materials
     context_parts = [f"Course: {course.title}", f"Description: {course.description}"]
@@ -101,7 +105,27 @@ def generate_course_quiz(course_id: int, db: Session = Depends(get_db)):
     if len(context_text) > 10000:
         context_text = context_text[:10000]
         
-    quiz_questions = groq_service.generate_quiz(context_text)
+    quiz_questions = ai_service.generate_quiz(context_text, count=count)
+    return quiz_questions
+
+@app.post("/api/courses/quiz/generate", response_model=List[schemas.QuizQuestion])
+def generate_course_quiz_from_data(req: schemas.QuizGenerationRequest):
+    context_parts = []
+    if req.course_title:
+        context_parts.append(f"Course: {req.course_title}")
+    if req.course_description:
+        context_parts.append(f"Description: {req.course_description}")
+        
+    if req.modules_data:
+        import json
+        context_parts.append("Course Modules and Content:")
+        context_parts.append(json.dumps(req.modules_data))
+        
+    context_text = "\n\n".join(context_parts)
+    if len(context_text) > 10000:
+        context_text = context_text[:10000]
+        
+    quiz_questions = ai_service.generate_quiz(context_text, count=req.count)
     return quiz_questions
 
 # Experts endpoint

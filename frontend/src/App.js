@@ -20,7 +20,7 @@ function App() {
   const [courses, setCourses] = useState([]);
   const [experts, setExperts] = useState([]);
   const [activePage, setActivePage] = useState('home');
-  
+
   // Search & Filter State
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,7 +44,7 @@ function App() {
         console.warn('Backend API currently offline. Using offline placeholders.', err);
       }
     };
-    
+
     fetchInitialData();
   }, []);
 
@@ -126,8 +126,8 @@ function App() {
           filtered = filtered.filter(c => c.category === activeCategory);
         }
         if (searchQuery) {
-          filtered = filtered.filter(c => 
-            c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          filtered = filtered.filter(c =>
+            c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             c.description.toLowerCase().includes(searchQuery.toLowerCase())
           );
         }
@@ -205,12 +205,12 @@ function App() {
         <Dashboard user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
       ) : (
         <>
-          <LandingHeader 
+          <LandingHeader
             onOpenAuth={() => setIsAuthOpen(true)}
             setActivePage={setActivePage}
             activePage={activePage}
           />
-          
+
           <main style={{ flexGrow: 1 }}>
             {activePage === 'feedback' ? (
               <FeedbackPage user={user} onOpenAuth={() => setIsAuthOpen(true)} />
@@ -218,15 +218,15 @@ function App() {
               <FAQPage />
             ) : (
               <div className="bg-white font-sans text-slate-600 antialiased">
-                <LandingHero 
-                  stats={stats} 
-                  onStartFree={handleStartFree} 
-                  onBrowseCourses={handleBrowseCourses} 
+                <LandingHero
+                  stats={stats}
+                  onStartFree={handleStartFree}
+                  onBrowseCourses={handleBrowseCourses}
                 />
-                
+
                 <LandingMethodology />
-                
-                <LandingCourses 
+
+                <LandingCourses
                   courses={courses}
                   activeCategory={activeCategory}
                   setActiveCategory={setActiveCategory}
@@ -234,7 +234,7 @@ function App() {
                   setSearchQuery={setSearchQuery}
                   onEnrollCourse={handleEnrollCourse}
                 />
-                
+
                 <LandingTestimonials />
               </div>
             )}
@@ -244,15 +244,15 @@ function App() {
         </>
       )}
 
-      <AuthModal 
-        isOpen={isAuthOpen} 
-        onClose={() => setIsAuthOpen(false)} 
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={handleAuthSuccess}
       />
 
       {!user && (
         <>
-          <button 
+          <button
             className="course-request-tag"
             onClick={() => setIsProposalOpen(true)}
             aria-label="Suggest a Course"
@@ -260,9 +260,9 @@ function App() {
             <span>Suggest a Course</span>
           </button>
 
-          <CourseProposalModal 
-            isOpen={isProposalOpen} 
-            onClose={() => setIsProposalOpen(false)} 
+          <CourseProposalModal
+            isOpen={isProposalOpen}
+            onClose={() => setIsProposalOpen(false)}
             user={user}
           />
         </>
