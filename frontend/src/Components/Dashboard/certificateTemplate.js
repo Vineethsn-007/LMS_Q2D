@@ -1,5 +1,32 @@
-export const getCertificateHTML = (learnerName, courseName, dateString, certId = '', qrCodeUrl = '') => `
-<!DOCTYPE html>
+export const getCertificateHTML = (arg1, courseName, dateString, certId = '', qrCodeUrl = '') => {
+  let certificate = {};
+  if (typeof arg1 === 'object' && arg1 !== null) {
+    certificate = {
+      learnerName: arg1.learner_name || arg1.learnerName || arg1.name || 'SkillForge Learner',
+      courseName: arg1.course_name || arg1.courseName || arg1.title || 'SkillForge Course',
+      dateString: arg1.issue_date || arg1.dateString || arg1.date || 'N/A',
+      certId: arg1.certificate_id || arg1.certId || arg1.cert_id || '',
+      qr_code_path: arg1.qr_code_path || arg1.qrCodeUrl || arg1.qr || ''
+    };
+  } else {
+    certificate = {
+      learnerName: arg1 || 'SkillForge Learner',
+      courseName: courseName || 'SkillForge Course',
+      dateString: dateString || 'N/A',
+      certId: certId || '',
+      qr_code_path: qrCodeUrl || ''
+    };
+  }
+
+  // Ensure absolute URL for QR code so it renders reliably in print mode and previews
+  const rawQr = certificate.qr_code_path || '';
+  const qrSrc = rawQr 
+    ? (rawQr.startsWith('http') ? rawQr : `http://localhost:8000${rawQr.startsWith('/') ? '' : '/'}${rawQr}`) 
+    : (certificate.certId ? `http://localhost:8000/uploads/qrcodes/${certificate.certId}.png` : '');
+
+  certificate.qr_code_path = qrSrc;
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -24,7 +51,7 @@ export const getCertificateHTML = (learnerName, courseName, dateString, certId =
     position: relative;
     padding: 40px;
     color: #f5f5f5;
-    overflow: hidden;
+    overflow: visible;
   }
   .certificate::before {
     content: "";
@@ -122,12 +149,12 @@ export const getCertificateHTML = (learnerName, courseName, dateString, certId =
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    padding: 0 40px;
+    padding: 0 20px;
   }
 
   .sign-block, .date-block {
     text-align: center;
-    width: 220px;
+    width: 200px;
   }
   .sign-line {
     border-top: 1px solid #1fc9c3;
@@ -157,6 +184,26 @@ export const getCertificateHTML = (learnerName, courseName, dateString, certId =
     text-align: center;
     flex-direction: column;
     box-shadow: 0 0 15px rgba(31, 201, 195, 0.2);
+  }
+
+  .qr-section {
+    text-align: center;
+  }
+
+  .qr-section img {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .qr-section p {
+    font-size: 10px;
+    margin-top: 4px;
+    color: #b8b8b8;
+    font-family: 'Arial', sans-serif;
+    letter-spacing: 1px;
   }
 
   .website {
@@ -201,19 +248,19 @@ export const getCertificateHTML = (learnerName, courseName, dateString, certId =
 
     <div class="awarded-to">This certificate is proudly presented to</div>
 
-    <div class="recipient-name">${learnerName}</div>
+    <div class="recipient-name">${certificate.learnerName}</div>
 
     <div class="description">
       For successfully completing the course
-      <span class="course-name">"${courseName}"</span>
+      <span class="course-name">"${certificate.courseName}"</span>
       and demonstrating dedication, skill, and commitment throughout the program.
     </div>
 
     <div class="bottom-row">
       <div class="date-block">
         <div class="sign-line"></div>
-        <div class="sign-label">Date: ${dateString}</div>
-        ${certId ? `<div style="font-size: 11px; color: #888; margin-top: 4px; font-family: 'Arial', sans-serif;">ID: ${certId}</div>` : ''}
+        <div class="sign-label">Date: ${certificate.dateString}</div>
+        ${certificate.certId ? `<div style="font-size: 11px; color: #888; margin-top: 4px; font-family: 'Arial', sans-serif;">ID: ${certificate.certId}</div>` : ''}
       </div>
 
       <div class="seal">
@@ -227,19 +274,20 @@ export const getCertificateHTML = (learnerName, courseName, dateString, certId =
         <div class="sign-line"></div>
         <div class="sign-label">Authorized Signature</div>
       </div>
+
+      ${certificate.qr_code_path ? `
+      <div class="qr-section">
+        <img src="${certificate.qr_code_path}" alt="QR Code" />
+        <p>SCAN TO VERIFY</p>
+      </div>
+      ` : ''}
     </div>
 
     <div class="website">www.skillforge.com</div>
-
-    ${qrCodeUrl ? `
-    <div class="qr-block" style="position: absolute; bottom: 20px; right: 25px; text-align: center; background: #ffffff; padding: 6px; border-radius: 8px; border: 1px solid #1fc9c3; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-      <img src="${qrCodeUrl.startsWith('http') ? qrCodeUrl : 'http://localhost:8000' + qrCodeUrl}" width="70" height="70" alt="QR Code" style="display: block; margin: 0 auto;" />
-      <div style="font-size: 8px; font-family: Arial, sans-serif; color: #000; margin-top: 2px; font-weight: bold; letter-spacing: 0.5px;">SCAN TO VERIFY</div>
-    </div>
-    ` : ''}
   </div>
 </div>
 
 </body>
 </html>
 `;
+};

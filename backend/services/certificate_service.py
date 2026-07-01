@@ -8,8 +8,22 @@ import logging
 
 import models
 from utils.qr_generator import generate_qr_code
+import os
 
 logger = logging.getLogger(__name__)
+
+def ensure_qr_code_exists(db: Session, cert: models.Certificate, frontend_url: str = "http://localhost:3000", backend_url: str = "http://localhost:8000") -> models.Certificate:
+    if not cert:
+        return cert
+    filepath = os.path.join("uploads", "qrcodes", f"{cert.certificate_id}.png")
+    if not cert.qr_code_path or not os.path.exists(filepath):
+        qr_url = generate_qr_code(cert.certificate_id, frontend_url=frontend_url, backend_url=backend_url)
+        cert.qr_code_path = qr_url
+        if not cert.certificate_url:
+            cert.certificate_url = f"{frontend_url.rstrip('/')}/verify/{cert.certificate_id}"
+        db.commit()
+        db.refresh(cert)
+    return cert
 
 def extract_course_prefix(course_name: str) -> str:
     if not course_name:
@@ -53,7 +67,7 @@ def generate_certificate_service(
     
     if existing:
         logger.info(f"Returning existing certificate {existing.certificate_id} for user {user_id} and course {course_id}")
-        return existing
+        return ensure_qr_code_exists(db, existing, frontend_url=frontend_url, backend_url=backend_url)
         
     # Get course name if not provided
     if not course_name:
@@ -100,11 +114,13 @@ def generate_certificate_service(
 
 def get_user_certificates_service(db: Session, user_id: Any) -> List[models.Certificate]:
     str_user_id = str(user_id)
-    return db.query(models.Certificate).filter(
+    certs = db.query(models.Certificate).filter(
         models.Certificate.user_id.in_([str_user_id, int(str_user_id) if str_user_id.isdigit() else str_user_id])
     ).order_by(models.Certificate.created_at.desc()).all()
+    return [ensure_qr_code_exists(db, c) for c in certs]
 
 def verify_certificate_service(db: Session, certificate_id: str) -> Optional[models.Certificate]:
-    return db.query(models.Certificate).filter(
+    cert = db.query(models.Certificate).filter(
         models.Certificate.certificate_id == certificate_id
     ).first()
+    return ensure_qr_code_exists(db, cert) if cert else None
