@@ -86,10 +86,24 @@ const CertificateModal = ({ user, course, onClose, onShowToast, onSuccess }) => 
     
     const cert = await saveCertificateToDB();
     const certId = cert?.certificate_id || cert?.cert_id || `SF-${course?.id || 1}-2026-0001`;
-    const qrUrl = cert?.qr_code_path || '';
+    const qrUrl = cert?.qr_code_path || `http://localhost:8000/uploads/qrcodes/${certId}.png`;
     const issueDate = cert?.issue_date || dateString;
 
-    const htmlContent = getCertificateHTML(displayDetails.name, displayDetails.courseName, issueDate, certId, qrUrl);
+    const certificate = {
+      ...(cert || {}),
+      learner_name: displayDetails.name,
+      course_name: displayDetails.courseName,
+      issue_date: issueDate,
+      certificate_id: certId,
+      qr_code_path: qrUrl.startsWith('http') ? qrUrl : `http://localhost:8000${qrUrl.startsWith('/') ? '' : '/'}${qrUrl}`
+    };
+
+    console.log(certificate.qr_code_path);
+
+    const htmlContent = getCertificateHTML({
+      ...certificate,
+      qr_code_path: certificate.qr_code_path
+    });
 
     const printWindow = window.open('', '_blank');
     if (printWindow) {

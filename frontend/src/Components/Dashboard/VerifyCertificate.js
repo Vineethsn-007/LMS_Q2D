@@ -41,13 +41,15 @@ const VerifyCertificate = ({ certId }) => {
 
   const handlePrint = () => {
     if (!certData) return;
-    const htmlContent = getCertificateHTML(
-      certData.learner_name || 'SkillForge Learner',
-      certData.course_name || 'SkillForge Course',
-      certData.issue_date || 'N/A',
-      certData.certificate_id || certId,
-      certData.qr_code_path || ''
-    );
+    const certificate = {
+      ...certData,
+      qr_code_path: certData.qr_code_path || `http://localhost:8000/uploads/qrcodes/${certData.certificate_id || certId}.png`
+    };
+    console.log(certificate.qr_code_path);
+    const htmlContent = getCertificateHTML({
+      ...certificate,
+      qr_code_path: certificate.qr_code_path
+    });
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.open();
