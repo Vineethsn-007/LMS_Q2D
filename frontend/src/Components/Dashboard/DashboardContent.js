@@ -4,6 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   Radar, RadarChart, PolarGrid, PolarAngleAxis
 } from 'recharts';
+import useDynamicGreeting from '../../utils/useDynamicGreeting';
 
 const activityData = [
   { name: 'W1', hours: 2 },
@@ -26,6 +27,7 @@ const skillData = [
 ];
 
 const DashboardContent = ({ user, onStartCourse }) => {
+  const greeting = useDynamicGreeting();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [completedCourses, setCompletedCourses] = useState([]);
@@ -83,7 +85,7 @@ const DashboardContent = ({ user, onStartCourse }) => {
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-blue-200 mb-4 backdrop-blur-sm border border-white/10">
                   <span>🔥</span> {user?.streak || 0}-day streak!
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Good morning, {user?.name?.split(' ')[0] || 'Alex'} 👋</h1>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{greeting.text}, {user?.name?.split(' ')[0] || 'Alex'} {greeting.emoji}</h1>
                 <p className="text-blue-100 font-light max-w-md">You're making steady progress through your learning paths. Keep it up!</p>
                 
                 <div className="mt-6 max-w-sm">
