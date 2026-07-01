@@ -1,4 +1,4 @@
-export const getCertificateHTML = (learnerName, courseName, dateString) => `
+export const getCertificateHTML = (learnerName, courseName, dateString, certId = '', qrCodeUrl = '') => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -132,7 +132,7 @@ export const getCertificateHTML = (learnerName, courseName, dateString) => `
   .sign-line {
     border-top: 1px solid #1fc9c3;
     margin-bottom: 6px;
-    padding-top: 28px;
+    padding-top: 12px;
   }
   .sign-label {
     font-size: 13px;
@@ -156,6 +156,7 @@ export const getCertificateHTML = (learnerName, courseName, dateString) => `
     letter-spacing: 1px;
     text-align: center;
     flex-direction: column;
+    box-shadow: 0 0 15px rgba(31, 201, 195, 0.2);
   }
 
   .website {
@@ -177,7 +178,6 @@ export const getCertificateHTML = (learnerName, courseName, dateString) => `
 
   <div class="inner">
     <div class="logo-row">
-      <!-- Logo: open book mark -->
       <svg width="46" height="46" viewBox="0 0 303 296" xmlns="http://www.w3.org/2000/svg">
         <g fill="none" stroke="#1fc9c3" stroke-width="14">
           <path d="M70 70 H95 V200 H70 Z" fill="#1fc9c3" stroke="none"/>
@@ -213,6 +213,7 @@ export const getCertificateHTML = (learnerName, courseName, dateString) => `
       <div class="date-block">
         <div class="sign-line"></div>
         <div class="sign-label">Date: ${dateString}</div>
+        ${certId ? `<div style="font-size: 11px; color: #888; margin-top: 4px; font-family: 'Arial', sans-serif;">ID: ${certId}</div>` : ''}
       </div>
 
       <div class="seal">
@@ -222,12 +223,20 @@ export const getCertificateHTML = (learnerName, courseName, dateString) => `
       </div>
 
       <div class="sign-block">
+        <div style="font-family: 'Brush Script MT', 'Segoe Script', cursive; font-size: 24px; color: #1fc9c3; margin-top: -25px; margin-bottom: 4px;">Alex Morgan</div>
         <div class="sign-line"></div>
         <div class="sign-label">Authorized Signature</div>
       </div>
     </div>
 
     <div class="website">www.skillforge.com</div>
+
+    ${qrCodeUrl ? `
+    <div class="qr-block" style="position: absolute; bottom: 20px; right: 25px; text-align: center; background: #ffffff; padding: 6px; border-radius: 8px; border: 1px solid #1fc9c3; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+      <img src="${qrCodeUrl.startsWith('http') ? qrCodeUrl : 'http://localhost:8000' + qrCodeUrl}" width="70" height="70" alt="QR Code" style="display: block; margin: 0 auto;" />
+      <div style="font-size: 8px; font-family: Arial, sans-serif; color: #000; margin-top: 2px; font-weight: bold; letter-spacing: 0.5px;">SCAN TO VERIFY</div>
+    </div>
+    ` : ''}
   </div>
 </div>
 

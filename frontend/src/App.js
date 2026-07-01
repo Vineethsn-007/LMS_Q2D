@@ -11,6 +11,7 @@ import Dashboard from './Components/Dashboard/Dashboard';
 import CourseProposalModal from './Components/CourseProposalModal';
 import FeedbackPage from './Components/FeedbackPage';
 import FAQPage from './Components/FAQPage';
+import VerifyCertificate from './Components/Dashboard/VerifyCertificate';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -198,6 +199,12 @@ function App() {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  const pathname = window.location.pathname;
+  if (pathname.startsWith('/verify/')) {
+    const certId = decodeURIComponent(pathname.split('/verify/')[1] || '');
+    return <VerifyCertificate certId={certId} />;
+  }
 
   return (
     <div className="App skillforge-gradient-bg">
