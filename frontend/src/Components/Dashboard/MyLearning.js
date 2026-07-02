@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Play, CheckCircle2, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, CheckCircle2, FileText, ChevronDown, ChevronUp, Image, Video, HelpCircle } from 'lucide-react';
 import './MyLearning.css';
 
 import CourseQuiz from './CourseQuiz';
 
 const MyLearning = ({ course, onBack, onComplete }) => {
   const [activeLesson, setActiveLesson] = useState(null);
+  const [activeContentIndex, setActiveContentIndex] = useState(0);
   const [expandedModules, setExpandedModules] = useState({});
   const [showQuiz, setShowQuiz] = useState(false);
   
   useEffect(() => {
     if (course && course.modules_data && course.modules_data.length > 0) {
-      // Find first lesson and expand first module
       setExpandedModules({ 0: true });
       for (const mod of course.modules_data) {
         if (mod.lessons && mod.lessons.length > 0) {
           setActiveLesson(mod.lessons[0]);
+          setActiveContentIndex(0);
           return;
         }
       }
@@ -34,23 +35,31 @@ const MyLearning = ({ course, onBack, onComplete }) => {
 
   const hasModules = course.modules_data && course.modules_data.length > 0;
 
-  const flattenedLessons = [];
+  const flattenedItems = [];
   if (course && course.modules_data) {
     course.modules_data.forEach((mod, mIndex) => {
       if (mod.lessons) {
         mod.lessons.forEach((lesson) => {
-          flattenedLessons.push({ moduleIndex: mIndex, lesson: lesson });
+          if (lesson.contents && lesson.contents.length > 0) {
+            lesson.contents.forEach((content, cIndex) => {
+              flattenedItems.push({ moduleIndex: mIndex, lesson: lesson, content: content, contentIndex: cIndex });
+            });
+          } else {
+            flattenedItems.push({ moduleIndex: mIndex, lesson: lesson, content: null, contentIndex: 0 });
+          }
         });
       }
     });
   }
-  const currentIndex = activeLesson ? flattenedLessons.findIndex(item => item.lesson.id === activeLesson.id) : -1;
-  const prevLessonItem = currentIndex > 0 ? flattenedLessons[currentIndex - 1] : null;
-  const nextLessonItem = currentIndex >= 0 && currentIndex < flattenedLessons.length - 1 ? flattenedLessons[currentIndex + 1] : null;
+  
+  const currentIndex = activeLesson ? flattenedItems.findIndex(item => item.lesson.id === activeLesson.id && item.contentIndex === activeContentIndex) : -1;
+  const prevLessonItem = currentIndex > 0 ? flattenedItems[currentIndex - 1] : null;
+  const nextLessonItem = currentIndex >= 0 && currentIndex < flattenedItems.length - 1 ? flattenedItems[currentIndex + 1] : null;
 
   const handlePrev = () => {
     if (prevLessonItem) {
       setActiveLesson(prevLessonItem.lesson);
+      setActiveContentIndex(prevLessonItem.contentIndex);
       setExpandedModules(prev => ({ ...prev, [prevLessonItem.moduleIndex]: true }));
     }
   };
@@ -68,6 +77,7 @@ const MyLearning = ({ course, onBack, onComplete }) => {
   const handleNext = () => {
     if (nextLessonItem) {
       setActiveLesson(nextLessonItem.lesson);
+      setActiveContentIndex(nextLessonItem.contentIndex);
       setExpandedModules(prev => ({ ...prev, [nextLessonItem.moduleIndex]: true }));
     } else {
       setShowQuiz(true);
@@ -121,35 +131,73 @@ const MyLearning = ({ course, onBack, onComplete }) => {
                     </span>
                   </button>
                   {isExpanded && (
-                    <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       {mod.lessons.map((lesson, lIndex) => {
-                        const isActive = activeLesson?.id === lesson.id;
-                        const isVideo = lesson.contents?.some(c => c.type === 'video');
+                        const isLessonActive = activeLesson?.id === lesson.id;
                         return (
-                          <div 
-                            key={lesson.id || lIndex} 
-                            onClick={() => setActiveLesson(lesson)}
-                            style={{ 
-                              display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                              padding: '0.75rem 1rem', borderRadius: '8px', cursor: 'pointer', 
-                              background: isActive ? '#3b82f6' : 'transparent',
-                              color: isActive ? '#fff' : '#64748b',
-                              fontWeight: isActive ? '600' : '500',
-                              fontSize: '0.85rem',
-                              transition: 'all 0.2s'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              {isVideo ? (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', background: isActive ? 'rgba(255,255,255,0.2)' : '#e2e8f0', borderRadius: '4px' }}>
-                                  <Play size={12} fill={isActive ? '#fff' : '#94a3b8'} color={isActive ? '#fff' : '#94a3b8'} />
-                                </div>
-                              ) : (
-                                <FileText size={16} color={isActive ? '#fff' : '#cbd5e1'} />
-                              )}
-                              <span>{lesson.title}</span>
+                          <div key={lesson.id || lIndex} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <div style={{ 
+                              padding: '0.5rem 1rem', 
+                              color: isLessonActive ? '#0f172a' : '#64748b',
+                              fontWeight: '700',
+                              fontSize: '0.85rem'
+                            }}>
+                              {lesson.title}
                             </div>
-                            <CheckCircle2 size={14} color={isActive ? '#fff' : '#22c55e'} />
+                            
+                            {lesson.contents && lesson.contents.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginLeft: '0.5rem' }}>
+                                {lesson.contents.map((c, cIndex) => {
+                                  const isContentActive = isLessonActive && activeContentIndex === cIndex;
+                                  return (
+                                    <div 
+                                      key={cIndex}
+                                      onClick={() => {
+                                        setActiveLesson(lesson);
+                                        setActiveContentIndex(cIndex);
+                                      }}
+                                      style={{
+                                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                        padding: '0.6rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                                        background: isContentActive ? '#eff6ff' : 'transparent',
+                                        color: isContentActive ? '#3b82f6' : '#64748b',
+                                        borderLeft: isContentActive ? '3px solid #3b82f6' : '3px solid transparent',
+                                        transition: 'all 0.2s',
+                                        fontSize: '0.8rem', fontWeight: isContentActive ? '600' : '500'
+                                      }}
+                                    >
+                                      {c.type === 'video' ? <Video size={14} /> : 
+                                       c.type === 'pdf' ? <FileText size={14} /> : 
+                                       c.type === 'image' ? <Image size={14} /> : 
+                                       c.type === 'quiz' ? <HelpCircle size={14} /> :
+                                       <FileText size={14} />}
+                                      <span style={{ textTransform: 'capitalize' }}>{c.type}</span>
+                                      {isContentActive && <CheckCircle2 size={12} style={{ marginLeft: 'auto' }} />}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                               <div 
+                                  onClick={() => {
+                                    setActiveLesson(lesson);
+                                    setActiveContentIndex(0);
+                                  }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    padding: '0.6rem 1rem', borderRadius: '6px', cursor: 'pointer',
+                                    background: isLessonActive ? '#eff6ff' : 'transparent',
+                                    color: isLessonActive ? '#3b82f6' : '#64748b',
+                                    borderLeft: isLessonActive ? '3px solid #3b82f6' : '3px solid transparent',
+                                    transition: 'all 0.2s',
+                                    fontSize: '0.8rem', fontWeight: isLessonActive ? '600' : '500',
+                                    marginLeft: '0.5rem'
+                                  }}
+                                >
+                                  <FileText size={14} />
+                                  <span>Empty Lesson</span>
+                                </div>
+                            )}
                           </div>
                         );
                       })}
@@ -178,12 +226,12 @@ const MyLearning = ({ course, onBack, onComplete }) => {
             {activeLesson && activeLesson.contents && activeLesson.contents.length > 0 ? (
               <div className="lesson-contents">
                 {(() => {
-                  const content = activeLesson.contents[0];
+                  const content = activeLesson.contents[activeContentIndex];
                   if (!content) return null;
                   
                   if (content.type === 'video' && content.content_url) {
                     return (
-                      <video controls style={{ width: '100%', display: 'block', maxHeight: '600px' }}>
+                      <video controls style={{ width: '100%', display: 'block', maxHeight: '600px', backgroundColor: '#000' }}>
                         <source src={`${process.env.REACT_APP_API_URL}${content.content_url}`} type="video/mp4" />
                         Your browser does not support the video tag.
                       </video>
@@ -194,13 +242,13 @@ const MyLearning = ({ course, onBack, onComplete }) => {
                     );
                   } else if (content.type === 'text') {
                     return (
-                      <div style={{ padding: '3rem', backgroundColor: '#fff', minHeight: '400px', fontSize: '1.1rem', lineHeight: 1.6 }}>
+                      <div style={{ padding: '3rem', backgroundColor: '#fff', minHeight: '400px', fontSize: '1.1rem', lineHeight: 1.6, color: '#334155' }}>
                         {content.text_content}
                       </div>
                     );
                   } else if (content.type === 'pdf' && content.content_url) {
                     return (
-                      <div style={{ padding: '4rem', backgroundColor: '#f8fafc', minHeight: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+                      <div style={{ padding: '4rem', backgroundColor: '#f8fafc', minHeight: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
                         <FileText size={64} color="#ef4444" />
                         <h3 style={{ margin: 0, color: '#0f172a' }}>PDF Document</h3>
                         <a href={`${process.env.REACT_APP_API_URL}${content.content_url}`} target="_blank" rel="noreferrer" style={{ padding: '0.75rem 2rem', background: '#3b82f6', color: '#fff', textDecoration: 'none', fontWeight: '600', borderRadius: '8px', marginTop: '1rem' }}>Download / View PDF</a>
@@ -208,7 +256,7 @@ const MyLearning = ({ course, onBack, onComplete }) => {
                     );
                   } else if (content.type === 'quiz' && content.quiz_data) {
                     return (
-                      <div style={{ padding: '3rem', backgroundColor: '#fff', minHeight: '400px' }}>
+                      <div style={{ padding: '3rem', backgroundColor: '#fff', minHeight: '400px', borderTop: '1px solid #e2e8f0' }}>
                         <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b', marginBottom: '2rem' }}>
                           {content.quiz_data.question}
                         </h3>

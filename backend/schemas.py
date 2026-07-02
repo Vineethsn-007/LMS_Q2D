@@ -39,7 +39,7 @@ class UserResponse(BaseModel):
     weekly_progress_hours: Optional[float] = 0.0
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CourseResponse(BaseModel):
     id: int
@@ -56,7 +56,7 @@ class CourseResponse(BaseModel):
     quiz_questions: Optional[List[Any]] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ExpertResponse(BaseModel):
     id: int
@@ -67,7 +67,7 @@ class ExpertResponse(BaseModel):
     courses_validated_count: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class StatResponse(BaseModel):
     id: int
@@ -76,7 +76,7 @@ class StatResponse(BaseModel):
     label: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -114,7 +114,7 @@ class CourseProposalResponse(CourseProposalCreate):
     user_vote: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class VoteRequest(BaseModel):
     vote_type: str
@@ -135,7 +135,7 @@ class CommentResponse(BaseModel):
     user_image: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ProposalStatusUpdate(BaseModel):
     status: str
@@ -153,7 +153,7 @@ class NotificationResponse(BaseModel):
     action_label: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ChatMessage(BaseModel):
     role: str
@@ -200,7 +200,7 @@ class CourseMaterialResponse(CourseMaterialCreate):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CertificateCreate(BaseModel):
     user_id: int
@@ -214,7 +214,7 @@ class CertificateResponse(CertificateCreate):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # --- Course Feedback ---
@@ -236,7 +236,7 @@ class CourseFeedbackResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class SubscriberCreate(BaseModel):
     email: str
@@ -247,7 +247,7 @@ class SubscriberResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class QuizQuestion(BaseModel):
     question: str

@@ -34,7 +34,7 @@ class CertificateResponseSchema(BaseModel):
     created_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 router = APIRouter()
 verify_router = APIRouter()
