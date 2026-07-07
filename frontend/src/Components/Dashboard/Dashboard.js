@@ -13,6 +13,8 @@ import AdminProtectedRoute from '../AdminProtectedRoute';
 import AdminPanel from './AdminPanel';
 import ExpertProtectedRoute from '../ExpertProtectedRoute';
 import ExpertPanel from './ExpertPanel';
+import LearnerPerformance from './LearnerPerformance';
+import TopicAssessment from './TopicAssessment';
 import SettingsPanel from './SettingsPanel';
 import Cart from './Cart';
 import Checkout from './Checkout';
@@ -200,6 +202,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         )}
         {activeView === 'mylearning' && <MyLearning course={activeCourse} onBack={() => setActiveView('dashboard')} onComplete={() => setActiveView('marketplace')} />}
         {activeView === 'certifications' && <Certifications user={user} />}
+        {(activeView === 'test' || activeView === 'topic-assessment' || activeView === 'assessment') && <TopicAssessment user={user} />}
         {activeView === 'community-voting' && <CommunityVoting />}
         {activeView === 'cart' && (
           <Cart 
@@ -224,12 +227,14 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
                 localStorage.setItem('sf_enrolled_courses', JSON.stringify(newEnrolled));
                 localStorage.removeItem('sf_cart');
                 window.dispatchEvent(new Event('cart_updated'));
+                window.dispatchEvent(new Event('progress_updated'));
                 alert('Payment successful! You are now enrolled in all courses.');
                 setActiveView('mylearning');
               } else {
                 const enrolled = JSON.parse(localStorage.getItem('sf_enrolled_courses') || '[]');
                 if (!enrolled.includes(course.id)) {
                   localStorage.setItem('sf_enrolled_courses', JSON.stringify([...enrolled, course.id]));
+                  window.dispatchEvent(new Event('progress_updated'));
                 }
                 alert(`Payment successful! Loading learning dashboard for "${course.title}"...`);
                 handleStartCourse(course);
@@ -250,6 +255,11 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         {activeView === 'expert-panel' && (
           <ExpertProtectedRoute user={user}>
             <ExpertPanel user={user} />
+          </ExpertProtectedRoute>
+        )}
+        {(activeView === 'expert-learners' || activeView === 'learner-performance') && (
+          <ExpertProtectedRoute user={user}>
+            <LearnerPerformance user={user} />
           </ExpertProtectedRoute>
         )}
         {activeView === 'settings' && (

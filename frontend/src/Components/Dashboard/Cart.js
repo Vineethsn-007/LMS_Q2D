@@ -39,6 +39,7 @@ const Cart = ({ onBack, onCheckoutSuccess, onCheckout }) => {
     localStorage.removeItem('sf_cart');
     setCartItems([]);
     window.dispatchEvent(new Event('cart_updated'));
+    window.dispatchEvent(new Event('progress_updated'));
 
     setShowPayment(false);
     

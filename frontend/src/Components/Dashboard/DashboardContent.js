@@ -31,10 +31,21 @@ const DashboardContent = ({ user, onStartCourse }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [completedCourses, setCompletedCourses] = useState([]);
+  const [progressTick, setProgressTick] = useState(0);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
-    setCompletedCourses(saved);
+    const handleProgressChange = () => {
+      const saved = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
+      setCompletedCourses(saved);
+      setProgressTick(t => t + 1);
+    };
+    handleProgressChange();
+    window.addEventListener('progress_updated', handleProgressChange);
+    window.addEventListener('storage', handleProgressChange);
+    return () => {
+      window.removeEventListener('progress_updated', handleProgressChange);
+      window.removeEventListener('storage', handleProgressChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -57,7 +68,18 @@ const DashboardContent = ({ user, onStartCourse }) => {
     fetchCourses();
   }, []);
 
-  const continueLearningCourses = courses.filter(c => !completedCourses.includes(c.id)).slice(0, 3);
+  const enrolledCourses = JSON.parse(localStorage.getItem('sf_enrolled_courses') || '[]');
+  const continueLearningCourses = [...courses]
+    .filter(c => !completedCourses.includes(c.id))
+    .sort((a, b) => {
+      const progA = JSON.parse(localStorage.getItem(`sf_progress_${a.id}`) || '[]').length;
+      const progB = JSON.parse(localStorage.getItem(`sf_progress_${b.id}`) || '[]').length;
+      if (progB !== progA) return progB - progA;
+      const enrA = enrolledCourses.includes(a.id) ? 1 : 0;
+      const enrB = enrolledCourses.includes(b.id) ? 1 : 0;
+      return enrB - enrA;
+    })
+    .slice(0, 3);
   const aiRecommended = courses.filter(c => c.is_ai_generated).slice(0, 3);
   
   const enrolledCount = courses.length;
@@ -175,9 +197,22 @@ const DashboardContent = ({ user, onStartCourse }) => {
                 </div>
               ) : (
                 continueLearningCourses.map(course => {
-                  const progress = (course.id * 17) % 70 + 15;
-                  const lessonsCompleted = Math.round((progress / 100) * (course.hours / 2));
-                  const totalLessons = Math.round(course.hours / 2);
+                  let totalLessons = Math.max(1, Math.round((course.hours || 10) / 2));
+                  if (course.modules_data && Array.isArray(course.modules_data)) {
+                    let count = 0;
+                    course.modules_data.forEach(mod => {
+                      if (mod.lessons) {
+                        mod.lessons.forEach(l => {
+                          count += (l.contents && l.contents.length > 0) ? l.contents.length : 1;
+                        });
+                      }
+                    });
+                    if (count > 0) totalLessons = count;
+                  }
+
+                  const savedProgress = JSON.parse(localStorage.getItem(`sf_progress_${course.id}`) || '[]');
+                  const lessonsCompleted = Math.min(totalLessons, savedProgress.length);
+                  const progress = totalLessons > 0 ? Math.min(100, Math.round((lessonsCompleted / totalLessons) * 100)) : 0;
                   return (
                     <div key={course.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all group">
                       <div className="w-12 h-12 rounded-lg bg-navy-50 text-navy flex items-center justify-center shrink-0 group-hover:bg-navy group-hover:text-white transition-colors">

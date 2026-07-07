@@ -94,6 +94,31 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
   };
 
   const handleRetry = () => {
+    const shuffledQs = questions.map(q => {
+      if (!q.options) return q;
+      const oldOptions = [...q.options];
+      const correctStr = oldOptions[q.answer];
+      
+      const newOptions = [...oldOptions];
+      for (let i = newOptions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newOptions[i], newOptions[j]] = [newOptions[j], newOptions[i]];
+      }
+      
+      const newAnswerIdx = newOptions.indexOf(correctStr);
+      return {
+        ...q,
+        options: newOptions,
+        answer: newAnswerIdx
+      };
+    });
+
+    for (let i = shuffledQs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledQs[i], shuffledQs[j]] = [shuffledQs[j], shuffledQs[i]];
+    }
+
+    setQuestions(shuffledQs);
     setCurrentQuestionIndex(0);
     setSelectedAnswers({});
     setShowResults(false);
@@ -120,7 +145,7 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
 
   if (showResults) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-10 text-center animate-in zoom-in-95 duration-300">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-10 text-center animate-in zoom-in-95 duration-300 max-w-4xl mx-auto my-6">
         <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${passed ? 'bg-emerald-50 text-emerald-500' : 'bg-coral-50 text-coral-500'}`}>
           {passed ? <CheckCircle size={40} /> : <XCircle size={40} />}
         </div>
@@ -138,15 +163,14 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
             : "You didn't quite pass the final assessment. Review the material and try again."}
         </p>
         
-        <div className="flex gap-4 justify-center">
-          {!passed ? (
-            <button 
-              onClick={handleRetry}
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all"
-            >
-              Retry Quiz
-            </button>
-          ) : (
+        <div className="flex gap-4 justify-center mb-10 flex-wrap">
+          <button 
+            onClick={handleRetry}
+            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2"
+          >
+            <span>Retry Quiz</span>
+          </button>
+          {passed && (
             <button 
               onClick={onComplete}
               className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2"
@@ -160,6 +184,88 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
           >
             Back to Course
           </button>
+        </div>
+
+        {/* Final Assessment Answer Key & Review */}
+        <div style={{ textAlign: 'left', borderTop: '2px solid #f1f5f9', paddingTop: '2.5rem', marginTop: '1.5rem' }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#0f172a', marginBottom: '1.5rem', textAlign: 'center' }}>
+            Final Assessment Answer Key & Review
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {questions.map((q, qIndex) => {
+              const userAns = selectedAnswers[qIndex];
+              const correctAns = q.answer;
+              const isQCorrect = userAns === correctAns;
+              const isAnswered = userAns !== undefined;
+
+              return (
+                <div key={qIndex} style={{ padding: '2rem', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                    <h4 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', margin: 0, flex: 1 }}>
+                      {qIndex + 1}. {q.question}
+                    </h4>
+                    <span style={{ 
+                      padding: '0.4rem 0.85rem', 
+                      borderRadius: '20px', 
+                      fontSize: '0.85rem', 
+                      fontWeight: '700', 
+                      background: isAnswered ? (isQCorrect ? '#ecfdf5' : '#fef2f2') : '#f1f5f9',
+                      color: isAnswered ? (isQCorrect ? '#065f46' : '#991b1b') : '#64748b',
+                      border: `1px solid ${isAnswered ? (isQCorrect ? '#a7f3d0' : '#fecaca') : '#e2e8f0'}`,
+                      marginLeft: '1rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {isAnswered ? (isQCorrect ? '1 / 1 pts ✓' : '0 / 1 pts ✕') : '0 / 1 pts (Unanswered)'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    {q.options && q.options.map((opt, optIndex) => {
+                      const isSelectedOpt = userAns === optIndex;
+                      const isCorrectOpt = optIndex === correctAns;
+                      
+                      let bg = '#fff';
+                      let border = '2px solid #e2e8f0';
+                      let color = '#334155';
+                      let fontWeight = '500';
+                      let badge = null;
+
+                      if (isCorrectOpt) {
+                        bg = '#ecfdf5';
+                        border = '2px solid #10b981';
+                        color = '#065f46';
+                        fontWeight = '700';
+                        badge = <span style={{ color: '#10b981', fontWeight: 'bold' }}>✓ Correct Answer</span>;
+                      } else if (isSelectedOpt && !isCorrectOpt) {
+                        bg = '#fef2f2';
+                        border = '2px solid #ef4444';
+                        color = '#991b1b';
+                        fontWeight = '700';
+                        badge = <span style={{ color: '#ef4444', fontWeight: 'bold' }}>✕ Your Answer</span>;
+                      }
+
+                      return (
+                        <div key={optIndex} style={{
+                          padding: '1rem 1.25rem',
+                          background: bg,
+                          border: border,
+                          borderRadius: '12px',
+                          color: color,
+                          fontWeight: fontWeight,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: '1rem'
+                        }}>
+                          <span style={{ flex: 1 }}>{opt}</span>
+                          {badge}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );

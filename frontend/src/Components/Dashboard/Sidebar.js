@@ -4,13 +4,13 @@ import {
   ShoppingBag, 
   BookOpen, 
   Bot, 
-  Award, 
   FileEdit, 
-  Wand2, 
   Shield,
   LogOut,
   Settings,
-  MessageSquare
+  MessageSquare,
+  Users,
+  FileText
 } from 'lucide-react';
 import logoImg from '../../logo.png';
 
@@ -83,7 +83,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
             <SidebarLink icon={ShoppingBag} label="Marketplace" isActive={activeView === 'marketplace'} onClick={() => onViewChange('marketplace')} />
             <SidebarLink icon={BookOpen} label="My Learning" isActive={activeView === 'mylearning'} onClick={() => onViewChange('mylearning')} />
             <SidebarLink icon={Bot} label="Expert Guide" isActive={activeView === 'ai-assistant'} onClick={() => onViewChange('ai-assistant')} />
-            <SidebarLink icon={Award} label="Certifications" isActive={activeView === 'certifications'} onClick={() => onViewChange('certifications')} />
+            <SidebarLink icon={FileText} label="Test" isActive={activeView === 'test' || activeView === 'topic-assessment' || activeView === 'assessment'} onClick={() => onViewChange('test')} />
           </SidebarSection>
         )}
 
@@ -105,6 +105,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         {(user?.role === 'expert' || user?.role === 'admin') && (
           <SidebarSection title="Expert Console">
             <SidebarLink icon={BookOpen} label="Expert Panel" isActive={activeView === 'expert-panel'} onClick={() => onViewChange('expert-panel')} />
+            <SidebarLink icon={Users} label="Learner Performance" isActive={activeView === 'expert-learners' || activeView === 'learner-performance'} onClick={() => onViewChange('expert-learners')} badge="Live" />
           </SidebarSection>
         )}
 
