@@ -58,6 +58,7 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart, onViewChange
     const updatedEnrolled = [...enrolledCourses, course.id];
     setEnrolledCourses(updatedEnrolled);
     localStorage.setItem('sf_enrolled_courses', JSON.stringify(updatedEnrolled));
+    window.dispatchEvent(new Event('progress_updated'));
     
     setPaymentCourse(null);
     

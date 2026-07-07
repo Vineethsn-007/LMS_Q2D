@@ -3,8 +3,10 @@ import {
   BookOpen, Video, FileText, Image, File, Upload,
   ExternalLink, Sparkles, RefreshCw, CheckCircle, AlertCircle, Plus, X, Trash2, Edit, Star, LayoutGrid, Check, PlayCircle, Users, Clock
 } from 'lucide-react';
+import LearnerPerformance from './LearnerPerformance';
 
 export default function ExpertPanel({ user }) {
+  const [activeTab, setActiveTab] = useState('curriculum');
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
 
@@ -39,6 +41,11 @@ export default function ExpertPanel({ user }) {
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [isQuizPromptOpen, setIsQuizPromptOpen] = useState(false);
   const [quizCountInput, setQuizCountInput] = useState("5");
+
+  const [assessmentPromptTarget, setAssessmentPromptTarget] = useState(null);
+  const [isAssessmentPromptOpen, setIsAssessmentPromptOpen] = useState(false);
+  const [assessmentCountInput, setAssessmentCountInput] = useState("3");
+  const [isGeneratingAssessment, setIsGeneratingAssessment] = useState(false);
 
   const submitGenerateQuiz = async () => {
     const count = parseInt(quizCountInput, 10);
@@ -75,6 +82,76 @@ export default function ExpertPanel({ user }) {
       alert(err.message);
     } finally {
       setIsGeneratingQuiz(false);
+    }
+  };
+
+  const submitGenerateAssessment = async () => {
+    if (!assessmentPromptTarget) return;
+    const { mIndex, lIndex, cIndex } = assessmentPromptTarget;
+    const count = parseInt(assessmentCountInput, 10);
+    if (isNaN(count) || count < 1 || count > 50) {
+      alert("Please enter a valid number of questions between 1 and 50.");
+      return;
+    }
+
+    setIsAssessmentPromptOpen(false);
+
+    try {
+      setIsGeneratingAssessment(true);
+      const mod = modulesData[mIndex];
+      const lesson = mod?.lessons[lIndex];
+      const lessonTitle = lesson?.title || "Lesson";
+      const modTitle = mod?.title || "Module";
+
+      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/courses/quiz/generate`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          count,
+          course_title: courseFormData.title + ` (Module: ${modTitle}, Lesson: ${lessonTitle})`,
+          course_description: courseFormData.description,
+          modules_data: [mod]
+        })
+      });
+      if (!res.ok) throw new Error("Failed to generate assessment questions");
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const newQuizContents = data.map((q, idx) => ({
+          id: Date.now().toString() + '-' + idx,
+          type: 'quiz',
+          quiz_data: {
+            question: q.question || '',
+            options: q.options && q.options.length === 4 ? q.options : [
+              q.options?.[0] || 'Option 1',
+              q.options?.[1] || 'Option 2',
+              q.options?.[2] || 'Option 3',
+              q.options?.[3] || 'Option 4',
+            ],
+            answer: q.answer !== undefined && q.answer >= 0 && q.answer <= 3 ? q.answer : 0
+          }
+        }));
+
+        const newData = [...modulesData];
+        const currentContent = newData[mIndex]?.lessons[lIndex]?.contents[cIndex];
+        const isBlank = !currentContent?.quiz_data || !currentContent.quiz_data.question || currentContent.quiz_data.question.trim() === '';
+        
+        if (isBlank) {
+          newData[mIndex].lessons[lIndex].contents.splice(cIndex, 1, ...newQuizContents);
+        } else {
+          newData[mIndex].lessons[lIndex].contents.splice(cIndex + 1, 0, ...newQuizContents);
+        }
+        setModulesData(newData);
+      } else {
+        alert("No assessment questions generated.");
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsGeneratingAssessment(false);
+      setAssessmentPromptTarget(null);
     }
   };
 
@@ -332,8 +409,38 @@ export default function ExpertPanel({ user }) {
             </div>
           )}
 
-          <div className="flex flex-col lg:flex-row gap-6 h-full min-h-[500px]">
-            {/* Left Column: Course Catalog */}
+          {/* Top Tab Bar */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+            <button
+              onClick={() => setActiveTab('curriculum')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all ${
+                activeTab === 'curriculum'
+                  ? 'bg-navy text-white shadow-md'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-navy-900'
+              }`}
+            >
+              <BookOpen size={18} />
+              <span>Curriculum & Media Hub</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('learners')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all ${
+                activeTab === 'learners'
+                  ? 'bg-navy text-white shadow-md'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-navy-900'
+              }`}
+            >
+              <Users size={18} />
+              <span>Learner Course & Assessment Performance</span>
+              <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 ml-1">Live</span>
+            </button>
+          </div>
+
+          {activeTab === 'learners' ? (
+            <LearnerPerformance user={user} embedded={true} />
+          ) : (
+            <div className="flex flex-col lg:flex-row gap-6 h-full min-h-[500px]">
+              {/* Left Column: Course Catalog */}
             <div className="w-full lg:w-80 flex flex-col bg-white border border-slate-200 rounded-3xl overflow-hidden shrink-0 shadow-sm h-full max-h-[80vh]">
               <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-white/90 backdrop-blur z-10">
                 <h3 className="font-bold text-navy-900 flex items-center gap-2">
@@ -514,6 +621,7 @@ export default function ExpertPanel({ user }) {
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
 
@@ -818,6 +926,25 @@ export default function ExpertPanel({ user }) {
                                               />
                                             </div>
                                           ))}
+                                          <div className="mt-2 pt-3 border-t border-blue-200 flex justify-between items-center">
+                                            <span className="text-[11px] text-blue-600 font-medium">Use AI to generate assessment questions for this lesson</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setAssessmentPromptTarget({ mIndex, lIndex, cIndex });
+                                                setIsAssessmentPromptOpen(true);
+                                              }}
+                                              disabled={isGeneratingAssessment}
+                                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-blue-400 disabled:to-indigo-400 text-white text-xs font-bold rounded-lg shadow-sm hover:shadow transition-all cursor-pointer"
+                                            >
+                                              {isGeneratingAssessment && assessmentPromptTarget?.mIndex === mIndex && assessmentPromptTarget?.lIndex === lIndex && assessmentPromptTarget?.cIndex === cIndex ? (
+                                                <RefreshCw size={13} className="animate-spin" />
+                                              ) : (
+                                                <Sparkles size={13} />
+                                              )}
+                                              Generate Assessment
+                                            </button>
+                                          </div>
                                         </div>
                                       ) : (
                                         <div className="flex flex-col gap-2">
@@ -1029,6 +1156,46 @@ export default function ExpertPanel({ user }) {
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm"
                 onClick={submitGenerateQuiz}
               >
+                Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lesson Assessment Quiz Generation Prompt Modal */}
+      {isAssessmentPromptOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200 p-6">
+            <h3 className="text-xl font-bold text-navy-900 mb-2 flex items-center gap-2">
+              <Sparkles className="text-blue-500" size={24} /> Generate Assessment
+            </h3>
+            <p className="text-sm text-slate-500 mb-4 font-medium">How many questions would you like to generate for this assessment? (Max 50)</p>
+            
+            <input
+              type="number"
+              min="1"
+              max="50"
+              value={assessmentCountInput}
+              onChange={(e) => setAssessmentCountInput(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-navy-900 focus:outline-none focus:border-blue-500 transition-all mb-6"
+            />
+            
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl transition-all cursor-pointer"
+                onClick={() => setIsAssessmentPromptOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+                disabled={isGeneratingAssessment}
+                onClick={submitGenerateAssessment}
+              >
+                {isGeneratingAssessment ? <RefreshCw size={14} className="animate-spin" /> : <Sparkles size={14} />}
                 Generate
               </button>
             </div>

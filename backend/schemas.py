@@ -259,3 +259,14 @@ class QuizGenerationRequest(BaseModel):
     course_title: Optional[str] = None
     course_description: Optional[str] = None
     modules_data: Optional[List[Any]] = None
+
+class AssessmentQuestion(BaseModel):
+    question: str
+    options: List[str]
+    answer: int
+    explanation: Optional[str] = None
+
+class AssessmentTopicRequest(BaseModel):
+    topic: str
+    difficulty: Optional[str] = "Intermediate"
+    count: int = 10
