@@ -77,7 +77,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
       </div>
 
       <div className="flex-1 px-4 py-6">
-        {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'expert' && (
+        {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'sub_admin' && user?.role !== 'expert' && (
           <SidebarSection title="Learn">
             <SidebarLink icon={LayoutDashboard} label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => onViewChange('dashboard')} />
             <SidebarLink icon={ShoppingBag} label="Marketplace" isActive={activeView === 'marketplace'} onClick={() => onViewChange('marketplace')} />
@@ -87,17 +87,22 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
           </SidebarSection>
         )}
 
-        {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'expert' && (
+        {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'sub_admin' && user?.role !== 'expert' && (
           <SidebarSection title="Create">
             <SidebarLink icon={FileEdit} label="Community feed" isActive={activeView === 'community-voting'} onClick={() => onViewChange('community-voting')} badge={communityCount > 0 ? communityCount : null} />
           </SidebarSection>
         )}
 
-        {(user?.role === 'reviewer' || user?.role === 'admin') && (
+        {(user?.role === 'reviewer' || user?.role === 'admin' || user?.role === 'sub_admin') && (
           <SidebarSection title="Review Admin">
-            <SidebarLink icon={FileEdit} label="Review Center" isActive={activeView === 'review-center'} onClick={() => onViewChange('review-center')} />
+            {(user?.role === 'reviewer' || user?.role === 'admin') && (
+              <SidebarLink icon={FileEdit} label="Review Center" isActive={activeView === 'review-center'} onClick={() => onViewChange('review-center')} />
+            )}
             {user?.role === 'admin' && (
-              <SidebarLink icon={Shield} label="Admin Panel" isActive={activeView === 'admin-panel'} onClick={() => onViewChange('admin-panel')} />
+              <SidebarLink icon={Shield} label="Super Admin Panel" isActive={activeView === 'admin-panel'} onClick={() => onViewChange('admin-panel')} />
+            )}
+            {(user?.role === 'admin' || user?.role === 'sub_admin') && (
+              <SidebarLink icon={Shield} label={user?.role === 'admin' ? "Sub-Admin Operations" : "Sub-Admin Console"} isActive={activeView === 'subadmin-console'} onClick={() => onViewChange('subadmin-console')} />
             )}
           </SidebarSection>
         )}

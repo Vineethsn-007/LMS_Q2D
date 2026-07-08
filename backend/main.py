@@ -13,11 +13,12 @@ from seed import seed_db
 from ai_service import AIProposalService
 import ai_service
 import groq_service
-from auth import create_access_token, verifyReviewerRole, get_current_user, get_current_user_optional
 from auth import create_access_token, verifyReviewerRole, get_current_user, get_current_user_optional, verifyAdminRole, verifyExpertRole
+from migrate import migrate
 
 # Initialize database tables and run seed if database is empty
 Base.metadata.create_all(bind=engine)
+migrate()
 
 # Auto-migrate certificates table schema if upgrading sqlite local db
 try:
@@ -1072,7 +1073,20 @@ def get_subscribers(
 
 # Certificates and Verification Routers
 from routes.certificates import router as certificates_router, verify_router
+from routes.subadmins import router as subadmins_router
+from routes.institutions import router as institutions_router
+from routes.students import router as students_router
+from routes.reports import router as reports_router
+
 app.include_router(certificates_router, prefix="/api/certificates", tags=["Certificates"])
 app.include_router(certificates_router, prefix="/certificates", tags=["Certificates"])
 app.include_router(verify_router, prefix="/api/verify", tags=["Verification"])
 app.include_router(verify_router, prefix="/verify", tags=["Verification"])
+app.include_router(subadmins_router, prefix="/api/admin/subadmins", tags=["Admin Sub-Admins"])
+app.include_router(institutions_router, prefix="/api/institutions", tags=["Institutions"])
+app.include_router(students_router, prefix="/api/admin/students", tags=["Admin Students & Bulk Ops"])
+app.include_router(reports_router, prefix="/api/admin/reports", tags=["Admin Reports & Analytics"])
+
+
+
+

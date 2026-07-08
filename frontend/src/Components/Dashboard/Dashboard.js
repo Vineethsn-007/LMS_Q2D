@@ -11,6 +11,8 @@ import ReviewerProtectedRoute from '../ReviewerProtectedRoute';
 import AIAssistant from './AIAssistant';
 import AdminProtectedRoute from '../AdminProtectedRoute';
 import AdminPanel from './AdminPanel';
+import SubAdminProtectedRoute from '../SubAdminProtectedRoute';
+import SubAdminConsole from './SubAdminConsole';
 import ExpertProtectedRoute from '../ExpertProtectedRoute';
 import ExpertPanel from './ExpertPanel';
 import LearnerPerformance from './LearnerPerformance';
@@ -31,7 +33,9 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [activeView, setActiveView] = useState(
     user?.role === 'admin'
       ? 'admin-panel'
-      : user?.role === 'expert'
+      : user?.role === 'sub_admin'
+        ? 'subadmin-console'
+        : user?.role === 'expert'
         ? 'expert-panel'
         : user?.role === 'reviewer'
           ? 'review-center'
@@ -180,6 +184,10 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             <AdminProtectedRoute user={user}>
               <AdminPanel user={user} />
             </AdminProtectedRoute>
+          ) : user?.role === 'sub_admin' ? (
+            <SubAdminProtectedRoute user={user}>
+              <SubAdminConsole user={user} />
+            </SubAdminProtectedRoute>
           ) : user?.role === 'expert' ? (
             <ExpertProtectedRoute user={user}>
               <ExpertPanel user={user} />
@@ -251,6 +259,11 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           <AdminProtectedRoute user={user}>
             <AdminPanel user={user} />
           </AdminProtectedRoute>
+        )}
+        {activeView === 'subadmin-console' && (
+          <SubAdminProtectedRoute user={user}>
+            <SubAdminConsole user={user} />
+          </SubAdminProtectedRoute>
         )}
         {activeView === 'expert-panel' && (
           <ExpertProtectedRoute user={user}>
