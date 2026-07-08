@@ -139,3 +139,43 @@ def verifyExpertRole(token: str = Depends(oauth2_scheme), db: Session = Depends(
         
     return user
 
+def verifySubAdminOrAdmin(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user = get_current_user(token, db)
+    if user.role not in ["admin", "sub_admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access Denied: Admin or Sub-Admin role required"
+        )
+    return user
+
+def require_privilege(privilege_key: str):
+    def privilege_checker(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+        user = get_current_user(token, db)
+        if user.role == "admin":
+            return user  # Main Admin has unrestricted access
+        if user.role != "sub_admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access Denied: Role 'admin' or 'sub_admin' with '{privilege_key}' privilege required."
+            )
+        priv = db.query(models.SubAdminPrivilege).filter(models.SubAdminPrivilege.user_id == user.id).first()
+        if not priv or not getattr(priv, privilege_key, False):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access Denied: Sub-admin lacks required privilege '{privilege_key}'."
+            )
+        return user
+    return privilege_checker
+
+def get_subadmin_allowed_institution_ids(user: models.User, db: Session) -> Optional[list]:
+    if user.role == "admin":
+        return None  # None indicates unrestricted access across all institutions
+    if user.role == "sub_admin":
+        accesses = db.query(models.SubAdminInstitutionAccess).filter(models.SubAdminInstitutionAccess.subadmin_id == user.id).all()
+        if not accesses:
+            return None  # If no explicit institution scoping is set, sub-admin is unrestricted across institutions
+        return [a.institution_id for a in accesses]
+    return []  # Empty list indicates no access to admin institution data
+
+
+

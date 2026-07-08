@@ -20,6 +20,8 @@ def migrate():
         ("course_proposals", "upvotes", "INTEGER DEFAULT 0"),
         ("course_proposals", "downvotes", "INTEGER DEFAULT 0"),
         ("course_proposals", "comment_count", "INTEGER DEFAULT 0"),
+        ("users", "institution_id", "INTEGER"),
+        ("users", "specialization", "VARCHAR(255)"),
     ]
 
     for table, column, col_type in columns_to_add:

@@ -16,6 +16,8 @@ class User(Base):
     xp_points = Column(Integer, default=0)
     weekly_goal_hours = Column(Float, default=8.0)
     weekly_progress_hours = Column(Float, default=0.0)
+    institution_id = Column(Integer, nullable=True, index=True)
+    specialization = Column(String, nullable=True, index=True)
 
 class Course(Base):
     __tablename__ = "courses"
@@ -143,3 +145,36 @@ class Subscriber(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Institution(Base):
+    __tablename__ = "institutions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    code = Column(String, unique=True, index=True, nullable=True)
+    address = Column(Text, nullable=True)
+    contact_email = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class SubAdminPrivilege(Base):
+    __tablename__ = "subadmin_privileges"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True, nullable=False, unique=True)
+    manage_institutions = Column(Boolean, default=False)
+    manage_students = Column(Boolean, default=False)
+    allocate_specializations = Column(Boolean, default=False)
+    view_reports = Column(Boolean, default=False)
+    reset_passwords = Column(Boolean, default=False)
+    bulk_upload = Column(Boolean, default=False)
+    manage_content = Column(Boolean, default=False)
+    custom_reports = Column(Boolean, default=False)
+    enrollment_reports = Column(Boolean, default=False)
+
+class SubAdminInstitutionAccess(Base):
+    __tablename__ = "subadmin_institution_access"
+
+    id = Column(Integer, primary_key=True, index=True)
+    subadmin_id = Column(Integer, index=True, nullable=False)
+    institution_id = Column(Integer, index=True, nullable=False)
+

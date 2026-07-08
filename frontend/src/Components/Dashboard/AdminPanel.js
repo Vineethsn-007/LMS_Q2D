@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, Trash2, Edit, Plus, Shield, RefreshCw, X, ShieldAlert, Check, Mail
 } from 'lucide-react';
+import SubAdminConsole from './SubAdminConsole';
 
 export default function AdminPanel({ user }) {
   const [activeTab, setActiveTab] = useState('users');
@@ -139,6 +140,7 @@ export default function AdminPanel({ user }) {
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'admin': return 'bg-coral-50 text-coral-600 border border-coral-200';
+      case 'sub_admin': return 'bg-blue-50 text-blue-700 border border-blue-200';
       case 'reviewer': return 'bg-purple-50 text-purple-600 border border-purple-200';
       case 'expert': return 'bg-blue-50 text-blue-600 border border-blue-200';
       default: return 'bg-emerald-50 text-emerald-600 border border-emerald-200';
@@ -158,12 +160,18 @@ export default function AdminPanel({ user }) {
             <p className="text-slate-500 font-medium">Override system database entries and alter system-wide configurations.</p>
           </div>
           
-          <div className="flex p-1 bg-slate-200/70 rounded-xl w-max">
+          <div className="flex p-1 bg-slate-200/70 rounded-xl w-max flex-wrap gap-1">
             <button 
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'users' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy'}`}
               onClick={() => setActiveTab('users')}
             >
               <Users size={16} /> Users Management
+            </button>
+            <button 
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'operations' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy'}`}
+              onClick={() => setActiveTab('operations')}
+            >
+              <Shield size={16} className="text-blue-600" /> Sub-Admins & Operations Portal
             </button>
             <button 
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'subscribers' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy'}`}
@@ -180,6 +188,9 @@ export default function AdminPanel({ user }) {
           </div>
         )}
         
+        {activeTab === 'operations' ? (
+          <SubAdminConsole user={user} />
+        ) : (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
             <h2 className="text-xl font-bold text-navy-900">Registered User Profiles</h2>
@@ -224,7 +235,7 @@ export default function AdminPanel({ user }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {usersList.filter(u => ['admin', 'reviewer', 'expert'].includes(u.role)).map(usr => (
+                          {usersList.filter(u => ['admin', 'sub_admin', 'reviewer', 'expert'].includes(u.role)).map(usr => (
                             <tr key={usr.id} className="hover:bg-slate-50 transition-colors group">
                               <td className="px-4 py-4 text-sm font-bold text-navy-900 border-b border-slate-50">{usr.name}</td>
                               <td className="px-4 py-4 text-sm font-medium text-slate-600 border-b border-slate-50">{usr.email}</td>
@@ -343,6 +354,7 @@ export default function AdminPanel({ user }) {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Add User Modal */}
@@ -409,6 +421,7 @@ export default function AdminPanel({ user }) {
                   <option value="learner">Learner</option>
                   <option value="reviewer">Reviewer</option>
                   <option value="expert">Expert</option>
+                  <option value="sub_admin">Sub-Admin</option>
                   <option value="admin">Super Admin</option>
                 </select>
               </div>
@@ -464,6 +477,7 @@ export default function AdminPanel({ user }) {
                 >
                   <option value="learner">Learner</option>
                   <option value="reviewer">Reviewer</option>
+                  <option value="sub_admin">Sub-Admin</option>
                   <option value="admin">Super Admin</option>
                 </select>
               </div>
