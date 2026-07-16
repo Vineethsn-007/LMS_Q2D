@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Clock, Shield, Flame, Trophy, Eye, EyeOff, Settings } from 'lucide-react';
+import PaymentHistory from './PaymentHistory';
 
 export default function SettingsPanel({ user, onUserUpdate }) {
   const [name, setName] = useState('');
@@ -266,6 +267,9 @@ export default function SettingsPanel({ user, onUserUpdate }) {
           </div>
           
         </div>
+
+        {/* Payment History Section */}
+        <PaymentHistory />
       </div>
     </div>
   );

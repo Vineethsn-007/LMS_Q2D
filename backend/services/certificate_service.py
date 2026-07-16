@@ -1,7 +1,7 @@
 import re
 import random
 from datetime import datetime
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 import logging
@@ -124,3 +124,90 @@ def verify_certificate_service(db: Session, certificate_id: str) -> Optional[mod
         models.Certificate.certificate_id == certificate_id
     ).first()
     return ensure_qr_code_exists(db, cert) if cert else None
+
+def issue_level_certificate_and_badge(
+    db: Session,
+    user_id: Any,
+    tier: str,
+    score: float,
+    is_qualifying: bool,
+    frontend_url: str = "http://localhost:3000",
+    backend_url: str = "http://localhost:8000"
+) -> Dict[str, Any]:
+    """
+    Auto-generates instant certificate and tiered badge (Bronze/Silver/Gold) on exam completion.
+    Configurable template engine supporting 'pending IBM confirmation' participation templates.
+    """
+    tier_normalized = (tier or "District").strip().capitalize()
+
+    if is_qualifying:
+        if tier_normalized == "District":
+            cert_title = "SkillForge District Qualification Certificate"
+            badge_tier = "Bronze"
+        elif tier_normalized == "State":
+            cert_title = "SkillForge State Merit Certificate"
+            badge_tier = "Silver"
+        elif tier_normalized == "National":
+            cert_title = "SkillForge National Excellence Certification"
+            badge_tier = "Gold"
+        else:
+            cert_title = f"SkillForge {tier_normalized} Certificate"
+            badge_tier = "Bronze"
+        status_label = "valid"
+    else:
+        cert_title = f"SkillForge {tier_normalized} Participation Certificate (Pending IBM Approval)"
+        badge_tier = None
+        status_label = "pending_ibm_confirmation"
+
+    str_user_id = str(user_id)
+    # Use tier as synthetic course_id so wallet displays unique level certs
+    synthetic_course_id = f"tier_{tier_normalized.lower()}_{'pass' if is_qualifying else 'part'}"
+
+    existing = db.query(models.Certificate).filter(
+        models.Certificate.user_id == str_user_id,
+        models.Certificate.course_id == synthetic_course_id
+    ).first()
+
+    if existing:
+        return {
+            "certificate": ensure_qr_code_exists(db, existing, frontend_url, backend_url),
+            "badge_tier": badge_tier,
+            "issued_now": False
+        }
+
+    prefix = extract_course_prefix(tier_normalized)
+    year = datetime.now().year
+
+    while True:
+        rand_num = f"{random.randint(1, 9999):04d}"
+        cert_id = f"SF-{prefix}-{year}-{rand_num}"
+        if not db.query(models.Certificate).filter(models.Certificate.certificate_id == cert_id).first():
+            break
+
+    qr_code_url = generate_qr_code(cert_id, frontend_url=frontend_url, backend_url=backend_url)
+    verify_url = f"{frontend_url.rstrip('/')}/verify/{cert_id}"
+    today_str = f"{datetime.now().day:02d} / {datetime.now().month:02d} / {datetime.now().year}"
+
+    new_cert = models.Certificate(
+        user_id=str_user_id,
+        course_id=synthetic_course_id,
+        course_name=cert_title,
+        certificate_id=cert_id,
+        cert_id=cert_id,
+        issue_date=today_str,
+        qr_code_path=qr_code_url,
+        certificate_status=status_label,
+        certificate_url=verify_url
+    )
+
+    db.add(new_cert)
+    db.commit()
+    db.refresh(new_cert)
+
+    logger.info(f"Auto-issued {cert_title} ({cert_id}) for user {user_id} (badge={badge_tier})")
+    return {
+        "certificate": new_cert,
+        "badge_tier": badge_tier,
+        "issued_now": True
+    }
+

@@ -3,12 +3,13 @@ import io
 import hashlib
 import re
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Response, Query
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Response, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
-from auth import require_privilege, verifySubAdminOrAdmin, get_subadmin_allowed_institution_ids
+from auth import require_privilege, verifySubAdminOrAdmin, get_subadmin_allowed_institution_ids, get_current_user_optional
+from services.mailer import MailerService
 
 router = APIRouter()
 
@@ -18,6 +19,13 @@ def hash_password(password: str) -> str:
 def is_valid_email(email: str) -> bool:
     pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
     return re.match(pattern, email) is not None
+
+@router.get("/specializations", response_model=List[schemas.SpecializationResponse])
+def get_specializations(
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    return db.query(models.Specialization).filter(models.Specialization.is_active == True).order_by(models.Specialization.name.asc()).all()
 
 @router.get("", response_model=List[schemas.UserResponse])
 def get_students(
@@ -78,12 +86,43 @@ def create_student(
         role="learner",
         institution_id=student_in.institution_id,
         specialization=student_in.specialization,
-        is_active=True
+        is_active=True,
+        must_change_password=True,
+        force_password_change=True,
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return db_user
+    
+    # Auto-enroll in active cycle
+    active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+    cycle_name = active_cycle.name if active_cycle else "2026-2027"
+    
+    spec = db.query(models.Specialization).filter(models.Specialization.name == student_in.specialization).first() if student_in.specialization else None
+    if student_in.specialization and not spec:
+        raise HTTPException(status_code=400, detail=f"Specialization '{student_in.specialization}' not found in system.")
+    spec_id = spec.id if spec else None
+
+    registration = models.StudentRegistration(
+        user_id=db_user.id,
+        specialization_id=spec_id,
+        institution_id=student_in.institution_id,
+        cycle_year=cycle_name,
+        current_tier="District",
+        access_status="active",
+        is_archived=False
+    )
+    db.add(registration)
+    db.commit()
+    
+    # Send Onboarding Email (with DB session for audit log)
+    email_success = MailerService.send_onboarding_email(db_user.email, db_user.name, student_in.password, db=db)
+    
+    response_data = schemas.UserResponse.model_validate(db_user)
+    if not email_success:
+        response_data.warning = "Student created successfully, but the onboarding email failed to send."
+    
+    return response_data
 
 @router.put("/{user_id}", response_model=schemas.UserResponse)
 def update_student(
@@ -185,6 +224,49 @@ def bulk_allocate_specialization(
         "updated_count": count
     }
 
+@router.post("/bulk-subject-assignment")
+def bulk_subject_assignment(
+    bulk_in: schemas.BulkSubjectAssignmentCreate,
+    current_user: models.User = Depends(require_privilege("allocate_specializations")),
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.User).filter(models.User.id.in_(bulk_in.student_ids), models.User.role == "learner")
+    allowed_ids = get_subadmin_allowed_institution_ids(current_user, db)
+    if allowed_ids is not None:
+        query = query.filter(models.User.institution_id.in_(allowed_ids))
+        
+    students = query.all()
+    count = 0
+    new_assignments = []
+    for s in students:
+        # Find active registration
+        reg = db.query(models.StudentRegistration).filter(
+            models.StudentRegistration.user_id == s.id,
+            models.StudentRegistration.access_status == "active"
+        ).first()
+        if reg:
+            # Check if assignment already exists
+            existing = db.query(models.StudentSubjectAssignment).filter(
+                models.StudentSubjectAssignment.user_id == s.id,
+                models.StudentSubjectAssignment.subject_id == bulk_in.subject_id
+            ).first()
+            if not existing:
+                new_assignments.append(models.StudentSubjectAssignment(
+                    user_id=s.id,
+                    subject_id=bulk_in.subject_id,
+                    registration_id=reg.id
+                ))
+                count += 1
+                
+    if new_assignments:
+        db.bulk_save_objects(new_assignments)
+        db.commit()
+        
+    return {
+        "message": f"Subject assigned to {count} student(s).",
+        "assigned_count": count
+    }
+
 @router.get("/template")
 def download_upload_template(
     current_user: models.User = Depends(require_privilege("bulk_upload"))
@@ -198,6 +280,7 @@ def download_upload_template(
 
 @router.post("/bulk-upload", response_model=schemas.BulkUploadResponse)
 def bulk_upload_students(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: models.User = Depends(require_privilege("bulk_upload")),
     db: Session = Depends(get_db)
@@ -226,6 +309,9 @@ def bulk_upload_students(
     inst_by_code = {i.code.strip().upper(): i for i in institutions if i.code}
     inst_by_name = {i.name.strip().upper(): i for i in institutions}
     inst_by_id = {str(i.id): i for i in institutions}
+    
+    specs = db.query(models.Specialization).all()
+    spec_by_name = {s.name.strip().upper(): s for s in specs}
     
     total_rows = 0
     success_count = 0
@@ -267,6 +353,12 @@ def bulk_upload_students(
                 errors.append(schemas.BulkUploadRowError(row=row_idx, email=email, reason=f"Institution '{inst_identifier}' not found in system"))
                 continue
                 
+        if specialization:
+            target_spec = spec_by_name.get(specialization.upper())
+            if not target_spec:
+                errors.append(schemas.BulkUploadRowError(row=row_idx, email=email, reason=f"Specialization '{specialization}' not found in system"))
+                continue
+                
         if allowed_ids is not None:
             if not target_inst or target_inst.id not in allowed_ids:
                 errors.append(schemas.BulkUploadRowError(
@@ -285,13 +377,47 @@ def bulk_upload_students(
             role="learner",
             institution_id=target_inst.id if target_inst else None,
             specialization=specialization,
-            is_active=True
+            is_active=True,
+            must_change_password=True,
+            force_password_change=True,
         ))
+        # ⚑ Bulk upload trigger: onboarding emails queued in background.
+        background_tasks.add_task(
+            MailerService.send_onboarding_email,
+            email, name, password
+        )
+        
         success_count += 1
         
     if new_users:
         db.bulk_save_objects(new_users)
         db.commit()
+        
+        # Auto-enroll newly created students in active cycle
+        active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+        cycle_name = active_cycle.name if active_cycle else "2026-2027"
+        
+        # We need their IDs for the registration table
+        inserted_emails = [u.email for u in new_users]
+        inserted_users = db.query(models.User).filter(models.User.email.in_(inserted_emails)).all()
+        
+        new_registrations = []
+        for u in inserted_users:
+            spec = db.query(models.Specialization).filter(models.Specialization.name == u.specialization).first() if u.specialization else None
+            spec_id = spec.id if spec else None
+            new_registrations.append(models.StudentRegistration(
+                user_id=u.id,
+                specialization_id=spec_id,
+                institution_id=u.institution_id,
+                cycle_year=cycle_name,
+                current_tier="District",
+                access_status="active",
+                is_archived=False
+            ))
+            
+        if new_registrations:
+            db.bulk_save_objects(new_registrations)
+            db.commit()
         
     return schemas.BulkUploadResponse(
         total_rows=total_rows,

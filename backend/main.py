@@ -1,10 +1,14 @@
 import hashlib
 import os
+import uuid
+import datetime
 from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from datetime import datetime
+
 
 from database import engine, Base, get_db
 import models
@@ -15,6 +19,7 @@ import ai_service
 import groq_service
 from auth import create_access_token, verifyReviewerRole, get_current_user, get_current_user_optional, verifyAdminRole, verifyExpertRole
 from migrate import migrate
+from routes import exam_banks, exam_configs, exam_credentials, exam_reminders, exam_sessions, admin_analytics
 
 # Initialize database tables and run seed if database is empty
 Base.metadata.create_all(bind=engine)
@@ -42,6 +47,34 @@ try:
 except Exception as e_mig:
     print(f"Migration check completed: {e_mig}")
 
+try:
+    with engine.connect() as conn:
+        from sqlalchemy import text
+        try:
+            conn.execute(text("SELECT topic_tag FROM exam_questions LIMIT 1"))
+        except Exception:
+            print("Migrating exam_questions table schema to add topic_tag...")
+            try:
+                conn.execute(text("ALTER TABLE exam_questions ADD COLUMN topic_tag VARCHAR(100) DEFAULT 'General'"))
+                conn.commit()
+            except Exception as e_q:
+                print(f"exam_questions topic_tag migration note: {e_q}")
+
+        for col_stmt in [
+            "ADD COLUMN attempt_count INTEGER DEFAULT 0",
+            "ADD COLUMN cooldown_until TIMESTAMP WITH TIME ZONE NULL",
+            "ADD COLUMN is_locked BOOLEAN DEFAULT FALSE"
+        ]:
+            try:
+                conn.execute(text(f"ALTER TABLE student_registrations {col_stmt}"))
+                conn.commit()
+            except Exception:
+                pass
+except Exception as e_mig2:
+    print(f"migration check completed: {e_mig2}")
+
+
+
 db = next(get_db())
 try:
     if db.query(models.Course).count() == 0:
@@ -52,14 +85,30 @@ finally:
 
 app = FastAPI(title="SkillForge LMS API", version="1.0.0")
 
+if os.getenv("SKIP_CREDENTIAL_WINDOW_ENFORCEMENT", "false").lower() == "true":
+    print("=" * 80)
+    print("WARNING: SKIP_CREDENTIAL_WINDOW_ENFORCEMENT IS ENABLED")
+    print("WARNING: Exam credentials will be auto-confirmed instantly upon booking.")
+    print("=" * 80)
+
+app.include_router(exam_banks.router)
+app.include_router(exam_configs.router)
+app.include_router(exam_credentials.router)
+app.include_router(exam_reminders.router)
+app.include_router(exam_sessions.router)
+app.include_router(admin_analytics.router)
+
 # Mount static uploads serving
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+allow_origin_regex = os.getenv("ALLOW_ORIGIN_REGEX", r".*")
 
-# Configure CORS to allow the React development server to communicate
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=allowed_origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -68,7 +117,7 @@ app.add_middleware(
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
-@app.get("/")
+@app.get("/", response_model=schemas.MessageResponse)
 def read_root():
     return {"message": "Welcome to the SkillForge LMS API. Access docs at /docs"}
 
@@ -130,25 +179,113 @@ def generate_course_quiz_from_data(req: schemas.QuizGenerationRequest):
     return quiz_questions
 
 @app.post("/api/assessment/generate", response_model=List[schemas.AssessmentQuestion])
-def generate_topic_assessment_endpoint(req: schemas.AssessmentTopicRequest):
-    questions = ai_service.generate_topic_assessment(topic=req.topic, difficulty=req.difficulty or "Intermediate", count=req.count or 10)
+def generate_topic_assessment_endpoint(
+    req: schemas.AssessmentTopicRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # 1. Fetch user's active registration to get specialization/subjects
+    registration = db.query(models.StudentRegistration).filter(
+        models.StudentRegistration.user_id == current_user.id,
+        models.StudentRegistration.access_status == "active"
+    ).first()
+    
+    if not registration:
+        raise HTTPException(status_code=403, detail="No active registration found.")
+        
+    subjects = db.query(models.Subject).filter(
+        models.Subject.specialization_id == registration.specialization_id
+    ).all()
+    
+    if not subjects:
+        raise HTTPException(status_code=403, detail="No subjects assigned for mock tests.")
+        
+    subject = next((s for s in subjects if s.name.lower() == req.topic.lower()), None)
+    if not subject:
+        subject = subjects[0]
+        
+    config = None
+    if subject:
+        config = db.query(models.ExamConfig).filter(
+            models.ExamConfig.subject_id == subject.id,
+            models.ExamConfig.level == registration.current_tier
+        ).first()
+
+    # Get max daily limit from config, fallback to subject or 3
+    if config and config.per_day_ai_limit is not None:
+        daily_limit = config.per_day_ai_limit
+    else:
+        daily_limit = max([s.daily_mock_attempts_limit for s in subjects] + [3])
+    
+    # 2. Check today's attempts
+    today = datetime.now().date()
+    today_start = datetime.combine(today, datetime.min.time())
+    
+    attempts_today = db.query(models.MockTestAttempt).filter(
+        models.MockTestAttempt.user_id == current_user.id,
+        models.MockTestAttempt.attempt_date >= today_start
+    ).count()
+    
+    if attempts_today >= daily_limit:
+        raise HTTPException(
+            status_code=429, 
+            detail=f"Daily mock test limit ({daily_limit}) exceeded. Please try again tomorrow."
+        )
+        
+    # 3. Generate questions
+    ai_enabled = config.ai_mock_enabled if config else True
+    questions = None
+    
+    if ai_enabled:
+        questions = ai_service.generate_topic_assessment(topic=req.topic, difficulty=req.difficulty or "Intermediate", count=req.count or 10)
+        
+    if not questions:
+        # Fallback or Non-AI mode: Query mock question banks
+        if not subject:
+            raise HTTPException(status_code=400, detail="Cannot generate mock test: AI disabled and no matching subject found for question bank.")
+            
+        banks = db.query(models.QuestionBank).filter(
+            models.QuestionBank.subject_id == subject.id,
+            models.QuestionBank.level == registration.current_tier,
+            models.QuestionBank.bank_type == "mock",
+            models.QuestionBank.is_active == True
+        ).all()
+        
+        bank_ids = [b.id for b in banks]
+        all_q = db.query(models.Question).filter(models.Question.bank_id.in_(bank_ids)).all()
+        
+        if not all_q:
+            raise HTTPException(status_code=404, detail="No mock questions available in the question bank for this subject.")
+            
+        q_count = req.count or 10
+        if config and not config.randomize_questions:
+            selected_q = all_q[:q_count]
+        else:
+            import random
+            selected_q = random.sample(all_q, min(len(all_q), q_count))
+            
+        questions = [
+            schemas.AssessmentQuestion(
+                question=q.text,
+                options=q.options,
+                answer=q.correct_answer,
+                explanation=q.explanation
+            ) for q in selected_q
+        ]
+    
+    # 4. Record attempt
+    new_attempt = models.MockTestAttempt(
+        user_id=current_user.id,
+        topic=req.topic,
+        attempt_date=datetime.utcnow()
+    )
+    db.add(new_attempt)
+    db.commit()
+    
     return questions
 
-# Experts endpoint
-@app.get("/api/experts", response_model=List[schemas.ExpertResponse])
-def get_experts(db: Session = Depends(get_db)):
-    users = db.query(models.User).filter(models.User.role == "expert").all()
-    experts_list = []
-    for user in users:
-        experts_list.append({
-            "id": user.id,
-            "name": user.name,
-            "role": "Industry Expert",
-            "bio": f"{user.name} is a validated industry expert.",
-            "avatar_url": None,
-            "courses_validated_count": user.streak if user.streak else 0
-        })
-    return experts_list
+# Experts endpoint combined with unified handler later in this file
+
 
 # Auth Register
 @app.post("/api/auth/register", response_model=schemas.TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -156,10 +293,56 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     # Check if user exists
     existing_user = db.query(models.User).filter(models.User.email == user_in.email).first()
     if existing_user:
-        raise HTTPException(
-            status_code=400,
-            detail="A user with this email address already exists."
-        )
+        hashed_pwd = hash_password(user_in.password)
+        if existing_user.hashed_password == hashed_pwd:
+            # Re-registration / Reactivation logic
+            if not existing_user.is_active:
+                existing_user.is_active = True
+            
+            # Update name if provided
+            if user_in.name and user_in.name != existing_user.name:
+                existing_user.name = user_in.name
+                
+            db.commit()
+            db.refresh(existing_user)
+            
+            # Create a StudentRegistration for the active cycle if it doesn't exist
+            active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+            if active_cycle:
+                existing_reg = db.query(models.StudentRegistration).filter(
+                    models.StudentRegistration.user_id == existing_user.id,
+                    models.StudentRegistration.cycle_year == active_cycle.name
+                ).first()
+                if not existing_reg:
+                    # Provide fallback defaults for DB constraints
+                    fallback_inst = db.query(models.Institution).first()
+                    fallback_spec = db.query(models.Specialization).first()
+                    inst_id = fallback_inst.id if fallback_inst else 1
+                    spec_id = fallback_spec.id if fallback_spec else 1
+                    
+                    new_reg = models.StudentRegistration(
+                        user_id=existing_user.id,
+                        cycle_year=active_cycle.name,
+                        current_tier="District",
+                        access_status="active",
+                        is_archived=False,
+                        institution_id=user_in.institution_id or inst_id,
+                        specialization_id=spec_id
+                    )
+                    db.add(new_reg)
+                    db.commit()
+                    
+            access_token = create_access_token(data={"sub": str(existing_user.id), "role": existing_user.role})
+            return {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "user": existing_user
+            }
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="A user with this email address already exists. If this is you, please use your existing password to re-register/reactivate, or log in."
+            )
     
     # Create new user
     hashed_pwd = hash_password(user_in.password)
@@ -172,6 +355,26 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    
+    # Create initial StudentRegistration for new user
+    active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+    if active_cycle:
+        fallback_inst = db.query(models.Institution).first()
+        fallback_spec = db.query(models.Specialization).first()
+        inst_id = fallback_inst.id if fallback_inst else 1
+        spec_id = fallback_spec.id if fallback_spec else 1
+        
+        new_reg = models.StudentRegistration(
+            user_id=db_user.id,
+            cycle_year=active_cycle.name,
+            current_tier="District",
+            access_status="active",
+            is_archived=False,
+            institution_id=user_in.institution_id or inst_id,
+            specialization_id=spec_id
+        )
+        db.add(new_reg)
+        db.commit()
     
     access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role})
     return {
@@ -198,6 +401,37 @@ def login(user_in: schemas.UserLogin, db: Session = Depends(get_db)):
             detail="Invalid email or password."
         )
         
+    # Reactivation logic for active cycle
+    if db_user.role == "learner":
+        active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+        if active_cycle:
+            existing_reg = db.query(models.StudentRegistration).filter(
+                models.StudentRegistration.user_id == db_user.id,
+                models.StudentRegistration.cycle_year == active_cycle.name
+            ).first()
+            if not existing_reg:
+                fallback_inst = db.query(models.Institution).first()
+                fallback_spec = db.query(models.Specialization).first()
+                inst_id = fallback_inst.id if fallback_inst else 1
+                spec_id = fallback_spec.id if fallback_spec else 1
+                
+                # Fetch last known institution and specialization if available
+                last_reg = db.query(models.StudentRegistration).filter(
+                    models.StudentRegistration.user_id == db_user.id
+                ).order_by(models.StudentRegistration.id.desc()).first()
+                
+                new_reg = models.StudentRegistration(
+                    user_id=db_user.id,
+                    cycle_year=active_cycle.name,
+                    current_tier="District",
+                    access_status="active",
+                    is_archived=False,
+                    institution_id=last_reg.institution_id if last_reg else inst_id,
+                    specialization_id=last_reg.specialization_id if last_reg else spec_id
+                )
+                db.add(new_reg)
+                db.commit()
+
     access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role})
     return {
         "access_token": access_token,
@@ -208,41 +442,30 @@ def login(user_in: schemas.UserLogin, db: Session = Depends(get_db)):
 # Auth Google
 @app.post("/api/auth/google", response_model=schemas.TokenResponse)
 def google_auth(user_in: schemas.UserGoogleLogin, db: Session = Depends(get_db)):
-    # Fallback to mock for testing/offline review
-    if user_in.id_token == "mock-google-token":
-        email = "learner.google@gmail.com"
-        name = "Google Learner"
-    else:
-        import requests
-        tokeninfo_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={user_in.id_token}"
-        try:
-            response = requests.get(tokeninfo_url)
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid Google ID Token."
-                )
-            id_info = response.json()
-        except Exception as e:
+    import requests
+    tokeninfo_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={user_in.id_token}"
+    try:
+        response = requests.get(tokeninfo_url)
+        if response.status_code != 200:
             raise HTTPException(
                 status_code=400,
-                detail=f"Failed to verify Google token: {str(e)}"
+                detail="Invalid Google ID Token."
             )
+        id_info = response.json()
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to verify Google token: {str(e)}"
+        )
+        
+    email = id_info.get("email")
+    name = id_info.get("name", "Google User")
 
-        client_id = os.getenv("GOOGLE_CLIENT_ID")
-        if id_info.get("aud") != client_id:
-            # Fallback check if it was not issued for our app
-            print(f"Warning: Audience mismatch. Expected {client_id}, got {id_info.get('aud')}")
-            # We will allow it for demonstration but log the mismatch warning
-            
-        email = id_info.get("email")
-        name = id_info.get("name", "Google User")
-
-        if not email:
-            raise HTTPException(
-                status_code=400,
-                detail="Google account does not provide an email address."
-            )
+    if not email:
+        raise HTTPException(
+            status_code=400,
+            detail="Google account does not provide an email address."
+        )
 
     db_user = db.query(models.User).filter(models.User.email == email).first()
     if not db_user:
@@ -263,6 +486,36 @@ def google_auth(user_in: schemas.UserGoogleLogin, db: Session = Depends(get_db))
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
+        
+    # Reactivation logic for active cycle
+    if db_user.role == "learner":
+        active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+        if active_cycle:
+            existing_reg = db.query(models.StudentRegistration).filter(
+                models.StudentRegistration.user_id == db_user.id,
+                models.StudentRegistration.cycle_year == active_cycle.name
+            ).first()
+            if not existing_reg:
+                fallback_inst = db.query(models.Institution).first()
+                fallback_spec = db.query(models.Specialization).first()
+                inst_id = fallback_inst.id if fallback_inst else 1
+                spec_id = fallback_spec.id if fallback_spec else 1
+                
+                last_reg = db.query(models.StudentRegistration).filter(
+                    models.StudentRegistration.user_id == db_user.id
+                ).order_by(models.StudentRegistration.id.desc()).first()
+                
+                new_reg = models.StudentRegistration(
+                    user_id=db_user.id,
+                    cycle_year=active_cycle.name,
+                    current_tier="District",
+                    access_status="active",
+                    is_archived=False,
+                    institution_id=last_reg.institution_id if last_reg else inst_id,
+                    specialization_id=last_reg.specialization_id if last_reg else spec_id
+                )
+                db.add(new_reg)
+                db.commit()
         
     access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role})
     return {
@@ -296,6 +549,51 @@ def update_profile(
     db.refresh(current_user)
     return current_user
 
+# Get current user (used by frontend to refresh user context, e.g. after force password change)
+@app.get("/api/users/me", response_model=schemas.UserResponse)
+def get_current_user_me(
+    current_user: models.User = Depends(get_current_user),
+):
+    return current_user
+
+# Admin - Start New Cycle & Archive
+class StartCycleRequest(schemas.BaseModel):
+    new_cycle_name: str
+
+@app.post("/api/admin/cycles/start-new")
+def start_new_cycle(req: StartCycleRequest, current_user: models.User = Depends(verifyAdminRole), db: Session = Depends(get_db)):
+    """
+    Phase 7 Archival Logic: 
+    Deactivate current cycle, create new cycle, and mark all existing student registrations as archived.
+    """
+    # Deactivate current active cycle
+    active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+    if active_cycle:
+        active_cycle.is_active = False
+        
+        # Archive all registrations from this old cycle
+        old_regs = db.query(models.StudentRegistration).filter(
+            models.StudentRegistration.cycle_year == active_cycle.name,
+            models.StudentRegistration.is_archived == False
+        ).all()
+        for reg in old_regs:
+            reg.is_archived = True
+
+    # Check if new cycle name already exists
+    existing_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.name == req.new_cycle_name).first()
+    if existing_cycle:
+        existing_cycle.is_active = True
+    else:
+        new_cycle = models.RegistrationCycle(
+            name=req.new_cycle_name,
+            is_active=True,
+            start_date=datetime.utcnow()
+        )
+        db.add(new_cycle)
+
+    db.commit()
+    return {"message": f"Successfully started new cycle: {req.new_cycle_name} and archived previous data."}
+
 # Course Proposal Create
 @app.post("/api/proposals/create", response_model=schemas.CourseProposalResponse, status_code=status.HTTP_201_CREATED)
 def create_proposal(
@@ -316,9 +614,41 @@ def create_proposal(
     
     return db_proposal
 
+@app.get("/api/proposals/community")
+def get_community_proposals(db: Session = Depends(get_db)):
+    proposals = db.query(models.CourseProposal).order_by(models.CourseProposal.upvotes.desc(), models.CourseProposal.id.desc()).all()
+    results = []
+    now = datetime.utcnow()
+    for p in proposals:
+        days_ago = (now - p.created_at).days if p.created_at else 0
+        tags = [{"label": p.status.capitalize(), "type": "active" if p.status == "pending" else ""}]
+        if p.ai_category:
+            tags.append({"label": p.ai_category})
+        elif p.skill_level:
+            tags.append({"label": p.skill_level})
+        results.append({
+            "id": p.id,
+            "title": p.course_name,
+            "author": f"@{p.learner_name or 'learner'}",
+            "daysAgo": max(1, days_ago),
+            "tags": tags,
+            "votes": p.upvotes or 0
+        })
+    return results
+
+@app.post("/api/proposals/{proposal_id}/vote")
+def vote_proposal(proposal_id: int, db: Session = Depends(get_db)):
+    proposal = db.query(models.CourseProposal).filter(models.CourseProposal.id == proposal_id).first()
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found")
+    proposal.upvotes = (proposal.upvotes or 0) + 1
+    db.commit()
+    return {"id": proposal.id, "votes": proposal.upvotes}
+
 # Review Center endpoints (Protected)
 @app.get("/api/reviewer/proposals", response_model=List[schemas.CourseProposalResponse])
 def get_reviewer_proposals(
+
     status_filter: Optional[str] = None,
     current_user: models.User = Depends(verifyReviewerRole),
     db: Session = Depends(get_db)
@@ -360,9 +690,34 @@ def update_proposal_status(
     db.refresh(proposal)
     return proposal
 
+@app.get("/api/reviewer/certificate-issues", response_model=List[schemas.CertificateIssueResponse])
+def get_reviewer_certificate_issues(
+    current_user: models.User = Depends(verifyReviewerRole),
+    db: Session = Depends(get_db)
+):
+    return db.query(models.CertificateIssue).order_by(models.CertificateIssue.id.desc()).all()
+
+@app.put("/api/reviewer/certificate-issues/{issue_id}", response_model=schemas.CertificateIssueResponse)
+def update_certificate_issue(
+    issue_id: int,
+    issue_update: schemas.CertificateIssueUpdate,
+    current_user: models.User = Depends(verifyReviewerRole),
+    db: Session = Depends(get_db)
+):
+    issue = db.query(models.CertificateIssue).filter(models.CertificateIssue.id == issue_id).first()
+    if not issue:
+        raise HTTPException(status_code=404, detail="Certificate issue not found")
+    update_data = issue_update.model_dump(exclude_unset=True)
+    for k, v in update_data.items():
+        setattr(issue, k, v)
+    db.commit()
+    db.refresh(issue)
+    return issue
+
 # Notifications endpoint
 @app.get("/api/notifications", response_model=List[schemas.NotificationResponse])
 def get_notifications(
+
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -523,7 +878,7 @@ def like_comment(
 # Silence 404 console logs when AI browser extensions poll localhost for chat interfaces
 @app.get("/chat/conversations", include_in_schema=False)
 @app.get("/api/chat/conversations", include_in_schema=False)
-def dummy_chat_conversations():
+def get_empty_chat_conversations():
     return []
 
 # AI Assistant Endpoint
@@ -700,7 +1055,7 @@ def update_admin_course_materials(
     db.commit()
     return {"message": "Materials updated successfully"}
 
-@app.delete("/api/admin/users/{user_id}")
+@app.delete("/api/admin/users/{user_id}", response_model=schemas.MessageResponse)
 def delete_user(
     user_id: int,
     current_user: models.User = Depends(verifyAdminRole),
@@ -716,7 +1071,7 @@ def delete_user(
     db.commit()
     return {"message": "User deleted successfully"}
 
-@app.delete("/api/admin/courses/{course_id}")
+@app.delete("/api/admin/courses/{course_id}", response_model=schemas.MessageResponse)
 def delete_course(
     course_id: int,
     current_user: models.User = Depends(verifyAdminRole),
@@ -729,7 +1084,7 @@ def delete_course(
     db.commit()
     return {"message": "Course deleted successfully"}
 
-@app.delete("/api/admin/proposals/{proposal_id}")
+@app.delete("/api/admin/proposals/{proposal_id}", response_model=schemas.MessageResponse)
 def delete_proposal(
     proposal_id: int,
     current_user: models.User = Depends(verifyAdminRole),
@@ -741,6 +1096,33 @@ def delete_proposal(
     db.delete(proposal)
     db.commit()
     return {"message": "Proposal deleted successfully"}
+
+@app.get("/api/admin/access-config")
+def get_admin_access_config(
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    from services.access_scheduler import get_access_window_config
+    return get_access_window_config(db)
+
+@app.put("/api/admin/access-config")
+def update_admin_access_config(
+    payload: dict,
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    from services.access_scheduler import set_access_window_config
+    post_days = int(payload.get("POST_RESULT_ACCESS_DAYS", 7))
+    grace_days = int(payload.get("PAYMENT_GRACE_PERIOD_DAYS", 7))
+    return set_access_window_config(db, post_days, grace_days)
+
+@app.post("/api/admin/access-config/sweep")
+def trigger_access_sweeper(
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    from services.access_scheduler import sweep_expired_access_windows
+    return sweep_expired_access_windows(db)
 
 # Expert endpoints
 @app.get("/api/expert/courses", response_model=List[schemas.CourseResponse])
@@ -869,36 +1251,7 @@ def get_expert_learners_performance(
                     }
                 })
             else:
-                # Assign varied simulated progress for courses without certificate so experts can inspect all statuses
-                scores = [85, 72, 45, 90]
-                statuses = ["passed", "in_progress", "retake_required", "passed"]
-                attempts = [1, 2, 3, 1]
-                prog = [100, 75, 40, 100]
-                s_idx = (idx + u.id) % len(scores)
-                
-                c_perf.append({
-                    "course_id": str(course.id),
-                    "course_title": course.title,
-                    "category": course.category,
-                    "progress_percentage": prog[s_idx],
-                    "modules_completed": f"{int(prog[s_idx]/25)}/4",
-                    "time_spent": f"{int(course.hours * (prog[s_idx]/100))}h 30m",
-                    "last_active": "2026-07-01",
-                    "assessment": {
-                        "status": statuses[s_idx],
-                        "score": scores[s_idx],
-                        "passing_score": 60,
-                        "attempts": attempts[s_idx],
-                        "last_attempt_date": "2026-07-02",
-                        "certificate_id": f"SF-VAL-{2026}-{1000+u.id*10+idx}" if statuses[s_idx] == "passed" else None,
-                        "certificate_url": f"http://localhost:3000/verify/SF-VAL-{2026}-{1000+u.id*10+idx}" if statuses[s_idx] == "passed" else None,
-                        "quiz_breakdown": [
-                            {"lesson": "Lesson 1: Core Fundamentals", "score": min(100, scores[s_idx] + 10), "status": "Passed" if scores[s_idx] + 10 >= 60 else "Failed"},
-                            {"lesson": "Lesson 2: Advanced Architecture", "score": scores[s_idx], "status": "Passed" if scores[s_idx] >= 60 else "Failed"},
-                            {"lesson": "Final Assessment & Quiz", "score": max(30, scores[s_idx] - 5), "status": "Passed" if scores[s_idx] - 5 >= 60 else "Retake Required"}
-                        ]
-                    }
-                })
+                pass # Removed simulated progress data
         
         passed_count = sum(1 for cp in c_perf if cp["assessment"]["status"] == "passed")
         pass_rate = int((passed_count / max(1, len(c_perf))) * 100)
@@ -997,7 +1350,21 @@ def get_expert_learners_performance(
 
 @app.get("/api/experts", response_model=List[schemas.ExpertResponse])
 def get_experts(db: Session = Depends(get_db)):
-    return db.query(models.Expert).all()
+    expert_rows = db.query(models.Expert).all()
+    if expert_rows:
+        return expert_rows
+    users = db.query(models.User).filter(models.User.role == "expert").all()
+    experts_list = []
+    for user in users:
+        experts_list.append({
+            "id": user.id,
+            "name": user.name,
+            "role": "Industry Expert",
+            "bio": f"{user.name} is a validated industry expert.",
+            "avatar_url": None,
+            "courses_validated_count": user.streak if user.streak else 0
+        })
+    return experts_list
 
 # ─── Course Feedback Endpoints ──────────────────────────────────────────────
 
@@ -1077,6 +1444,14 @@ from routes.subadmins import router as subadmins_router
 from routes.institutions import router as institutions_router
 from routes.students import router as students_router
 from routes.reports import router as reports_router
+from routes.learning import router as learning_router
+from routes.webhooks import router as webhooks_router
+from routes.exam_engine_webhooks import router as exam_engine_webhooks_router
+from routes.payments import router as payments_router
+from routes.communications import router as communications_router
+from routes.analytics import router as analytics_router
+from routes.poc import router as poc_router
+from routes.demo import router as demo_router
 
 app.include_router(certificates_router, prefix="/api/certificates", tags=["Certificates"])
 app.include_router(certificates_router, prefix="/certificates", tags=["Certificates"])
@@ -1086,7 +1461,13 @@ app.include_router(subadmins_router, prefix="/api/admin/subadmins", tags=["Admin
 app.include_router(institutions_router, prefix="/api/institutions", tags=["Institutions"])
 app.include_router(students_router, prefix="/api/admin/students", tags=["Admin Students & Bulk Ops"])
 app.include_router(reports_router, prefix="/api/admin/reports", tags=["Admin Reports & Analytics"])
-
-
-
-
+app.include_router(learning_router, prefix="/api/learning", tags=["Learning"])
+app.include_router(webhooks_router, prefix="/api/webhooks", tags=["Webhooks"])
+app.include_router(exam_engine_webhooks_router, prefix="/api/webhooks/exam-engine", tags=["Exam Engine Webhooks"])
+app.include_router(payments_router, prefix="/api/payments", tags=["Payments"])
+app.include_router(communications_router, prefix="/api/communications", tags=["Communications"])
+app.include_router(analytics_router, prefix="/api/analytics", tags=["Analytics & Leaderboard"])
+app.include_router(analytics_router, prefix="/api/learning/analytics", tags=["Analytics & Leaderboard"])
+app.include_router(analytics_router, prefix="/api/admin/analytics", tags=["Analytics & Leaderboard"])
+app.include_router(poc_router, prefix="/api/admin/poc", tags=["POC Operations"])
+app.include_router(demo_router, prefix="/api/demo", tags=["Demo"])

@@ -23,6 +23,16 @@ import Checkout from './Checkout';
 import FeedbackPage from '../FeedbackPage';
 import CourseProposalModal from '../CourseProposalModal';
 import useDynamicGreeting from '../../utils/useDynamicGreeting';
+import RegisteredSubjectsDashboard from './RegisteredSubjectsDashboard';
+import SlotBooking from './SlotBooking';
+import MockResults from './MockResults';
+import LiveClasses from './LiveClasses';
+import LiveClassConfig from './LiveClassConfig';
+import SupportCenter from './SupportCenter';
+import AnnouncementBar from './AnnouncementBar';
+import ForcePasswordChange from './ForcePasswordChange';
+import LeaderboardView from './LeaderboardView';
+import POCDashboard from './POCDashboard';
 import './Dashboard.css';
 import './Marketplace.css';
 import './MyLearning.css';
@@ -48,6 +58,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('sf_welcome_shown'));
   const [isProposalOpen, setIsProposalOpen] = useState(false);
+  const [activeSubject, setActiveSubject] = useState(null);
   const greeting = useDynamicGreeting();
 
   useEffect(() => {
@@ -107,6 +118,24 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-600">
+      {/* Force password change screen */}
+      {user?.must_change_password && (
+        <ForcePasswordChange
+          user={user}
+          onSuccess={() => {
+            // Refresh user context so must_change_password clears
+            if (onUserUpdate) {
+              const token = localStorage.getItem('sf_token');
+              fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/users/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+              })
+                .then(r => r.ok ? r.json() : null)
+                .then(updatedUser => { if (updatedUser) onUserUpdate(updatedUser); })
+                .catch(() => {});
+            }
+          }}
+        />
+      )}
       <Sidebar
         user={user}
         onLogout={onLogout}
@@ -115,6 +144,10 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
       />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Announcement Bar */}
+        {user?.role !== 'admin' && user?.role !== 'sub_admin' && (
+          <AnnouncementBar user={user} />
+        )}
         {/* Dashboard Header */}
         <header className="h-20 bg-white/90 backdrop-blur-md border-b border-slate-200 px-8 flex items-center justify-between shrink-0 sticky top-0 z-40">
           {user?.role !== 'admin' ? (
@@ -131,6 +164,13 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
           <div className="flex items-center gap-4">
             {user?.role !== 'admin' && (
               <>
+                <button 
+                  onClick={() => setActiveView('certifications')}
+                  className="px-4 py-1.5 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-300/80 text-amber-800 font-bold rounded-full hover:bg-amber-50 transition-all text-xs flex items-center gap-1.5 shadow-sm"
+                  title="View Level & Badge Progression"
+                >
+                  🏅 Progression Center
+                </button>
                 <button 
                   className="px-5 py-1.5 border-2 border-blue-600 text-blue-600 font-bold rounded-full hover:bg-blue-50 transition-colors text-sm shadow-sm whitespace-nowrap"
                   onClick={() => setIsProposalOpen(true)}
@@ -212,6 +252,28 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         {activeView === 'certifications' && <Certifications user={user} />}
         {(activeView === 'test' || activeView === 'topic-assessment' || activeView === 'assessment') && <TopicAssessment user={user} />}
         {activeView === 'community-voting' && <CommunityVoting />}
+        {/* My Program Views */}
+        {activeView === 'program' && (
+          <RegisteredSubjectsDashboard
+            user={user}
+            onBookSlot={subject => { setActiveSubject(subject); setActiveView('slot-booking'); }}
+            onViewResults={subject => { setActiveSubject(subject); setActiveView('mock-results'); }}
+          />
+        )}
+        {activeView === 'slot-booking' && (
+          <SlotBooking
+            subject={activeSubject}
+            onBack={() => setActiveView('program')}
+          />
+        )}
+        {activeView === 'mock-results' && (
+          <MockResults
+            subject={activeSubject}
+            onBack={() => setActiveView('program')}
+          />
+        )}
+        {activeView === 'live-classes' && <LiveClasses user={user} />}
+        {activeView === 'support' && <SupportCenter user={user} />}
         {activeView === 'cart' && (
           <Cart 
             onBack={() => setActiveView('marketplace')} 
@@ -265,6 +327,11 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             <SubAdminConsole user={user} />
           </SubAdminProtectedRoute>
         )}
+        {activeView === 'poc-dashboard' && (
+          <SubAdminProtectedRoute user={user} requiredPrivilege="verify_assessments">
+            <POCDashboard user={user} />
+          </SubAdminProtectedRoute>
+        )}
         {activeView === 'expert-panel' && (
           <ExpertProtectedRoute user={user}>
             <ExpertPanel user={user} />
@@ -275,8 +342,14 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             <LearnerPerformance user={user} />
           </ExpertProtectedRoute>
         )}
+        {activeView === 'live-class-config' && (
+          <LiveClassConfig user={user} />
+        )}
         {activeView === 'settings' && (
           <SettingsPanel user={user} onUserUpdate={onUserUpdate} />
+        )}
+        {activeView === 'leaderboard' && (
+          <LeaderboardView user={user} />
         )}
         {activeView === 'feedback' && (
           <FeedbackPage user={user} insideDashboard />

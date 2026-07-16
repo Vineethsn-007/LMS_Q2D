@@ -2,14 +2,18 @@ import React, { useState, useEffect } from 'react';
 import {
   Shield, Building, GraduationCap, UploadCloud, BarChart3, Plus, Trash2, Edit,
   RefreshCw, X, Check, Lock, Key, Download, AlertCircle, Search, Filter,
-  CheckCircle, FileText, Users, Sliders
+  CheckCircle, FileText, Users, Sliders, Megaphone, Ticket, CalendarDays
 } from 'lucide-react';
 import './AdminPanel.css';
+import TicketQueue from './TicketQueue';
+import AnnouncementComposer from './AnnouncementComposer';
+import SubjectManager from './SubjectManager';
 
 export default function SubAdminConsole({ user }) {
   const [activeTab, setActiveTab] = useState(user?.role === 'admin' ? 'subadmins' : 'institutions');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [modalError, setModalError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
   // Sub-admin privileges state for logged in sub-admin
@@ -18,9 +22,13 @@ export default function SubAdminConsole({ user }) {
   // Data lists
   const [subadminsList, setSubadminsList] = useState([]);
   const [institutionsList, setInstitutionsList] = useState([]);
+  const [specializationsList, setSpecializationsList] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
   const [engagementReport, setEngagementReport] = useState(null);
   const [enrollmentReport, setEnrollmentReport] = useState(null);
+  const [examSubjects, setExamSubjects] = useState([]);
+  const [examWindowForms, setExamWindowForms] = useState({});  // { subjectId: { start, end } }
+  const [savingWindowId, setSavingWindowId] = useState(null);
 
   // Search & Filter States
   const [studentSearch, setStudentSearch] = useState('');
@@ -30,10 +38,13 @@ export default function SubAdminConsole({ user }) {
   const [reportSpec, setReportSpec] = useState('');
   const [reportProgram, setReportProgram] = useState('');
 
-  // Selection for bulk specialization
+  // Selection for bulk specialization and subjects
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [bulkSpecModalOpen, setBulkSpecModalOpen] = useState(false);
   const [bulkSpecValue, setBulkSpecValue] = useState('');
+  
+  const [bulkSubjModalOpen, setBulkSubjModalOpen] = useState(false);
+  const [bulkSubjValue, setBulkSubjValue] = useState('');
 
   // Modals state
   const [subadminModalOpen, setSubadminModalOpen] = useState(false);
@@ -80,7 +91,14 @@ export default function SubAdminConsole({ user }) {
   useEffect(() => {
     if (user?.role === 'sub_admin' && !myPrivileges) {
       fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/subadmins/me`, { headers })
-        .then(res => res.ok ? res.json() : null)
+        .then(res => {
+          if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem('sf_token');
+            window.location.reload();
+            return null;
+          }
+          return res.ok ? res.json() : null;
+        })
         .then(data => { if (data?.privileges) setMyPrivileges(data.privileges); })
         .catch(err => console.error(err));
     }
@@ -104,6 +122,80 @@ export default function SubAdminConsole({ user }) {
       if (res.ok) setInstitutionsList(await res.json());
     } catch (err) { setError(err.message); }
   };
+
+  const fetchSpecializations = async () => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/students/specializations`, { headers });
+      if (res.ok) setSpecializationsList(await res.json());
+    } catch (err) { setError(err.message); }
+  };
+
+  const fetchExamSubjects = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/subadmins/subjects`, { headers });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('sf_token');
+        window.location.reload();
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        setExamSubjects(data);
+        
+        // Fetch exam window for each subject
+        const forms = {};
+        await Promise.all(data.map(async (s) => {
+          const wRes = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/subadmins/subjects/${s.id}/exam-window`, { headers });
+          if (wRes.ok) {
+            const w = await wRes.json();
+            if (w) {
+              forms[s.id] = {
+                start_date: w.start_date ? w.start_date.slice(0, 10) : '',
+                end_date: w.end_date ? w.end_date.slice(0, 10) : '',
+                daily_start_time: w.daily_start_time || '09:00',
+                daily_end_time: w.daily_end_time || '17:00',
+                slot_duration_minutes: w.slot_duration_minutes || 60,
+                hasWindow: true
+              };
+            } else {
+              forms[s.id] = { start_date: '', end_date: '', daily_start_time: '09:00', daily_end_time: '17:00', slot_duration_minutes: 60, hasWindow: false };
+            }
+          } else {
+             forms[s.id] = { start_date: '', end_date: '', daily_start_time: '09:00', daily_end_time: '17:00', slot_duration_minutes: 60, hasWindow: false };
+          }
+        }));
+        setExamWindowForms(forms);
+      } else {
+        setError('Failed to load subjects');
+      }
+    } catch (err) { setError(err.message); } finally { setLoading(false); }
+  };
+
+  const handleSaveExamWindow = async (subjectId, form) => {
+    setSavingWindowId(subjectId);
+    setError(null);
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/subadmins/subjects/${subjectId}/exam-window`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          start_date: form.start_date ? new Date(form.start_date).toISOString() : null,
+          end_date: form.end_date ? new Date(form.end_date).toISOString() : null,
+          daily_start_time: form.daily_start_time || null,
+          daily_end_time: form.daily_end_time || null,
+          slot_duration_minutes: parseInt(form.slot_duration_minutes) || null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed to save');
+      setSuccessMsg(data.message);
+      setTimeout(() => setSuccessMsg(null), 4000);
+      // Refresh subjects to pick up new window values
+      await fetchExamSubjects();
+    } catch (err) { setError(err.message); } finally { setSavingWindowId(null); }
+  };
+
 
   const fetchStudents = async () => {
     try {
@@ -135,10 +227,10 @@ export default function SubAdminConsole({ user }) {
     setLoading(true);
     setError(null);
     if (activeTab === 'subadmins' && user?.role === 'admin') await fetchSubadmins();
-    if (activeTab === 'institutions' || activeTab === 'students' || activeTab === 'subadmins') await fetchInstitutions();
+    if (activeTab === 'institutions' || activeTab === 'students' || activeTab === 'subadmins' || activeTab === 'reports') await fetchInstitutions();
+    if (activeTab === 'students' || activeTab === 'reports') await fetchSpecializations();
     if (activeTab === 'students') await fetchStudents();
     if (activeTab === 'reports') {
-      await fetchInstitutions();
       await fetchReports();
     }
     setLoading(false);
@@ -150,6 +242,7 @@ export default function SubAdminConsole({ user }) {
 
   // --- Sub-Admin Actions ---
   const handleOpenSubadminModal = (sa = null) => {
+    setModalError(null);
     if (sa) {
       setEditingSubadmin(sa);
       setSubadminForm({
@@ -196,7 +289,7 @@ export default function SubAdminConsole({ user }) {
       setSubadminModalOpen(false);
       showSuccess(editingSubadmin ? 'Sub-admin permissions updated!' : 'Sub-admin created successfully!');
       fetchSubadmins();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setModalError(err.message); }
   };
 
   const handleDeleteSubadmin = async (id) => {
@@ -209,11 +302,12 @@ export default function SubAdminConsole({ user }) {
         showSuccess('Sub-admin removed successfully');
         fetchSubadmins();
       }
-    } catch (err) { alert(err.message); }
+    } catch (err) { setError(err.message); }
   };
 
   // --- Institution Actions ---
   const handleOpenInstModal = (inst = null) => {
+    setModalError(null);
     if (inst) {
       setEditingInst(inst);
       setInstForm({ name: inst.name || '', code: inst.code || '', contact_email: inst.contact_email || '', address: inst.address || '' });
@@ -239,7 +333,7 @@ export default function SubAdminConsole({ user }) {
       setInstModalOpen(false);
       showSuccess(editingInst ? 'Institution updated!' : 'Institution created!');
       fetchInstitutions();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setModalError(err.message); }
   };
 
   const handleDeleteInst = async (id) => {
@@ -250,11 +344,12 @@ export default function SubAdminConsole({ user }) {
         showSuccess('Institution deleted');
         fetchInstitutions();
       }
-    } catch (err) { alert(err.message); }
+    } catch (err) { setError(err.message); }
   };
 
   // --- Student Actions ---
   const handleOpenStudentModal = (s = null) => {
+    setModalError(null);
     if (s) {
       setEditingStudent(s);
       setStudentForm({
@@ -288,10 +383,11 @@ export default function SubAdminConsole({ user }) {
       setStudentModalOpen(false);
       showSuccess(editingStudent ? 'Student updated!' : 'Student added successfully!');
       fetchStudents();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setModalError(err.message); }
   };
 
   const handleOpenPwdModal = (s) => {
+    setModalError(null);
     setPwdTargetUser(s);
     setNewPasswordVal('');
     setPwdModalOpen(true);
@@ -310,7 +406,7 @@ export default function SubAdminConsole({ user }) {
       }
       setPwdModalOpen(false);
       showSuccess(`Password reset successfully for ${pwdTargetUser.email}`);
-    } catch (err) { alert(err.message); }
+    } catch (err) { setModalError(err.message); }
   };
 
   const handleBulkSpecSubmit = async (e) => {
@@ -327,7 +423,23 @@ export default function SubAdminConsole({ user }) {
       setBulkSpecValue('');
       showSuccess(d.message || 'Specialization allocated');
       fetchStudents();
-    } catch (err) { alert(err.message); }
+    } catch (err) { setError(err.message); }
+  };
+
+  const handleBulkSubjSubmit = async (e) => {
+    e.preventDefault();
+    if (selectedStudentIds.length === 0 || !bulkSubjValue) return;
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/students/bulk-subject-assignment`, {
+        method: 'POST', headers, body: JSON.stringify({ student_ids: selectedStudentIds, subject_id: parseInt(bulkSubjValue) })
+      });
+      if (!res.ok) throw new Error('Bulk subject assignment failed');
+      const d = await res.json();
+      setBulkSubjModalOpen(false);
+      setSelectedStudentIds([]);
+      setBulkSubjValue('');
+      showSuccess(d.message || 'Subject assigned');
+    } catch (err) { setError(err.message); }
   };
 
   const handleDownloadTemplate = () => {
@@ -339,12 +451,12 @@ export default function SubAdminConsole({ user }) {
         a.href = window.URL.createObjectURL(blob);
         a.download = 'student_upload_template.csv';
         a.click();
-      }).catch(err => alert('Failed to download template'));
+      }).catch(err => setError('Failed to download template'));
   };
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (!uploadFile) return alert('Please select a CSV file');
+    if (!uploadFile) return setError('Please select a CSV file');
     const formData = new FormData();
     formData.append('file', uploadFile);
     setLoading(true);
@@ -382,10 +494,10 @@ export default function SubAdminConsole({ user }) {
           </div>
 
           {/* Tab Bar */}
-          <div className="flex flex-wrap gap-2 p-1.5 bg-slate-200/70 rounded-2xl w-max">
+          <div className="inline-flex max-w-full items-center gap-2 p-1.5 bg-slate-200/70 rounded-2xl overflow-x-auto custom-scrollbar">
             {user?.role === 'admin' && (
               <button
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'subadmins' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'subadmins' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
                 onClick={() => setActiveTab('subadmins')}
               >
                 <Shield size={16} className="text-blue-600" /> Sub-Admins Staff
@@ -393,7 +505,7 @@ export default function SubAdminConsole({ user }) {
             )}
             {(user?.role === 'admin' || hasPriv('manage_institutions')) && (
               <button
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'institutions' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'institutions' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
                 onClick={() => setActiveTab('institutions')}
               >
                 <Building size={16} className="text-emerald-600" /> Institutions
@@ -401,7 +513,7 @@ export default function SubAdminConsole({ user }) {
             )}
             {(user?.role === 'admin' || hasPriv('manage_students') || hasPriv('allocate_specializations') || hasPriv('reset_passwords')) && (
               <button
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'students' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'students' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
                 onClick={() => setActiveTab('students')}
               >
                 <GraduationCap size={16} className="text-purple-600" /> Students & Specs
@@ -409,7 +521,7 @@ export default function SubAdminConsole({ user }) {
             )}
             {(user?.role === 'admin' || hasPriv('bulk_upload')) && (
               <button
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'upload' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'upload' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
                 onClick={() => setActiveTab('upload')}
               >
                 <UploadCloud size={16} className="text-blue-500" /> Bulk Upload
@@ -417,12 +529,37 @@ export default function SubAdminConsole({ user }) {
             )}
             {(user?.role === 'admin' || hasPriv('view_reports') || hasPriv('custom_reports') || hasPriv('enrollment_reports')) && (
               <button
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'reports' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'reports' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
                 onClick={() => setActiveTab('reports')}
               >
                 <BarChart3 size={16} className="text-coral" /> Analytics & Reports
               </button>
             )}
+            {/* Communications Tabs */}
+            <button
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'announcements' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => setActiveTab('announcements')}
+            >
+              <Megaphone size={16} className="text-indigo-500" /> Announcements
+            </button>
+            <button
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'tickets' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => setActiveTab('tickets')}
+            >
+              <Ticket size={16} className="text-teal-500" /> Ticket Queue
+            </button>
+            <button
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'subjects' ? 'bg-white text-orange-700 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => setActiveTab('subjects')}
+            >
+              <FileText size={16} className="text-orange-500" /> Subjects
+            </button>
+            <button
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'examwindows' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => { setActiveTab('examwindows'); fetchExamSubjects(); }}
+            >
+              <CalendarDays size={16} className="text-violet-500" /> Exam Windows
+            </button>
           </div>
         </div>
 
@@ -582,6 +719,11 @@ export default function SubAdminConsole({ user }) {
           </div>
         )}
 
+        {/* --- TAB 2.5: SUBJECTS MANAGEMENT --- */}
+        {activeTab === 'subjects' && (
+          <SubjectManager user={user} institutionsList={institutionsList} />
+        )}
+
         {/* --- TAB 3: STUDENTS MANAGEMENT --- */}
         {activeTab === 'students' && (
           <div className="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col gap-6">
@@ -592,12 +734,20 @@ export default function SubAdminConsole({ user }) {
               </div>
               <div className="flex gap-2">
                 {(user?.role === 'admin' || hasPriv('allocate_specializations')) && selectedStudentIds.length > 0 && (
-                  <button
-                    onClick={() => setBulkSpecModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all animate-in zoom-in-95"
-                  >
-                    <Sliders size={16} /> Bulk Specialization ({selectedStudentIds.length})
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setBulkSpecModalOpen(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all animate-in zoom-in-95"
+                    >
+                      <Sliders size={16} /> Bulk Specialization ({selectedStudentIds.length})
+                    </button>
+                    <button
+                      onClick={() => { setBulkSubjModalOpen(true); fetchExamSubjects(); }}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all animate-in zoom-in-95"
+                    >
+                      <FileText size={16} /> Bulk Subject Assign ({selectedStudentIds.length})
+                    </button>
+                  </>
                 )}
                 {(user?.role === 'admin' || hasPriv('manage_students')) && (
                   <button
@@ -630,13 +780,14 @@ export default function SubAdminConsole({ user }) {
                 <option value="">All Institutions</option>
                 {institutionsList.map(i => <option key={i.id} value={i.id}>{i.name} ({i.code})</option>)}
               </select>
-              <input
-                type="text"
-                placeholder="Filter specialization..."
+              <select
                 value={filterSpecialization}
                 onChange={e => setFilterSpecialization(e.target.value)}
-                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none w-44"
-              />
+                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none w-44"
+              >
+                <option value="">All Specializations</option>
+                {specializationsList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+              </select>
               <button onClick={fetchStudents} className="px-4 py-2 bg-navy text-white text-sm font-bold rounded-xl hover:bg-navy-800 transition-colors flex items-center gap-1.5">
                 <Filter size={14} /> Filter
               </button>
@@ -846,13 +997,14 @@ export default function SubAdminConsole({ user }) {
                   <option value="">All Colleges / Institutions</option>
                   {institutionsList.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
                 </select>
-                <input
-                  type="text"
-                  placeholder="Specialization filter..."
+                <select
                   value={reportSpec}
                   onChange={e => setReportSpec(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none w-44"
-                />
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-navy-900 outline-none w-44"
+                >
+                  <option value="">All Specializations</option>
+                  {specializationsList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
                 <input
                   type="text"
                   placeholder="Program category filter..."
@@ -985,6 +1137,124 @@ export default function SubAdminConsole({ user }) {
           </div>
         )}
 
+        {/* --- TAB: ANNOUNCEMENTS (Admin Comms) --- */}
+        {activeTab === 'announcements' && (
+          <AnnouncementComposer user={user} />
+        )}
+
+        {/* --- TAB: TICKET QUEUE (Admin Comms) --- */}
+        {activeTab === 'tickets' && (
+          <TicketQueue user={user} />
+        )}
+
+        {/* --- TAB: EXAM WINDOWS MANAGEMENT --- */}
+        {activeTab === 'examwindows' && (
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col gap-6">
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-xl font-bold text-navy-900 flex items-center gap-2">
+                  <CalendarDays className="text-violet-500" size={22} /> Exam Window Management
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">Set the booking window for each subject. Students can only book slots within these dates.</p>
+              </div>
+              <button onClick={fetchExamSubjects} className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500" title="Refresh">
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              </button>
+            </div>
+
+            {examSubjects.length === 0 && !loading && (
+              <div className="text-center py-10 text-slate-400">
+                <CalendarDays size={40} className="mx-auto mb-3 opacity-40" />
+                <p className="font-medium">No subjects found.</p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-4">
+              {examSubjects.map(subject => {
+                const form = examWindowForms[subject.id] || {
+                  start_date: '', end_date: '', daily_start_time: '09:00', daily_end_time: '17:00', slot_duration_minutes: 60, hasWindow: false
+                };
+                const isSaving = savingWindowId === subject.id;
+                const hasWindow = form.hasWindow;
+
+                return (
+                  <div key={subject.id} className="border border-slate-200 rounded-2xl p-5 flex flex-col xl:flex-row xl:items-center gap-4 hover:border-violet-200 transition-all">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-navy-900">{subject.name}</span>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{subject.semester_tier}</span>
+                        {hasWindow
+                          ? <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">Window Active</span>
+                          : <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">No Window Set</span>
+                        }
+                      </div>
+                      {subject.code && <p className="text-xs text-slate-400 mt-0.5">{subject.code}</p>}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-500 uppercase">Start Date</label>
+                        <input
+                          type="date"
+                          value={form.start_date}
+                          onChange={e => setExamWindowForms(prev => ({ ...prev, [subject.id]: { ...form, start_date: e.target.value } }))}
+                          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-violet-400"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-500 uppercase">End Date</label>
+                        <input
+                          type="date"
+                          value={form.end_date}
+                          onChange={e => setExamWindowForms(prev => ({ ...prev, [subject.id]: { ...form, end_date: e.target.value } }))}
+                          className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-violet-400"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-500 uppercase">Daily Range</label>
+                        <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 focus-within:border-violet-400">
+                          <input
+                            type="time"
+                            value={form.daily_start_time}
+                            onChange={e => setExamWindowForms(prev => ({ ...prev, [subject.id]: { ...form, daily_start_time: e.target.value } }))}
+                            className="bg-transparent text-sm font-medium outline-none w-20"
+                          />
+                          <span className="text-slate-400">-</span>
+                          <input
+                            type="time"
+                            value={form.daily_end_time}
+                            onChange={e => setExamWindowForms(prev => ({ ...prev, [subject.id]: { ...form, daily_end_time: e.target.value } }))}
+                            className="bg-transparent text-sm font-medium outline-none w-20"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-bold text-slate-500 uppercase">Slot Dur. (min)</label>
+                        <input
+                          type="number"
+                          value={form.slot_duration_minutes}
+                          onChange={e => setExamWindowForms(prev => ({ ...prev, [subject.id]: { ...form, slot_duration_minutes: e.target.value } }))}
+                          className="px-3 py-2 w-20 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-violet-400"
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-auto">
+                        <button
+                          onClick={() => handleSaveExamWindow(subject.id, form)}
+                          disabled={isSaving}
+                          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm rounded-xl transition-all flex items-center gap-2 shadow-sm disabled:opacity-60"
+                        >
+                          {isSaving ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* --- SUB-ADMIN CREATION / EDIT MODAL --- */}
@@ -998,6 +1268,12 @@ export default function SubAdminConsole({ user }) {
               </h3>
               <button onClick={() => setSubadminModalOpen(false)} className="p-1 rounded-full hover:bg-slate-100 text-slate-400"><X size={20} /></button>
             </div>
+
+            {modalError && (
+              <div className="mb-6 p-4 bg-coral-50 border border-coral-200 text-coral-600 rounded-xl text-sm font-bold flex items-center gap-3 shadow-sm">
+                <AlertCircle size={20} /> {modalError}
+              </div>
+            )}
 
             <form onSubmit={handleSaveSubadmin} className="flex flex-col gap-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1100,6 +1376,12 @@ export default function SubAdminConsole({ user }) {
               <button onClick={() => setInstModalOpen(false)} className="p-1 rounded-full hover:bg-slate-100 text-slate-400"><X size={20} /></button>
             </div>
 
+            {modalError && (
+              <div className="mb-6 p-4 bg-coral-50 border border-coral-200 text-coral-600 rounded-xl text-sm font-bold flex items-center gap-3 shadow-sm">
+                <AlertCircle size={20} /> {modalError}
+              </div>
+            )}
+
             <form onSubmit={handleSaveInst} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-navy-900 uppercase">Institution / College Name</label>
@@ -1161,6 +1443,12 @@ export default function SubAdminConsole({ user }) {
               <button onClick={() => setStudentModalOpen(false)} className="p-1 rounded-full hover:bg-slate-100 text-slate-400"><X size={20} /></button>
             </div>
 
+            {modalError && (
+              <div className="mb-6 p-4 bg-coral-50 border border-coral-200 text-coral-600 rounded-xl text-sm font-bold flex items-center gap-3 shadow-sm">
+                <AlertCircle size={20} /> {modalError}
+              </div>
+            )}
+
             <form onSubmit={handleSaveStudent} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-navy-900 uppercase">Learner Full Name</label>
@@ -1205,12 +1493,14 @@ export default function SubAdminConsole({ user }) {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-bold text-navy-900 uppercase">Specialization Track</label>
-                  <input
-                    type="text" value={studentForm.specialization}
+                  <select
+                    value={studentForm.specialization}
                     onChange={e => setStudentForm({ ...studentForm, specialization: e.target.value })}
-                    placeholder="e.g. AI Engineering"
-                    className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-navy"
-                  />
+                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-navy"
+                  >
+                    <option value="">Select Specialization...</option>
+                    {specializationsList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                  </select>
                 </div>
               </div>
 
@@ -1233,6 +1523,12 @@ export default function SubAdminConsole({ user }) {
               </h3>
               <button onClick={() => setPwdModalOpen(false)} className="p-1 rounded-full hover:bg-slate-100 text-slate-400"><X size={20} /></button>
             </div>
+
+            {modalError && (
+              <div className="mb-6 p-4 bg-coral-50 border border-coral-200 text-coral-600 rounded-xl text-sm font-bold flex items-center gap-3 shadow-sm">
+                <AlertCircle size={20} /> {modalError}
+              </div>
+            )}
 
             <form onSubmit={handleResetPassword} className="flex flex-col gap-5">
               <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-800 leading-relaxed">
@@ -1279,12 +1575,14 @@ export default function SubAdminConsole({ user }) {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-navy-900 uppercase">Specialization Track Name</label>
-                <input
-                  type="text" required value={bulkSpecValue}
+                <select
+                  required value={bulkSpecValue}
                   onChange={e => setBulkSpecValue(e.target.value)}
-                  placeholder="e.g. Applied Machine Learning"
                   className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:border-navy"
-                />
+                >
+                  <option value="" disabled>Select Specialization...</option>
+                  {specializationsList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -1296,6 +1594,40 @@ export default function SubAdminConsole({ user }) {
         </div>
       )}
 
+      {bulkSubjModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100">
+              <h3 className="text-xl font-bold text-navy-900">Bulk Subject Assign</h3>
+              <button onClick={() => setBulkSubjModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <form onSubmit={handleBulkSubjSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-600 uppercase">Select Subject</label>
+                  <select
+                    required
+                    value={bulkSubjValue}
+                    onChange={e => setBulkSubjValue(e.target.value)}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                  >
+                    <option value="" disabled>Choose a subject...</option>
+                    {examSubjects.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+                  </select>
+                </div>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button type="button" onClick={() => setBulkSubjModalOpen(false)} className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+                  <button type="submit" className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
+                    <Check size={16} /> Assign to {selectedStudentIds.length} Students
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

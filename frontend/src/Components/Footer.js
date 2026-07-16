@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Send, CheckCircle } from 'lucide-react';
 import { PrivacyModal, TermsModal } from './LegalModals';
+import { BRANDING } from '../config/branding';
 
 export default function Footer({ setActivePage }) {
   const [email, setEmail] = useState('');
@@ -46,7 +47,7 @@ export default function Footer({ setActivePage }) {
                 <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" fill="#2563EB" />
                 <path d="M12 17C14.7614 17 17 14.7614 17 12C17 9.23858 14.7614 7 12 7C9.23858 7 7 9.23858 7 12C7 14.7614 9.23858 17 12 17Z" fill="#60A5FA" />
               </svg>
-              <span style={styles.logoText}>SkillForge</span>
+              <span style={styles.logoText}>{BRANDING.HEADER_LOGO_TEXT}</span>
             </div>
             <p style={styles.brandDesc}>
               Combining AI curriculum planning with domain expert validation to teach the skills that actually matter in industry.
@@ -116,7 +117,7 @@ export default function Footer({ setActivePage }) {
         {/* Bottom Banner */}
         <div style={styles.bottomBanner}>
           <p style={styles.copyright}>
-            © 2026 SkillForge. All rights reserved. Powered by <a href="https://datavex.ai/" target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} onMouseOver={(e) => e.target.style.color = '#fff'} onMouseOut={(e) => e.target.style.color = 'inherit'}>DataVex</a>
+            {BRANDING.FOOTER_TEXT} | Powered by <a href="https://datavex.ai/" target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }} onMouseOver={(e) => e.target.style.color = '#fff'} onMouseOut={(e) => e.target.style.color = 'inherit'}>DataVex</a>
           </p>
           <div style={styles.bottomLinks}>
             <button

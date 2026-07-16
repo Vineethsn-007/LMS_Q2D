@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Languages, Menu } from 'lucide-react';
+import { BRANDING } from '../../config/branding';
 
 const LandingHeader = ({ onOpenAuth, setActivePage, activePage }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -13,7 +14,7 @@ const LandingHeader = ({ onOpenAuth, setActivePage, activePage }) => {
             <div className="w-10 h-10 bg-navy rounded-lg flex items-center justify-center mr-3 text-white">
               <Languages size={24} />
             </div>
-            <span className="text-xl font-semibold tracking-tight text-navy-900">SkillForge</span>
+            <span className="text-xl font-semibold tracking-tight text-navy-900">{BRANDING.HEADER_LOGO_TEXT}</span>
           </div>
 
           {/* Desktop Menu */}

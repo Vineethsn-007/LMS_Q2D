@@ -512,11 +512,21 @@ const TopicAssessment = ({ user }) => {
           setStep('taking');
           return;
         }
+      } else if (res.status === 429) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Daily mock test limit exceeded.");
       }
       throw new Error("Could not synthesize test questions");
     } catch (err) {
       console.error("Test generation failed:", err);
-      setError("Unable to generate test from server. Using local practice problem set.");
+      setError(err.message || "Unable to generate test from server. Using local practice problem set.");
+      
+      // If it's a rate limit error, do NOT fallback
+      if (err.message && err.message.includes("limit exceeded")) {
+        setStep('setup');
+        return;
+      }
+      
       // Fallback local generation if server is offline
       setTimeout(() => {
         const fallback = generateLocalFallback(targetTopic, 10);

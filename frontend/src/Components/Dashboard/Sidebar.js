@@ -10,7 +10,13 @@ import {
   Settings,
   MessageSquare,
   Users,
-  FileText
+  FileText,
+  GraduationCap,
+  Calendar,
+  Video,
+  LifeBuoy,
+  Trophy,
+  CheckCircle
 } from 'lucide-react';
 import logoImg from '../../logo.png';
 
@@ -48,6 +54,7 @@ const SidebarSection = ({ title, children }) => (
 
 const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
   const [communityCount, setCommunityCount] = useState(0);
+  const [myPrivileges, setMyPrivileges] = useState(user?.privileges || null);
 
   useEffect(() => {
     const fetchCommunityCount = async () => {
@@ -67,7 +74,17 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
       }
     };
     fetchCommunityCount();
-  }, []);
+
+    if (user?.role === 'sub_admin' && !myPrivileges) {
+      const token = localStorage.getItem('sf_token');
+      fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/subadmins/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data?.privileges) setMyPrivileges(data.privileges); })
+        .catch(err => console.error(err));
+    }
+  }, [user]);
 
   return (
     <aside className="w-64 bg-white border-r border-slate-200 h-screen flex flex-col flex-shrink-0 sticky top-0 overflow-y-auto no-scrollbar font-sans">
@@ -88,6 +105,15 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         )}
 
         {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'sub_admin' && user?.role !== 'expert' && (
+          <SidebarSection title="My Program">
+            <SidebarLink icon={GraduationCap} label="Registered Subjects" isActive={activeView === 'program'} onClick={() => onViewChange('program')} />
+            <SidebarLink icon={Calendar} label="Slot Booking" isActive={activeView === 'slot-booking'} onClick={() => onViewChange('slot-booking')} />
+            <SidebarLink icon={Video} label="Live Classes" isActive={activeView === 'live-classes'} onClick={() => onViewChange('live-classes')} />
+            <SidebarLink icon={LifeBuoy} label="Support Center" isActive={activeView === 'support'} onClick={() => onViewChange('support')} />
+          </SidebarSection>
+        )}
+
+        {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'sub_admin' && user?.role !== 'expert' && (
           <SidebarSection title="Create">
             <SidebarLink icon={FileEdit} label="Community feed" isActive={activeView === 'community-voting'} onClick={() => onViewChange('community-voting')} badge={communityCount > 0 ? communityCount : null} />
           </SidebarSection>
@@ -104,6 +130,12 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
             {(user?.role === 'admin' || user?.role === 'sub_admin') && (
               <SidebarLink icon={Shield} label={user?.role === 'admin' ? "Sub-Admin Operations" : "Sub-Admin Console"} isActive={activeView === 'subadmin-console'} onClick={() => onViewChange('subadmin-console')} />
             )}
+            {(user?.role === 'admin' || (myPrivileges && myPrivileges.verify_assessments)) && (
+              <SidebarLink icon={CheckCircle} label="POC Verification" isActive={activeView === 'poc-dashboard'} onClick={() => onViewChange('poc-dashboard')} />
+            )}
+            {(user?.role === 'admin' || user?.role === 'sub_admin') && (
+              <SidebarLink icon={Video} label="Live Class Config" isActive={activeView === 'live-class-config'} onClick={() => onViewChange('live-class-config')} />
+            )}
           </SidebarSection>
         )}
 
@@ -111,8 +143,13 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
           <SidebarSection title="Expert Console">
             <SidebarLink icon={BookOpen} label="Expert Panel" isActive={activeView === 'expert-panel'} onClick={() => onViewChange('expert-panel')} />
             <SidebarLink icon={Users} label="Learner Performance" isActive={activeView === 'expert-learners' || activeView === 'learner-performance'} onClick={() => onViewChange('expert-learners')} badge="Live" />
+            <SidebarLink icon={Video} label="Live Class Config" isActive={activeView === 'live-class-config'} onClick={() => onViewChange('live-class-config')} />
           </SidebarSection>
         )}
+
+        <SidebarSection title="Analytics">
+          <SidebarLink icon={Trophy} label="Leaderboard" isActive={activeView === 'leaderboard'} onClick={() => onViewChange('leaderboard')} />
+        </SidebarSection>
 
         <SidebarSection title="Account">
           <SidebarLink icon={MessageSquare} label="Feedback" isActive={activeView === 'feedback'} onClick={() => onViewChange('feedback')} />

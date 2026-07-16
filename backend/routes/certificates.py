@@ -1,3 +1,4 @@
+import schemas
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -187,6 +188,141 @@ def verify_cert_endpoint(certificate_id: str, request: Request, db: Session = De
             
             <div class="seal">
                 <span>🛡️ Officially verified by SkillForge LMS Authority</span>
+            </div>
+            
+            <a href="http://localhost:3000" class="btn">Go to SkillForge</a>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+@verify_router.get("/student/{student_id}")
+def verify_student_certs_endpoint(student_id: str, request: Request, db: Session = Depends(get_db)):
+    # Try by user ID or registration number
+    user = None
+    if student_id.isdigit():
+        user = db.query(models.User).filter(models.User.id == int(student_id)).first()
+    if not user:
+        reg = db.query(models.StudentRegistration).filter(models.StudentRegistration.registration_number == student_id).first()
+        if reg:
+            user = db.query(models.User).filter(models.User.id == reg.user_id).first()
+            
+    accept_header = request.headers.get("accept", "")
+    wants_json = "application/json" in accept_header or request.url.path.startswith("/api/")
+    
+    if not user:
+        if wants_json:
+            return JSONResponse(status_code=404, content={"valid": False, "status": "Student not found ❌"})
+        
+        html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>SkillForge - Verification Failed</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+                .card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 40px; max-width: 450px; width: 100%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+                .icon { width: 80px; height: 80px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px; border: 2px solid rgba(239, 68, 68, 0.3); }
+                h1 { font-size: 24px; margin-bottom: 10px; color: #f8fafc; }
+                p { color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
+                .btn { display: inline-block; background: #3b82f6; color: white; text-decoration: none; padding: 12px 28px; border-radius: 12px; font-weight: 600; transition: background 0.2s; }
+                .btn:hover { background: #2563eb; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="icon">✕</div>
+                <h1>Student Not Found ❌</h1>
+                <p>We could not find a student matching the ID <strong>""" + student_id + """</strong> in the SkillForge database.</p>
+                <a href="http://localhost:3000" class="btn">Return to SkillForge</a>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content, status_code=404)
+        
+    certs = get_user_certificates_service(db, user.id)
+    
+    if wants_json:
+        return {
+            "valid": True,
+            "student_name": user.name,
+            "student_id": student_id,
+            "certificates": [
+                {
+                    "certificate_id": c.certificate_id,
+                    "course_name": c.course_name,
+                    "issue_date": c.issue_date,
+                    "status": c.certificate_status,
+                    "url": c.certificate_url
+                } for c in certs
+            ]
+        }
+        
+    certs_html = ""
+    if not certs:
+        certs_html = "<p style='color: #94a3b8;'>No certificates issued yet.</p>"
+    else:
+        for c in certs:
+            status_color = "#10b981" if c.certificate_status == "valid" else "#f59e0b"
+            status_text = "Valid & Active" if c.certificate_status == "valid" else "Pending Confirmation"
+            certs_html += f"""
+            <div class="details" style="margin-bottom: 15px; padding: 15px; border: 1px solid #334155; border-radius: 12px; background: #0f172a;">
+                <h3 style="margin-top: 0; color: #f8fafc; font-size: 16px;">{c.course_name}</h3>
+                <div class="row">
+                    <span class="label">Certificate ID</span>
+                    <span class="value" style="color: #38bdf8;">{c.certificate_id}</span>
+                </div>
+                <div class="row">
+                    <span class="label">Issue Date</span>
+                    <span class="value">{c.issue_date}</span>
+                </div>
+                <div class="row">
+                    <span class="label">Status</span>
+                    <span class="value" style="color: {status_color};">{status_text}</span>
+                </div>
+            </div>
+            """
+            
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>SkillForge - Student Credentials</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }}
+            .card {{ background: #1e293b; border: 1px solid #334155; border-radius: 24px; padding: 40px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); position: relative; overflow: hidden; }}
+            .card::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); }}
+            .badge {{ display: inline-flex; align-items: center; gap: 8px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 8px 16px; border-radius: 100px; font-weight: 700; font-size: 14px; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }}
+            h1 {{ font-size: 26px; margin: 0 0 8px; color: #ffffff; }}
+            .subtitle {{ color: #94a3b8; font-weight: 600; font-size: 14px; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 1px; }}
+            .details {{ text-align: left; }}
+            .row {{ display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; }}
+            .row:last-child {{ border-bottom: none; }}
+            .label {{ color: #64748b; font-size: 12px; text-transform: uppercase; font-weight: 600; }}
+            .value {{ color: #e2e8f0; font-weight: 700; font-size: 14px; text-align: right; }}
+            .seal {{ font-size: 13px; color: #94a3b8; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 20px; }}
+            .btn {{ display: inline-block; background: #3b82f6; color: white; text-decoration: none; padding: 12px 28px; border-radius: 12px; font-weight: 600; transition: background 0.2s; margin-top: 20px; }}
+            .btn:hover {{ background: #2563eb; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="badge">👤 Learner Record Verified</div>
+            <h1>{user.name}</h1>
+            <div class="subtitle">SkillForge Student • {len(certs)} Credentials</div>
+            
+            <div style="text-align: left; margin-bottom: 15px;">
+                <h2 style="font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #334155; padding-bottom: 8px;">Earned Certificates</h2>
+            </div>
+            
+            {certs_html}
+            
+            <div class="seal">
+                <span>🛡️ Verified by SkillForge LMS Authority</span>
             </div>
             
             <a href="http://localhost:3000" class="btn">Go to SkillForge</a>

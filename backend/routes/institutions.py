@@ -102,7 +102,7 @@ def update_institution(
     db.refresh(inst)
     return inst
 
-@router.delete("/{inst_id}")
+@router.delete("/{inst_id}", response_model=schemas.MessageResponse)
 def delete_institution(
     inst_id: int,
     current_user: models.User = Depends(require_privilege("manage_institutions")),

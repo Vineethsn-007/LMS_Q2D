@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import { BRANDING } from '../../config/branding';
 
 const LandingHero = ({ stats, onStartFree, onBrowseCourses }) => {
   const activeLearners = stats?.find(s => s.key === 'active_learners')?.value || '15k+';
@@ -28,12 +29,12 @@ const LandingHero = ({ stats, onStartFree, onBrowseCourses }) => {
         </div>
         
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-white mb-6 leading-[1.1]">
-          Master Tech Skills with <br className="hidden md:block" />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-200 to-white">Confidence & Clarity</span>
+          {BRANDING.HERO_TITLE.split('with')[0]} with <br className="hidden md:block" />
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-200 to-white">{BRANDING.HERO_TITLE.split('with')[1] || 'Confidence & Clarity'}</span>
         </h1>
         
         <p className="mt-4 text-xl text-slate-200 max-w-2xl mx-auto mb-10 font-light">
-          Join SkillForge to unlock global tech opportunities. Interactive courses, expert validation, and a curriculum tailored to your career goals.
+          {BRANDING.HERO_SUBTITLE}
         </p>
         
         <div className="flex flex-col sm:flex-row justify-center gap-4">

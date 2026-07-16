@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users, Trash2, Edit, Plus, Shield, RefreshCw, X, ShieldAlert, Check, Mail
+  Users, Trash2, Edit, Plus, Shield, RefreshCw, X, ShieldAlert, Check, Mail, BarChart2, FileText
 } from 'lucide-react';
 import SubAdminConsole from './SubAdminConsole';
+import AdminAnalyticsDashboard from './AdminAnalyticsDashboard';
+import QuestionBankManager from './QuestionBankManager';
+import ExamConfigPanel from './ExamConfigPanel';
+import LiveSessionMonitor from './LiveSessionMonitor';
 
 export default function AdminPanel({ user }) {
   const [activeTab, setActiveTab] = useState('users');
@@ -70,6 +74,28 @@ export default function AdminPanel({ user }) {
     if (activeTab === 'users') await fetchUsers();
     if (activeTab === 'subscribers') await fetchSubscribers();
     setLoading(false);
+  };
+
+  const handleStartNewCycle = async () => {
+    const newCycleName = window.prompt("Enter the name of the new cycle (e.g., '2027-2028'):");
+    if (!newCycleName) return;
+    if (!window.confirm(`Are you sure you want to start ${newCycleName}? This will archive all current student registrations.`)) return;
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/cycles/start-new`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ new_cycle_name: newCycleName })
+      });
+      if (!res.ok) throw new Error("Failed to start new cycle");
+      const data = await res.json();
+      alert(data.message);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -160,24 +186,42 @@ export default function AdminPanel({ user }) {
             <p className="text-slate-500 font-medium">Override system database entries and alter system-wide configurations.</p>
           </div>
           
-          <div className="flex p-1 bg-slate-200/70 rounded-xl w-max flex-wrap gap-1">
+          <div className="inline-flex max-w-full items-center gap-2 p-1.5 bg-slate-200/70 rounded-2xl overflow-x-auto custom-scrollbar">
             <button 
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'users' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy'}`}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'users' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
               onClick={() => setActiveTab('users')}
             >
               <Users size={16} /> Users Management
             </button>
             <button 
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'operations' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy'}`}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'operations' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
               onClick={() => setActiveTab('operations')}
             >
               <Shield size={16} className="text-blue-600" /> Sub-Admins & Operations Portal
             </button>
             <button 
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'subscribers' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy'}`}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'subscribers' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
               onClick={() => setActiveTab('subscribers')}
             >
               <Mail size={16} /> Subscribers
+            </button>
+            <button 
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'analytics' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => setActiveTab('analytics')}
+            >
+              <BarChart2 size={16} className="text-emerald-500" /> System Analytics
+            </button>
+            <button 
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab.startsWith('exam_engine') ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => setActiveTab('exam_engine_banks')}
+            >
+              <FileText size={16} className="text-indigo-500" /> Exam Engine
+            </button>
+            <button 
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'live_sessions' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => setActiveTab('live_sessions')}
+            >
+              <ShieldAlert size={16} className="text-red-500" /> Live Monitoring
             </button>
           </div>
         </div>
@@ -189,7 +233,81 @@ export default function AdminPanel({ user }) {
         )}
         
         {activeTab === 'operations' ? (
-          <SubAdminConsole user={user} />
+          <div className="flex flex-col gap-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-navy-900">Cycle Management & Archival</h3>
+                <p className="text-sm text-slate-500">Archive current student data and start a new academic cycle.</p>
+              </div>
+              <button 
+                onClick={handleStartNewCycle}
+                disabled={loading}
+                className="px-5 py-2.5 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 font-bold text-sm rounded-xl transition-all shadow-sm flex items-center gap-2"
+              >
+                {loading ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+                Start New Cycle
+              </button>
+            </div>
+            <SubAdminConsole user={user} />
+          </div>
+        ) : activeTab === 'analytics' ? (
+          <AdminAnalyticsDashboard />
+        ) : activeTab === 'live_sessions' ? (
+          <div className="flex flex-col gap-6">
+            <LiveSessionMonitor />
+          </div>
+        ) : activeTab === 'exam_engine' ? (
+          <div className="flex flex-col gap-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex gap-2">
+              <button 
+                onClick={() => setActiveTab('exam_engine_banks')}
+                className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-sm rounded-lg"
+              >
+                Question Banks
+              </button>
+              <button 
+                onClick={() => setActiveTab('exam_engine_config')}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-50 font-bold text-sm rounded-lg"
+              >
+                Configuration
+              </button>
+            </div>
+            <QuestionBankManager />
+          </div>
+        ) : activeTab === 'exam_engine_banks' ? (
+          <div className="flex flex-col gap-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex gap-2">
+              <button 
+                className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-sm rounded-lg"
+              >
+                Question Banks
+              </button>
+              <button 
+                onClick={() => setActiveTab('exam_engine_config')}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-50 font-bold text-sm rounded-lg"
+              >
+                Configuration
+              </button>
+            </div>
+            <QuestionBankManager />
+          </div>
+        ) : activeTab === 'exam_engine_config' ? (
+          <div className="flex flex-col gap-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex gap-2">
+              <button 
+                onClick={() => setActiveTab('exam_engine_banks')}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-50 font-bold text-sm rounded-lg"
+              >
+                Question Banks
+              </button>
+              <button 
+                className="px-4 py-2 bg-indigo-50 text-indigo-700 font-bold text-sm rounded-lg"
+              >
+                Configuration
+              </button>
+            </div>
+            <ExamConfigPanel />
+          </div>
         ) : (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">

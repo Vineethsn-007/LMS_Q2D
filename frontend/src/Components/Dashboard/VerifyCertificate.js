@@ -1,43 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { Award, CheckCircle2, XCircle, ShieldCheck, Calendar, User, BookOpen, ExternalLink, ArrowLeft, Loader2, QrCode } from 'lucide-react';
+import { Award, CheckCircle2, XCircle, ShieldCheck, Calendar, User, BookOpen, ExternalLink, ArrowLeft, Loader2, QrCode, Search } from 'lucide-react';
 import { getCertificateHTML } from './certificateTemplate';
 
-const VerifyCertificate = ({ certId }) => {
-  const [loading, setLoading] = useState(true);
+const VerifyCertificate = ({ certId: initialCertId }) => {
+  const [certId, setCertId] = useState(initialCertId || '');
+  const [searchInput, setSearchInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const [certData, setCertData] = useState(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const fetchVerification = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/verify/${certId}`, {
-          headers: { 'Accept': 'application/json' }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.valid) {
-            setCertData(data);
-          } else {
-            setError(true);
-          }
+    if (certId) {
+      handleVerification(certId);
+    }
+  }, [certId]);
+
+  const handleVerification = async (idToVerify) => {
+    try {
+      setLoading(true);
+      setError(false);
+      setCertData(null);
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/verify/${idToVerify}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.valid) {
+          setCertData(data);
         } else {
           setError(true);
         }
-      } catch (err) {
-        console.error("Verification error:", err);
+      } else {
         setError(true);
-      } finally {
-        setLoading(false);
       }
-    };
-    if (certId) {
-      fetchVerification();
-    } else {
-      setLoading(false);
+    } catch (err) {
+      console.error("Verification error:", err);
       setError(true);
+    } finally {
+      setLoading(false);
     }
-  }, [certId]);
+  };
+
+  const handleManualSearch = (e) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      setCertId(searchInput.trim());
+      // Update URL without reloading
+      window.history.pushState({}, '', `/verify/${searchInput.trim()}`);
+    }
+  };
 
   const handlePrint = () => {
     if (!certData) return;
@@ -87,14 +98,39 @@ const VerifyCertificate = ({ certId }) => {
           <p className="text-slate-400 text-sm">Checking cryptographic signatures and SkillForge ledger records for ID: <span className="text-teal-400 font-mono">{certId}</span></p>
         </div>
       ) : error || !certData ? (
-        <div className="bg-slate-900/80 border border-red-500/30 rounded-3xl p-10 max-w-md w-full text-center shadow-2xl backdrop-blur-xl z-10 animate-in zoom-in-95 duration-300">
-          <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-red-400 border border-red-500/20">
-            <XCircle size={44} />
-          </div>
-          <h2 className="text-2xl font-black text-white mb-3">Invalid Certificate</h2>
-          <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-            We could not verify any SkillForge credential matching ID <span className="text-red-400 font-mono font-bold bg-red-950/40 px-2 py-0.5 rounded border border-red-500/20">{certId}</span> in our authenticated database.
-          </p>
+        <div className="bg-slate-900/80 border border-slate-700/50 rounded-3xl p-10 max-w-md w-full text-center shadow-2xl backdrop-blur-xl z-10 animate-in zoom-in-95 duration-300">
+          {error && certId && (
+            <div className="mb-8">
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-red-400 border border-red-500/20">
+                <XCircle size={32} />
+              </div>
+              <h2 className="text-xl font-black text-white mb-2">Invalid Certificate</h2>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                We could not verify ID <span className="text-red-400 font-mono font-bold bg-red-950/40 px-2 py-0.5 rounded border border-red-500/20">{certId}</span>.
+              </p>
+            </div>
+          )}
+          
+          <h2 className="text-2xl font-black text-white mb-4">{certId ? 'Try Another ID' : 'Verify a Certificate'}</h2>
+          <form onSubmit={handleManualSearch} className="flex flex-col gap-4 mb-6">
+            <div className="relative">
+              <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
+              <input
+                type="text"
+                placeholder="Enter Certificate ID..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-slate-950/50 border border-slate-700 rounded-xl text-white outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-all font-mono"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-3.5 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-bold rounded-xl transition-all shadow-md flex justify-center items-center gap-2"
+            >
+              <ShieldCheck size={18} /> Verify Now
+            </button>
+          </form>
+          
           <a
             href="/"
             className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all border border-slate-700 shadow-md"

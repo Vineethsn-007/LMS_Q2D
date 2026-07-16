@@ -29,21 +29,35 @@ const ReviewCenter = ({ user }) => {
   ];
 
   const fetchProposals = async () => {
+    const token = localStorage.getItem('sf_token');
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
     if (viewType === 'certificates') {
-      // Fetch from local storage for certificate issues
       setLoading(true);
-      setTimeout(() => {
+      try {
+        const res = await fetch(`${apiUrl}/api/reviewer/certificate-issues`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const issues = await res.json();
+          setCertificateIssues(issues);
+        } else {
+          const issues = JSON.parse(localStorage.getItem('sf_certificate_issues') || '[]');
+          setCertificateIssues(issues);
+        }
+      } catch (err) {
         const issues = JSON.parse(localStorage.getItem('sf_certificate_issues') || '[]');
         setCertificateIssues(issues);
+      } finally {
         setLoading(false);
-      }, 300); // Simulate network
+      }
       return;
     }
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('sf_token');
-      const url = `${process.env.REACT_APP_API_URL }/api/reviewer/proposals${activeTab !== 'all' ? `?status_filter=${activeTab}` : ''}`;
+      const url = `${apiUrl}/api/reviewer/proposals${activeTab !== 'all' ? `?status_filter=${activeTab}` : ''}`;
+
       
       const res = await fetch(url, {
         headers: {
@@ -92,7 +106,7 @@ const ReviewCenter = ({ user }) => {
       // Refresh the list
       fetchProposals();
     } catch (err) {
-      alert('Error updating status: ' + err.message);
+      setError('Error updating status: ' + err.message);
     }
   };
 
@@ -104,7 +118,11 @@ const ReviewCenter = ({ user }) => {
   };
 
   const handleRejectSubmit = async () => {
-    if (!rejectionReason) return alert("Please select a rejection reason.");
+    if (!rejectionReason) {
+      setError("Please select a rejection reason.");
+      setRejectModalOpen(false);
+      return;
+    }
     
     setRejecting(true);
     await handleStatusUpdate(rejectProposalId, 'rejected', {
@@ -130,24 +148,29 @@ const ReviewCenter = ({ user }) => {
     });
   };
 
-  const handleSaveIssue = (id) => {
-    const issues = JSON.parse(localStorage.getItem('sf_certificate_issues') || '[]');
-    const updatedIssues = issues.map(issue => {
-      if (issue.id === id) {
-        return {
-          ...issue,
+  const handleSaveIssue = async (id) => {
+    const token = localStorage.getItem('sf_token');
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    try {
+      await fetch(`${apiUrl}/api/reviewer/certificate-issues/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           learner_name: editForm.learner_name,
           learner_email: editForm.learner_email,
           course_name: editForm.course_name,
-          status: 'resolved',
-          notified: false
-        };
-      }
-      return issue;
-    });
-    localStorage.setItem('sf_certificate_issues', JSON.stringify(updatedIssues));
-    setCertificateIssues(updatedIssues);
-    setEditingIssueId(null);
+          status: 'resolved'
+        })
+      });
+      await fetchProposals();
+    } catch (err) {
+      console.error('Failed to update certificate issue:', err);
+    } finally {
+      setEditingIssueId(null);
+    }
   };
 
   return (

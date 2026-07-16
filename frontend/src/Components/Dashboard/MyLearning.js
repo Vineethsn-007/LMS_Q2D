@@ -62,6 +62,23 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
       setCompletedItems(saved);
       const savedAnswers = JSON.parse(localStorage.getItem(`sf_answers_${course.id}`) || '{}');
       setSelectedAnswers(savedAnswers);
+
+      const token = localStorage.getItem('sf_token');
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      if (token && course.id) {
+        fetch(`${apiUrl}/api/learning/courses/${course.id}/progress`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+          .then(res => res.ok ? res.json() : null)
+          .then(data => {
+            if (data) {
+              if (Array.isArray(data.completed_items)) setCompletedItems(data.completed_items);
+              if (data.quiz_answers) setSelectedAnswers(data.quiz_answers);
+            }
+          })
+          .catch(() => {});
+      }
+
       for (const mod of course.modules_data) {
         if (mod.lessons && mod.lessons.length > 0) {
           setActiveLesson(mod.lessons[0]);
@@ -112,6 +129,27 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
   const completedCount = completedItems.filter(id => !id.includes('mod_res_') && !id.includes('module_results')).length;
   const progressPercent = totalItems > 0 ? Math.min(100, Math.round((completedCount / totalItems) * 100)) : 0;
 
+  const saveProgressToBackend = async (courseId, nextCompleted, nextAnswers) => {
+    const token = localStorage.getItem('sf_token');
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    if (!token || !courseId) return;
+    try {
+      await fetch(`${apiUrl}/api/learning/courses/${courseId}/progress`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          completed_items: nextCompleted,
+          quiz_answers: nextAnswers || selectedAnswers || {}
+        })
+      });
+    } catch (err) {
+      console.error('Failed to save progress to backend:', err);
+    }
+  };
+
   const markCurrentCompleted = () => {
     if (currentIndex >= 0 && currentIndex < flattenedItems.length) {
       const currentItem = flattenedItems[currentIndex];
@@ -121,6 +159,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
         setCompletedItems(nextCompleted);
         if (course && course.id) {
           localStorage.setItem(`sf_progress_${course.id}`, JSON.stringify(nextCompleted));
+          saveProgressToBackend(course.id, nextCompleted, selectedAnswers);
           window.dispatchEvent(new Event('progress_updated'));
         }
       }
@@ -139,6 +178,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
     setCompletedItems(nextCompleted);
     if (course && course.id) {
       localStorage.setItem(`sf_progress_${course.id}`, JSON.stringify(nextCompleted));
+      saveProgressToBackend(course.id, nextCompleted, selectedAnswers);
       window.dispatchEvent(new Event('progress_updated'));
     }
   };
@@ -548,6 +588,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                                   setSelectedAnswers(nextAnswers);
                                   if (course && course.id) {
                                     localStorage.setItem(`sf_answers_${course.id}`, JSON.stringify(nextAnswers));
+                                    saveProgressToBackend(course.id, completedItems, nextAnswers);
                                   }
                                   markCurrentCompleted();
                                 }}
