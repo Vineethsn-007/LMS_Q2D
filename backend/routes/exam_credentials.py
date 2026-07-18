@@ -6,6 +6,7 @@ import schemas
 import uuid
 import datetime
 from typing import Optional
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/v1/exam-engine", tags=["Exam Engine API"])
 
@@ -93,6 +94,19 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
         models.ExamSession.status == "pending"
     ).first()
     
+    if pending_session:
+        # Check if the booking associated with this pending session was cancelled in LMS
+        assoc_booking = db.query(models.ExamSlotBooking).filter(
+            models.ExamSlotBooking.booking_reference == pending_session.booking_ref
+        ).first()
+        if assoc_booking and assoc_booking.status == "cancelled":
+            pending_session.status = "terminated"
+            stale_cred = db.query(models.ExamCredential).filter(models.ExamCredential.session_id == pending_session.id).first()
+            if stale_cred:
+                stale_cred.status = "revoked"
+            db.commit()
+            pending_session = None
+            
     if pending_session:
         return {
             "success": False,
@@ -285,3 +299,25 @@ def regenerate_credential(session_ref: str, db: Session = Depends(get_db)):
     db.commit()
     
     return {"success": True, "message": "Credential regenerated"}
+
+class SlotCancelRequest(BaseModel):
+    exam_engine_session_ref: str
+
+@router.post("/slots/cancel")
+def cancel_exam_slot(request: SlotCancelRequest, db: Session = Depends(get_db)):
+    """Cancel/terminate an exam session and revoke its credential when slot is cancelled."""
+    ref = request.exam_engine_session_ref
+    session = db.query(models.ExamSession).filter(
+        (models.ExamSession.session_ref == ref) | (models.ExamSession.booking_ref == ref)
+    ).first()
+    
+    if not session:
+        return {"success": False, "message": "Session not found"}
+        
+    session.status = "terminated"
+    cred = db.query(models.ExamCredential).filter(models.ExamCredential.session_id == session.id).first()
+    if cred:
+        cred.status = "revoked"
+        
+    db.commit()
+    return {"success": True, "message": "Exam session cancelled and credential revoked"}
