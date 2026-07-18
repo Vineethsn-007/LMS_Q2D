@@ -150,10 +150,9 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
     
     import os
     
-    skip_enforcement = os.getenv("SKIP_CREDENTIAL_WINDOW_ENFORCEMENT", "false").lower() == "true"
-    
     if skip_enforcement:
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+        default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+        frontend_url = os.getenv("FRONTEND_URL", default_fe).rstrip("/")
         link = f"{frontend_url}/exam/take/{temp_user_id}"
         
         # Auto-activate for demo purposes
@@ -250,7 +249,8 @@ def trigger_link_webhooks(db: Session = Depends(get_db)):
             continue
             
         import os
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+        default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+        frontend_url = os.getenv("FRONTEND_URL", default_fe).rstrip("/")
         link = f"{frontend_url}/exam/take/{cred.temp_user_id}"
         
         payload = {
