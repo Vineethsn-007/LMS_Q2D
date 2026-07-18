@@ -474,7 +474,9 @@ def submit_exam(temp_user_id: str, background_tasks: BackgroundTasks, db: Sessio
         "timestamp": datetime.datetime.utcnow().isoformat()
     }
     
-    url = "http://localhost:8000/api/webhooks/exam-engine/result"
+    import os
+    port = os.getenv("PORT", "8000")
+    url = f"http://127.0.0.1:{port}/api/webhooks/exam-engine/result"
     background_tasks.add_task(send_webhook, url, payload)
         
     return {
@@ -564,7 +566,9 @@ def sweep_expired_sessions(background_tasks: BackgroundTasks, db: Session = Depe
                 "correct_vs_selected": correct_vs_selected,
                 "timestamp": now.isoformat()
             }
-            url = "http://localhost:8000/api/webhooks/exam-engine/result"
+            import os
+            port = os.getenv("PORT", "8000")
+            url = f"http://127.0.0.1:{port}/api/webhooks/exam-engine/result"
             background_tasks.add_task(send_webhook, url, payload)
             
             count += 1

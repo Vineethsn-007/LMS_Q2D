@@ -6,10 +6,16 @@ logger = logging.getLogger(__name__)
 
 def generate_qr_code(certificate_id: str, frontend_url: str = "http://localhost:3000", backend_url: str = "http://localhost:8000") -> str:
     """
-    Generates a QR code image embedding the frontend verification URL: http://localhost:3000/verify/{certificate_id}
+    Generates a QR code image embedding the frontend verification URL.
     Saves the image to uploads/qrcodes/{certificate_id}.png
-    Returns the full backend URL to the saved image: http://localhost:8000/uploads/qrcodes/{certificate_id}.png
+    Returns the full backend URL to the saved image.
     """
+    if frontend_url == "http://localhost:3000":
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    if backend_url == "http://localhost:8000":
+        port = os.getenv("PORT", "8000")
+        backend_url = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{port}"))
+
     try:
         output_dir = os.path.join("uploads", "qrcodes")
         os.makedirs(output_dir, exist_ok=True)

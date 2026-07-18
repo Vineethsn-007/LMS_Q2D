@@ -13,11 +13,19 @@ class ExamEngineClient:
 
     @classmethod
     def get_base_url(cls) -> str:
-        return os.getenv("EXAM_ENGINE_BASE_URL", "http://localhost:8000").rstrip("/")
+        port = os.getenv("PORT", "8000")
+        custom = os.getenv("EXAM_ENGINE_BASE_URL")
+        if custom and custom.strip() and "localhost:8000" not in custom:
+            return custom.rstrip("/")
+        return f"http://127.0.0.1:{port}"
 
     @classmethod
     def get_webhook_callback_url(cls) -> str:
-        return os.getenv("SRP_WEBHOOK_BASE_URL", "http://localhost:8000/api/webhooks/exam-engine")
+        port = os.getenv("PORT", "8000")
+        custom = os.getenv("SRP_WEBHOOK_BASE_URL")
+        if custom and custom.strip() and "localhost:8000" not in custom:
+            return custom
+        return f"http://127.0.0.1:{port}/api/webhooks/exam-engine"
 
     @classmethod
     def book_slot(

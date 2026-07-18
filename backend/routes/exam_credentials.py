@@ -249,8 +249,9 @@ def trigger_link_webhooks(db: Session = Depends(get_db)):
         
         try:
             # Send to local SRP webhook
-            url = "http://localhost:8000/api/webhooks/exam-engine/link-ready"
             import os
+            port = os.getenv("PORT", "8000")
+            url = f"http://127.0.0.1:{port}/api/webhooks/exam-engine/link-ready"
             req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={
                 'Content-Type': 'application/json',
                 'X-Webhook-Secret': os.getenv("EXAM_ENGINE_WEBHOOK_SECRET", "skillforge_dummy_secret")

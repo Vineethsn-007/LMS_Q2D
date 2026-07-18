@@ -44,7 +44,8 @@ async def simulate_exam_result(
     
     # We use the current server's port (assumed 8000 for local, or deployed URL)
     # Alternatively, we could directly call the function, but HTTP request tests the whole stack.
-    backend_url = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/")
+    port = os.getenv("PORT", "8000")
+    backend_url = os.getenv("BACKEND_URL", f"http://127.0.0.1:{port}").rstrip("/")
     webhook_url = f"{backend_url}/api/webhooks/exam-engine/result"
     
     headers = {

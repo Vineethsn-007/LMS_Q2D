@@ -15,11 +15,16 @@ logger = logging.getLogger(__name__)
 def ensure_qr_code_exists(db: Session, cert: models.Certificate, frontend_url: str = "http://localhost:3000", backend_url: str = "http://localhost:8000") -> models.Certificate:
     if not cert:
         return cert
+    if frontend_url == "http://localhost:3000":
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    if backend_url == "http://localhost:8000":
+        port = os.getenv("PORT", "8000")
+        backend_url = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{port}"))
     filepath = os.path.join("uploads", "qrcodes", f"{cert.certificate_id}.png")
     if not cert.qr_code_path or not os.path.exists(filepath):
         qr_url = generate_qr_code(cert.certificate_id, frontend_url=frontend_url, backend_url=backend_url)
         cert.qr_code_path = qr_url
-        if not cert.certificate_url:
+        if not cert.certificate_url or "localhost:3000" in cert.certificate_url:
             cert.certificate_url = f"{frontend_url.rstrip('/')}/verify/{cert.certificate_id}"
         db.commit()
         db.refresh(cert)
@@ -49,6 +54,11 @@ def generate_certificate_service(
     frontend_url: str = "http://localhost:3000",
     backend_url: str = "http://localhost:8000"
 ) -> models.Certificate:
+    if frontend_url == "http://localhost:3000":
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    if backend_url == "http://localhost:8000":
+        port = os.getenv("PORT", "8000")
+        backend_url = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{port}"))
     # 1. Enforce validation rule: completion = 100% and assessment = 'passed'
     if completion_percentage != 100 or str(assessment_status).lower() != "passed":
         raise HTTPException(
@@ -138,6 +148,11 @@ def issue_level_certificate_and_badge(
     Auto-generates instant certificate and tiered badge (Bronze/Silver/Gold) on exam completion.
     Configurable template engine supporting 'pending IBM confirmation' participation templates.
     """
+    if frontend_url == "http://localhost:3000":
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    if backend_url == "http://localhost:8000":
+        port = os.getenv("PORT", "8000")
+        backend_url = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{port}"))
     tier_normalized = (tier or "District").strip().capitalize()
 
     if is_qualifying:
