@@ -15,9 +15,9 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: RAZORPAY_KEY_ID
-        sync: false
+        value: rzp_test_TDQGFCm2xKMtfk
       - key: RAZORPAY_KEY_SECRET
-        sync: false
+        value: RzXrymAZJUiGKAoDtZsFMV1G
 
   # 2. React Static Frontend Service
   - type: web
