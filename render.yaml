@@ -18,6 +18,10 @@ services:
         value: rzp_test_TDQGFCm2xKMtfk
       - key: RAZORPAY_KEY_SECRET
         value: RzXrymAZJUiGKAoDtZsFMV1G
+      - key: JWT_SECRET_KEY
+        value: super-secret-skillforge-jwt-key-2026
+      - key: EXAM_ENGINE_WEBHOOK_SECRET
+        value: 7be0554dfd6e81f4f4817c8fec60acfef07d1528937abe8ee3e58f443dbc8fa2
 
   # 2. React Static Frontend Service
   - type: web
