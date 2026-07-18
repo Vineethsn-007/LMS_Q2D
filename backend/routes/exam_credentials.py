@@ -86,28 +86,31 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
             "message": f"Maximum allowed attempts ({max_attempts}) reached for this exam."
         }
         
-    # Prevent stacking: Check if a pending session already exists
-    pending_session = db.query(models.ExamSession).filter(
+    # Prevent stacking: Check all existing pending sessions for this student & subject
+    pending_sessions = db.query(models.ExamSession).filter(
         models.ExamSession.student_id == request.student_id,
         models.ExamSession.subject_id == request.subject_id,
         models.ExamSession.level == request.level,
         models.ExamSession.status == "pending"
-    ).first()
+    ).all()
     
-    if pending_session:
-        # Check if the booking associated with this pending session was cancelled in LMS
-        assoc_booking = db.query(models.ExamSlotBooking).filter(
-            models.ExamSlotBooking.booking_reference == pending_session.booking_ref
+    active_pending = []
+    for p_sess in pending_sessions:
+        assoc = db.query(models.ExamSlotBooking).filter(
+            models.ExamSlotBooking.booking_reference == p_sess.booking_ref
         ).first()
-        if assoc_booking and assoc_booking.status == "cancelled":
-            pending_session.status = "terminated"
-            stale_cred = db.query(models.ExamCredential).filter(models.ExamCredential.session_id == pending_session.id).first()
+        # If the booking in LMS is cancelled, completed, or doesn't exist (orphan), terminate the engine session
+        if not assoc or assoc.status != "confirmed":
+            p_sess.status = "terminated"
+            stale_cred = db.query(models.ExamCredential).filter(models.ExamCredential.session_id == p_sess.id).first()
             if stale_cred:
                 stale_cred.status = "revoked"
-            db.commit()
-            pending_session = None
+        else:
+            active_pending.append(p_sess)
             
-    if pending_session:
+    db.commit()
+            
+    if active_pending:
         return {
             "success": False,
             "booking_reference": request.booking_reference,
@@ -321,3 +324,21 @@ def cancel_exam_slot(request: SlotCancelRequest, db: Session = Depends(get_db)):
         
     db.commit()
     return {"success": True, "message": "Exam session cancelled and credential revoked"}
+
+@router.post("/admin/cleanup-all-pending")
+def cleanup_all_pending_sessions(db: Session = Depends(get_db)):
+    """Admin endpoint to inspect and clean up all stale pending sessions whose slot bookings are not confirmed."""
+    all_pending = db.query(models.ExamSession).filter(models.ExamSession.status == "pending").all()
+    cleaned = 0
+    details = []
+    for s in all_pending:
+        assoc = db.query(models.ExamSlotBooking).filter(models.ExamSlotBooking.booking_reference == s.booking_ref).first()
+        if not assoc or assoc.status != "confirmed":
+            s.status = "terminated"
+            cred = db.query(models.ExamCredential).filter(models.ExamCredential.session_id == s.id).first()
+            if cred:
+                cred.status = "revoked"
+            cleaned += 1
+            details.append(f"Terminated {s.session_ref} (booking_ref={s.booking_ref}, assoc_status={assoc.status if assoc else 'None'})")
+    db.commit()
+    return {"cleaned_count": cleaned, "details": details}
