@@ -75,15 +75,57 @@ except Exception as e_mig2:
 
 
 
-db = next(get_db())
-try:
-    if db.query(models.Course).count() == 0:
-        print("Database empty. Seeding starter data...")
-        seed_db()
-finally:
-    db.close()
-
 app = FastAPI(title="SkillForge LMS API", version="1.0.0")
+
+@app.on_event("startup")
+def ensure_database_seeded():
+    try:
+        from database import SessionLocal
+        from models import User
+        from seed import seed_db
+        import hashlib
+        db = SessionLocal()
+        try:
+            user_count = db.query(User).count()
+            if user_count == 0:
+                print("Database has 0 users on startup. Running seed_db()...")
+                seed_db()
+            
+            # Ensure admin account exists
+            admin_u = db.query(User).filter(User.email == "admin@skillforge.com").first()
+            if not admin_u:
+                print("Creating default admin@skillforge.com account...")
+                admin_u = User(
+                    email="admin@skillforge.com",
+                    name="Admin User",
+                    hashed_password=hashlib.sha256("admin123".encode()).hexdigest(),
+                    role="admin",
+                    is_active=True,
+                    streak=5,
+                    xp_points=1200
+                )
+                db.add(admin_u)
+                db.commit()
+            
+            # Ensure learner account exists
+            learner_u = db.query(User).filter(User.email == "learner@skillforge.com").first()
+            if not learner_u:
+                print("Creating default learner@skillforge.com account...")
+                learner_u = User(
+                    email="learner@skillforge.com",
+                    name="Alex Learner",
+                    hashed_password=hashlib.sha256("learner123".encode()).hexdigest(),
+                    role="learner",
+                    is_active=True,
+                    streak=12,
+                    xp_points=2840
+                )
+                db.add(learner_u)
+                db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Error checking/seeding users on startup: {e}")
 
 if os.getenv("SKIP_CREDENTIAL_WINDOW_ENFORCEMENT", "false").lower() == "true":
     print("=" * 80)
@@ -120,6 +162,26 @@ def hash_password(password: str) -> str:
 @app.get("/", response_model=schemas.MessageResponse)
 def read_root():
     return {"message": "Welcome to the SkillForge LMS API. Access docs at /docs"}
+
+@app.get("/api/health/db-status")
+def get_db_status(db: Session = Depends(get_db)):
+    user_count = db.query(models.User).count()
+    users = db.query(models.User.email, models.User.role).all()
+    return {
+        "status": "ok",
+        "user_count": user_count,
+        "users": [{"email": u[0], "role": u[1]} for u in users]
+    }
+
+@app.post("/api/admin/seed-now")
+@app.get("/api/admin/seed-now")
+def trigger_seed_now():
+    from seed import seed_db
+    try:
+        seed_db()
+        return {"status": "success", "message": "Database seeded cleanly."}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 # Stats endpoint
 @app.get("/api/stats", response_model=List[schemas.StatResponse])
