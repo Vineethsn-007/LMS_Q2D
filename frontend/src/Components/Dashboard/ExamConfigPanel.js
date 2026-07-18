@@ -7,10 +7,7 @@ const ExamConfigPanel = () => {
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Dummy subjects for demo
-  const [subjects] = useState([
-    { id: 1, name: 'Sample Subject' }
-  ]);
+  const [subjects, setSubjects] = useState([]);
 
   const [formData, setFormData] = useState({
     subject_id: 1,
@@ -27,8 +24,49 @@ const ExamConfigPanel = () => {
   const [existingConfigId, setExistingConfigId] = useState(null);
 
   useEffect(() => {
-    fetchConfig();
+    fetchSubjects();
+  }, []);
+
+  useEffect(() => {
+    if (formData.subject_id) {
+      fetchConfig();
+    }
   }, [formData.subject_id, formData.level]);
+
+  const fetchSubjects = async () => {
+    try {
+      const token = localStorage.getItem('sf_token');
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/subadmins/subjects`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      let loaded = false;
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setSubjects(data);
+          loaded = true;
+          if (!data.find(s => s.id === formData.subject_id)) {
+            setFormData(prev => ({ ...prev, subject_id: data[0].id }));
+          }
+        }
+      }
+      if (!loaded) {
+        const cRes = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/courses`);
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          if (cData && cData.length > 0) {
+            const formatted = cData.map(c => ({ id: c.id, name: c.title || c.name }));
+            setSubjects(formatted);
+            if (!formatted.find(s => s.id === formData.subject_id)) {
+              setFormData(prev => ({ ...prev, subject_id: formatted[0].id }));
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch subjects', err);
+    }
+  };
 
   const fetchConfig = async () => {
     setLoading(true);
