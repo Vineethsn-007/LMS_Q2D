@@ -222,6 +222,8 @@ __marimo__/
 # Log files
 *.log
 *.txt
+!backend/requirements.txt
+!requirements.txt
 
 # OS files
 .DS_Store

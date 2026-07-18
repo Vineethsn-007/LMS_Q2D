@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic[email]
+openai
+python-multipart
+pyjwt
+python-dotenv
+groq
+pypdf
+scrapling
+qrcode
+pillow
+reportlab
+pg8000
+requests
