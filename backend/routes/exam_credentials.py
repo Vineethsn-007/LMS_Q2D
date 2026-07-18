@@ -72,7 +72,7 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
         models.ExamSession.student_id == request.student_id,
         models.ExamSession.subject_id == request.subject_id,
         models.ExamSession.level == request.level,
-        models.ExamSession.status.in_(["completed", "terminated", "active", "suspended"])
+        models.ExamSession.status.in_(["completed", "evaluated", "submitted", "active", "suspended"])
     ).count()
     
     reg_attempts = getattr(registration, "attempt_count", 0) if registration else 0
@@ -342,3 +342,25 @@ def cleanup_all_pending_sessions(db: Session = Depends(get_db)):
             details.append(f"Terminated {s.session_ref} (booking_ref={s.booking_ref}, assoc_status={assoc.status if assoc else 'None'})")
     db.commit()
     return {"cleaned_count": cleaned, "details": details}
+
+@router.post("/admin/reset-student-attempts/{student_id}")
+def reset_student_attempts(student_id: int, db: Session = Depends(get_db)):
+    """Admin endpoint to reset attempt counts and delete terminated/test sessions for a student."""
+    # Reset Registration attempt_count
+    regs = db.query(models.StudentRegistration).filter(models.StudentRegistration.user_id == student_id).all()
+    reg_count = 0
+    for r in regs:
+        r.attempt_count = 0
+        reg_count += 1
+        
+    # Delete or clean terminated/cancelled sessions from ExamSession table for this student
+    sessions = db.query(models.ExamSession).filter(
+        models.ExamSession.student_id == student_id,
+        models.ExamSession.status.in_(["terminated", "cancelled", "revoked"])
+    ).all()
+    sess_count = len(sessions)
+    for s in sessions:
+        db.delete(s)
+        
+    db.commit()
+    return {"success": True, "reset_registrations": reg_count, "deleted_terminated_sessions": sess_count}
