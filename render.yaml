@@ -24,7 +24,11 @@ services:
     name: skillforge-frontend
     env: static
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: |
+      if [ -n "$REACT_APP_API_URL" ] && [[ "$REACT_APP_API_URL" != http* ]]; then
+        export REACT_APP_API_URL="https://$REACT_APP_API_URL"
+      fi
+      npm install && npm run build
     staticPublishPath: ./build
     routes:
       - type: rewrite
@@ -35,7 +39,7 @@ services:
         fromService:
           type: web
           name: skillforge-backend
-          property: url
+          property: host
 
 databases:
   # 3. PostgreSQL Database
