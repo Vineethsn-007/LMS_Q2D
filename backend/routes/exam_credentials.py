@@ -152,6 +152,7 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
     db.commit()
     
     import os
+    skip_enforcement = os.getenv("SKIP_CREDENTIAL_WINDOW_ENFORCEMENT", "false").lower() == "true"
     
     if skip_enforcement:
         default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
