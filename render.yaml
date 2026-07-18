@@ -3,10 +3,10 @@ services:
   - type: web
     name: skillforge-backend
     env: python
-    rootDir: backend
+    root: backend
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt || pip install -r backend/requirements.txt
+    startCommand: cd backend 2>/dev/null || true && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -23,11 +23,12 @@ services:
   - type: web
     name: skillforge-frontend
     env: static
-    rootDir: frontend
+    root: frontend
     buildCommand: |
       if [ -n "$REACT_APP_API_URL" ] && [[ "$REACT_APP_API_URL" != http* ]]; then
         export REACT_APP_API_URL="https://$REACT_APP_API_URL"
       fi
+      cd frontend 2>/dev/null || true
       npm install && npm run build
     staticPublishPath: ./build
     routes:
