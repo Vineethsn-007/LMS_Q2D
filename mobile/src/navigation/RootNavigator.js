@@ -13,16 +13,16 @@ import POCNavigator from './POCNavigator';
 export default function RootNavigator() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4f46e5" />
-        <Text style={styles.loadingText}>Initializing SkillForge...</Text>
-      </View>
-    );
-  }
-
   const renderRoleNavigator = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4f46e5" />
+          <Text style={styles.loadingText}>Initializing SkillForge...</Text>
+        </View>
+      );
+    }
+
     if (!isAuthenticated || !user) {
       return <LoginScreen />;
     }

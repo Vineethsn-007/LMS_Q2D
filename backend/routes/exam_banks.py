@@ -68,3 +68,34 @@ def upload_questions(bank_id: int, questions: List[schemas.QuestionCreate], db: 
         "imported_count": imported,
         "errors": errors
     }
+
+@router.delete("/{bank_id}", status_code=status.HTTP_200_OK)
+def delete_question_bank(bank_id: int, db: Session = Depends(get_db)):
+    """Delete a question bank and all its questions."""
+    bank = db.query(models.QuestionBank).filter(models.QuestionBank.id == bank_id).first()
+    if not bank:
+        raise HTTPException(status_code=404, detail="Question bank not found")
+    db.delete(bank)
+    db.commit()
+    return {"success": True, "message": "Question bank deleted successfully"}
+
+@router.delete("/{bank_id}/questions/{question_id}", status_code=status.HTTP_200_OK)
+def delete_question(bank_id: int, question_id: int, db: Session = Depends(get_db)):
+    """Delete a specific question from a question bank."""
+    question = db.query(models.Question).filter(models.Question.id == question_id, models.Question.bank_id == bank_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    db.delete(question)
+    db.commit()
+    return {"success": True, "message": "Question deleted successfully"}
+
+@router.delete("/{bank_id}/questions", status_code=status.HTTP_200_OK)
+def clear_all_questions(bank_id: int, db: Session = Depends(get_db)):
+    """Clear all questions from a specific question bank."""
+    bank = db.query(models.QuestionBank).filter(models.QuestionBank.id == bank_id).first()
+    if not bank:
+        raise HTTPException(status_code=404, detail="Question bank not found")
+    db.query(models.Question).filter(models.Question.bank_id == bank_id).delete()
+    db.commit()
+    return {"success": True, "message": "All questions cleared successfully"}
+

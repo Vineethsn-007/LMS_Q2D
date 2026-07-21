@@ -4,6 +4,14 @@ import { Platform } from 'react-native';
 const TOKEN_KEY = 'skillforge_jwt_token';
 const USER_KEY = 'skillforge_user_data';
 
+const withTimeout = (promise, ms = 3000) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('SecureStore request timed out')), ms)
+    ),
+  ]);
+
 /**
  * Secure storage wrapper using Expo SecureStore for native platforms.
  * Falls back safely for web if needed during development testing.
@@ -14,7 +22,7 @@ export const authStorage = {
       if (Platform.OS === 'web') {
         return localStorage.getItem(TOKEN_KEY);
       }
-      return await SecureStore.getItemAsync(TOKEN_KEY);
+      return await withTimeout(SecureStore.getItemAsync(TOKEN_KEY));
     } catch (error) {
       console.error('Error getting token from SecureStore:', error);
       return null;
@@ -51,7 +59,7 @@ export const authStorage = {
       if (Platform.OS === 'web') {
         userData = localStorage.getItem(USER_KEY);
       } else {
-        userData = await SecureStore.getItemAsync(USER_KEY);
+        userData = await withTimeout(SecureStore.getItemAsync(USER_KEY));
       }
       return userData ? JSON.parse(userData) : null;
     } catch (error) {

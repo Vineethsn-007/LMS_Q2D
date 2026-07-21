@@ -1,11 +1,18 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+const DEPLOYED_BACKEND_URL = 'https://skillforge-backend-uy0u.onrender.com';
+
 // Default configuration for different environments
 const getDefaultApiUrl = () => {
   // If explicitly set in app.json/expoConfig extra
   if (Constants.expoConfig?.extra?.apiUrl) {
     return Constants.expoConfig.extra.apiUrl;
+  }
+
+  // If running in production / standalone build, always use deployed backend
+  if (typeof __DEV__ !== 'undefined' && !__DEV__) {
+    return DEPLOYED_BACKEND_URL;
   }
 
   // Check Expo manifest debuggerHost to automatically derive LAN IP during local development
@@ -17,11 +24,8 @@ const getDefaultApiUrl = () => {
     }
   }
 
-  // Fallback for Android emulator vs iOS simulator / Web
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8000';
-  }
-  return 'http://localhost:8000';
+  // Fallback to deployed backend if not local dev
+  return DEPLOYED_BACKEND_URL;
 };
 
 export const API_BASE_URL = getDefaultApiUrl();

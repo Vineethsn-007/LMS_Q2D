@@ -6,10 +6,16 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAF7F2"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.skillforge.lms",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -22,7 +28,15 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "expo-font",
+      "expo-splash-screen"
+    ],
+    "extra": {
+      "apiUrl": "https://skillforge-backend-uy0u.onrender.com",
+      "eas": {
+        "projectId": "9cf6f053-3ffb-4986-ab44-0678538a6e6a"
+      }
+    }
   }
 }
