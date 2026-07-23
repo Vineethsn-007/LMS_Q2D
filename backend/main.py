@@ -14,8 +14,6 @@ from datetime import datetime
 from database import engine, Base, get_db
 import models
 import schemas
-from seed import seed_db
-from ai_service import AIProposalService
 import ai_service
 import groq_service
 from auth import create_access_token, verifyReviewerRole, get_current_user, get_current_user_optional, verifyAdminRole, verifyExpertRole
@@ -101,9 +99,7 @@ def ensure_database_seeded():
                     name="Admin User",
                     hashed_password=hashlib.sha256("admin123".encode()).hexdigest(),
                     role="admin",
-                    is_active=True,
-                    streak=5,
-                    xp_points=1200
+                    is_active=True
                 )
                 db.add(admin_u)
                 db.commit()
@@ -117,9 +113,7 @@ def ensure_database_seeded():
                     name="Alex Learner",
                     hashed_password=hashlib.sha256("learner123".encode()).hexdigest(),
                     role="learner",
-                    is_active=True,
-                    streak=12,
-                    xp_points=2840
+                    is_active=True
                 )
                 db.add(learner_u)
                 db.commit()
@@ -184,32 +178,10 @@ def trigger_seed_now():
     except Exception as e:
         return {"status": "error", "detail": str(e)}
 
-# Stats endpoint
-@app.get("/api/stats", response_model=List[schemas.StatResponse])
-def get_stats(db: Session = Depends(get_db)):
-    stats = db.query(models.Stat).all()
-    return stats
-
-# Courses endpoint with filter and search capabilities
+# Courses endpoint
 @app.get("/api/courses", response_model=List[schemas.CourseResponse])
-def get_courses(
-    category: Optional[str] = None,
-    search: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    query = db.query(models.Course)
-    
-    if category and category != "All":
-        query = query.filter(models.Course.category == category)
-        
-    if search:
-        search_filter = f"%{search}%"
-        query = query.filter(
-            (models.Course.title.ilike(search_filter)) | 
-            (models.Course.description.ilike(search_filter))
-        )
-        
-    return query.all()
+def get_courses(db: Session = Depends(get_db)):
+    return db.query(models.Course).all()
 
 @app.get("/api/courses/{course_id}/quiz", response_model=List[schemas.QuizQuestion])
 def generate_course_quiz(course_id: int, count: int = 5, db: Session = Depends(get_db)):
@@ -577,8 +549,6 @@ def google_auth(user_in: schemas.UserGoogleLogin, db: Session = Depends(get_db))
             name=name,
             hashed_password=random_pwd,
             role="learner",
-            streak=12,
-            xp_points=2840,
             weekly_goal_hours=8.0,
             weekly_progress_hours=6.5,
             is_active=True
@@ -694,102 +664,6 @@ def start_new_cycle(req: StartCycleRequest, current_user: models.User = Depends(
     db.commit()
     return {"message": f"Successfully started new cycle: {req.new_cycle_name} and archived previous data."}
 
-# Course Proposal Create
-@app.post("/api/proposals/create", response_model=schemas.CourseProposalResponse, status_code=status.HTTP_201_CREATED)
-def create_proposal(
-    proposal_in: schemas.CourseProposalCreate, 
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
-):
-    db_proposal = models.CourseProposal(
-        **proposal_in.dict(),
-        status="pending"
-    )
-    db.add(db_proposal)
-    db.commit()
-    db.refresh(db_proposal)
-    
-    # Trigger background task for AI Preprocessing
-    background_tasks.add_task(AIProposalService.process_proposal, db_proposal.id)
-    
-    return db_proposal
-
-@app.get("/api/proposals/community")
-def get_community_proposals(db: Session = Depends(get_db)):
-    proposals = db.query(models.CourseProposal).order_by(models.CourseProposal.upvotes.desc(), models.CourseProposal.id.desc()).all()
-    results = []
-    now = datetime.utcnow()
-    for p in proposals:
-        days_ago = (now - p.created_at).days if p.created_at else 0
-        tags = [{"label": p.status.capitalize(), "type": "active" if p.status == "pending" else ""}]
-        if p.ai_category:
-            tags.append({"label": p.ai_category})
-        elif p.skill_level:
-            tags.append({"label": p.skill_level})
-        results.append({
-            "id": p.id,
-            "title": p.course_name,
-            "author": f"@{p.learner_name or 'learner'}",
-            "daysAgo": max(1, days_ago),
-            "tags": tags,
-            "votes": p.upvotes or 0
-        })
-    return results
-
-@app.post("/api/proposals/{proposal_id}/vote")
-def vote_proposal(proposal_id: int, db: Session = Depends(get_db)):
-    proposal = db.query(models.CourseProposal).filter(models.CourseProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-    proposal.upvotes = (proposal.upvotes or 0) + 1
-    db.commit()
-    return {"id": proposal.id, "votes": proposal.upvotes}
-
-# Review Center endpoints (Protected)
-@app.get("/api/reviewer/proposals", response_model=List[schemas.CourseProposalResponse])
-def get_reviewer_proposals(
-
-    status_filter: Optional[str] = None,
-    current_user: models.User = Depends(verifyReviewerRole),
-    db: Session = Depends(get_db)
-):
-    query = db.query(models.CourseProposal)
-    if status_filter and status_filter != 'all':
-        query = query.filter(models.CourseProposal.status == status_filter)
-    return query.order_by(models.CourseProposal.id.desc()).all()
-
-@app.put("/api/reviewer/proposals/{proposal_id}/status", response_model=schemas.CourseProposalResponse)
-def update_proposal_status(
-    proposal_id: int,
-    status_update: schemas.ProposalStatusUpdate,
-    current_user: models.User = Depends(verifyReviewerRole),
-    db: Session = Depends(get_db)
-):
-    proposal = db.query(models.CourseProposal).filter(models.CourseProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-        
-    proposal.status = status_update.status
-    if status_update.status == "rejected":
-        proposal.rejection_reason = status_update.rejection_reason
-        proposal.reviewer_feedback = status_update.reviewer_feedback
-        
-        # Create notification for learner if learner_id exists
-        if proposal.learner_id:
-            message = f"Status: Rejected\nReason: {status_update.rejection_reason}\nReviewer Feedback: {status_update.reviewer_feedback}"
-            notification = models.Notification(
-                user_id=proposal.learner_id,
-                title=f"Proposal Update: {proposal.course_name}",
-                message=message,
-                action_label="Edit & Resubmit",
-                action_url=f"/proposals/edit/{proposal.id}"
-            )
-            db.add(notification)
-
-    db.commit()
-    db.refresh(proposal)
-    return proposal
-
 @app.get("/api/reviewer/certificate-issues", response_model=List[schemas.CertificateIssueResponse])
 def get_reviewer_certificate_issues(
     current_user: models.User = Depends(verifyReviewerRole),
@@ -817,193 +691,10 @@ def update_certificate_issue(
 # Notifications endpoint
 @app.get("/api/notifications", response_model=List[schemas.NotificationResponse])
 def get_notifications(
-
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     return db.query(models.Notification).filter(models.Notification.user_id == current_user.id).order_by(models.Notification.created_at.desc()).all()
-
-# Community Voting Endpoints
-@app.get("/api/community/proposals", response_model=List[schemas.CourseProposalResponse])
-def get_community_proposals(
-    sort_by: str = "newest",
-    category: Optional[str] = None,
-    current_user: Optional[models.User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    query = db.query(models.CourseProposal).filter(models.CourseProposal.status == "approved")
-    if category:
-        query = query.filter(models.CourseProposal.ai_category == category)
-        
-    if sort_by == "newest":
-        query = query.order_by(models.CourseProposal.created_at.desc())
-    elif sort_by == "most_voted":
-        query = query.order_by(models.CourseProposal.upvotes.desc())
-    elif sort_by == "most_discussed":
-        query = query.order_by(models.CourseProposal.comment_count.desc())
-    elif sort_by == "trending":
-        query = query.order_by((models.CourseProposal.upvotes + models.CourseProposal.comment_count).desc())
-        
-    proposals = query.all()
-    
-    # Determine user_vote if authenticated
-    result = []
-    if current_user:
-        user_votes = {v.proposal_id: v.vote_type for v in db.query(models.ProposalVote).filter(models.ProposalVote.user_id == current_user.id).all()}
-    else:
-        user_votes = {}
-        
-    for p in proposals:
-        p_dict = p.__dict__.copy()
-        p_dict["user_vote"] = user_votes.get(p.id)
-        result.append(p_dict)
-        
-    return result
-
-@app.post("/api/community/proposals/{proposal_id}/vote", response_model=schemas.CourseProposalResponse)
-def vote_on_proposal(
-    proposal_id: int,
-    vote_req: schemas.VoteRequest,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    proposal = db.query(models.CourseProposal).filter(models.CourseProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-        
-    existing_vote = db.query(models.ProposalVote).filter(
-        models.ProposalVote.proposal_id == proposal_id,
-        models.ProposalVote.user_id == current_user.id
-    ).first()
-    
-    if existing_vote:
-        if existing_vote.vote_type == vote_req.vote_type:
-            # Toggle off
-            db.delete(existing_vote)
-            if vote_req.vote_type == "upvote":
-                proposal.upvotes = max(0, proposal.upvotes - 1)
-            else:
-                proposal.downvotes = max(0, proposal.downvotes - 1)
-            user_vote = None
-        else:
-            # Switch vote
-            old_vote = existing_vote.vote_type
-            existing_vote.vote_type = vote_req.vote_type
-            if old_vote == "upvote":
-                proposal.upvotes = max(0, proposal.upvotes - 1)
-                proposal.downvotes += 1
-            else:
-                proposal.downvotes = max(0, proposal.downvotes - 1)
-                proposal.upvotes += 1
-            user_vote = vote_req.vote_type
-    else:
-        # New vote
-        new_vote = models.ProposalVote(
-            proposal_id=proposal_id,
-            user_id=current_user.id,
-            vote_type=vote_req.vote_type
-        )
-        db.add(new_vote)
-        if vote_req.vote_type == "upvote":
-            proposal.upvotes += 1
-        else:
-            proposal.downvotes += 1
-        user_vote = vote_req.vote_type
-        
-    db.commit()
-    db.refresh(proposal)
-    
-    p_dict = proposal.__dict__.copy()
-    p_dict["user_vote"] = user_vote
-    return p_dict
-
-@app.get("/api/community/proposals/{proposal_id}/comments", response_model=List[schemas.CommentResponse])
-def get_comments(proposal_id: int, db: Session = Depends(get_db)):
-    comments = db.query(models.ProposalComment).filter(models.ProposalComment.proposal_id == proposal_id).order_by(models.ProposalComment.created_at.asc()).all()
-    
-    user_ids = [c.user_id for c in comments]
-    users = db.query(models.User).filter(models.User.id.in_(user_ids)).all()
-    user_map = {u.id: {"name": u.name, "image": None} for u in users}
-    
-    result = []
-    for c in comments:
-        c_dict = c.__dict__.copy()
-        c_dict["user_name"] = user_map.get(c.user_id, {}).get("name", "Anonymous")
-        c_dict["user_image"] = user_map.get(c.user_id, {}).get("image", None)
-        result.append(c_dict)
-    return result
-
-@app.post("/api/community/proposals/{proposal_id}/comment", response_model=schemas.CommentResponse)
-def post_comment(
-    proposal_id: int, 
-    comment_req: schemas.CommentCreate, 
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    proposal = db.query(models.CourseProposal).filter(models.CourseProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-        
-    new_comment = models.ProposalComment(
-        proposal_id=proposal_id,
-        user_id=current_user.id,
-        parent_comment_id=comment_req.parent_comment_id,
-        content=comment_req.content
-    )
-    db.add(new_comment)
-    
-    proposal.comment_count += 1
-    db.commit()
-    db.refresh(new_comment)
-    
-    c_dict = new_comment.__dict__.copy()
-    c_dict["user_name"] = current_user.name
-    c_dict["user_image"] = None
-    return c_dict
-
-@app.post("/api/community/comments/{comment_id}/like")
-def like_comment(
-    comment_id: int, 
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    comment = db.query(models.ProposalComment).filter(models.ProposalComment.id == comment_id).first()
-    if not comment:
-        raise HTTPException(status_code=404, detail="Comment not found")
-        
-    comment.likes += 1
-    db.commit()
-    return {"likes": comment.likes}
-
-# Silence 404 console logs when AI browser extensions poll localhost for chat interfaces
-@app.get("/chat/conversations", include_in_schema=False)
-@app.get("/api/chat/conversations", include_in_schema=False)
-def get_empty_chat_conversations():
-    return []
-
-# AI Assistant Endpoint
-@app.post("/api/ai/chat", response_model=schemas.ChatResponse)
-def ai_chat(
-    chat_req: schemas.ChatRequest,
-    current_user: Optional[models.User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    try:
-        # Fetch available courses to provide to AI
-        courses = db.query(models.Course).all()
-        course_list = [f"- {c.title} ({c.category})" for c in courses]
-        available_courses_text = "Available SkillForge Courses:\n" + "\n".join(course_list)
-        
-        # Combine existing context with course list
-        enriched_context = chat_req.context or ""
-        if enriched_context:
-            enriched_context += "\n\n"
-        enriched_context += available_courses_text
-
-        response_text = groq_service.generate_ai_response(chat_req.messages, enriched_context)
-        return {"response": response_text}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 # Admin endpoints
 @app.get("/api/admin/users", response_model=List[schemas.UserResponse])
@@ -1183,19 +874,6 @@ def delete_course(
     db.delete(course)
     db.commit()
     return {"message": "Course deleted successfully"}
-
-@app.delete("/api/admin/proposals/{proposal_id}", response_model=schemas.MessageResponse)
-def delete_proposal(
-    proposal_id: int,
-    current_user: models.User = Depends(verifyAdminRole),
-    db: Session = Depends(get_db)
-):
-    proposal = db.query(models.CourseProposal).filter(models.CourseProposal.id == proposal_id).first()
-    if not proposal:
-        raise HTTPException(status_code=404, detail="Proposal not found")
-    db.delete(proposal)
-    db.commit()
-    return {"message": "Proposal deleted successfully"}
 
 @app.get("/api/admin/access-config")
 def get_admin_access_config(
@@ -1400,9 +1078,6 @@ def get_expert_learners_performance(
             "email": u.email,
             "avatar_url": f"https://images.unsplash.com/photo-{1534528741775 + u.id*1000}?auto=format&fit=crop&q=80&w=150",
             "role": u.role,
-            "xp_points": u.xp_points or 2500,
-            "streak": u.streak or 10,
-            "weekly_progress_hours": u.weekly_progress_hours or 6.5,
             "overall_pass_rate": f"{pass_rate}%",
             "total_courses": len(c_perf),
             "completed_assessments": passed_count,
@@ -1445,7 +1120,7 @@ def get_expert_learners_performance(
                 c_perf.append({
                     "course_id": str(course.id),
                     "course_title": course.title,
-                    "category": course.category,
+                    "category": getattr(course, 'category', 'Curriculum'),
                     "progress_percentage": prog,
                     "modules_completed": f"{int(prog/25)}/4",
                     "time_spent": f"{int(course.hours * (prog/100))}h 15m",
@@ -1500,81 +1175,9 @@ def get_experts(db: Session = Depends(get_db)):
             "role": "Industry Expert",
             "bio": f"{user.name} is a validated industry expert.",
             "avatar_url": None,
-            "courses_validated_count": user.streak if user.streak else 0
+            "courses_validated_count": 0
         })
     return experts_list
-
-# ─── Course Feedback Endpoints ──────────────────────────────────────────────
-
-@app.get("/api/feedback", response_model=List[schemas.CourseFeedbackResponse])
-def get_feedback(
-    course_id: Optional[int] = None,
-    db: Session = Depends(get_db)
-):
-    query = db.query(models.CourseFeedback)
-    if course_id:
-        query = query.filter(models.CourseFeedback.course_id == course_id)
-    return query.order_by(models.CourseFeedback.created_at.desc()).all()
-
-@app.post("/api/feedback", response_model=schemas.CourseFeedbackResponse, status_code=status.HTTP_201_CREATED)
-def create_feedback(
-    feedback_in: schemas.CourseFeedbackCreate,
-    current_user: Optional[models.User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    course = db.query(models.Course).filter(models.Course.id == feedback_in.course_id).first()
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
-    
-    user_name = current_user.name if current_user else "Anonymous"
-    user_id = current_user.id if current_user else None
-    
-    db_feedback = models.CourseFeedback(
-        course_id=feedback_in.course_id,
-        user_id=user_id,
-        user_name=user_name,
-        rating=feedback_in.rating,
-        title=feedback_in.title,
-        comment=feedback_in.comment,
-    )
-    db.add(db_feedback)
-    db.commit()
-    db.refresh(db_feedback)
-    return db_feedback
-
-@app.post("/api/feedback/{feedback_id}/helpful")
-def mark_helpful(
-    feedback_id: int,
-    db: Session = Depends(get_db)
-):
-    fb = db.query(models.CourseFeedback).filter(models.CourseFeedback.id == feedback_id).first()
-    if not fb:
-        raise HTTPException(status_code=404, detail="Feedback not found")
-    fb.helpful_count += 1
-    db.commit()
-    return {"helpful_count": fb.helpful_count}
-
-@app.post("/api/subscribe", response_model=schemas.SubscriberResponse, status_code=status.HTTP_201_CREATED)
-def subscribe(
-    subscriber_in: schemas.SubscriberCreate,
-    db: Session = Depends(get_db)
-):
-    existing = db.query(models.Subscriber).filter(models.Subscriber.email == subscriber_in.email).first()
-    if existing:
-        return existing
-    
-    new_sub = models.Subscriber(email=subscriber_in.email)
-    db.add(new_sub)
-    db.commit()
-    db.refresh(new_sub)
-    return new_sub
-
-@app.get("/api/admin/subscribers", response_model=List[schemas.SubscriberResponse])
-def get_subscribers(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(verifyAdminRole)
-):
-    return db.query(models.Subscriber).order_by(models.Subscriber.created_at.desc()).all()
 
 # Certificates and Verification Routers
 from routes.certificates import router as certificates_router, verify_router

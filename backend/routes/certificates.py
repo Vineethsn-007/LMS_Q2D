@@ -44,7 +44,10 @@ verify_router = APIRouter()
 @router.post("", response_model=CertificateResponseSchema, status_code=status.HTTP_201_CREATED)
 def generate_cert_endpoint(req: CertificateGenerateRequest, request: Request, db: Session = Depends(get_db)):
     base_url = f"{request.url.scheme}://{request.url.netloc}"
-    frontend_url = "http://localhost:3000"
+    origin_hdr = request.headers.get("origin") or request.headers.get("referer")
+    if origin_hdr:
+        origin_hdr = origin_hdr.rstrip("/").split("/verify")[0]
+    frontend_url = os.getenv("FRONTEND_URL") or origin_hdr or "http://localhost:3000"
     return generate_certificate_service(
         db=db,
         user_id=req.user_id,

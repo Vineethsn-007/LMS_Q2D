@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
-  ShoppingBag, 
   BookOpen, 
-  Bot, 
-  FileEdit, 
   Shield,
   LogOut,
   Settings,
-  MessageSquare,
   Users,
   FileText,
   GraduationCap,
@@ -53,28 +49,9 @@ const SidebarSection = ({ title, children }) => (
 );
 
 const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
-  const [communityCount, setCommunityCount] = useState(0);
   const [myPrivileges, setMyPrivileges] = useState(user?.privileges || null);
 
   useEffect(() => {
-    const fetchCommunityCount = async () => {
-      try {
-        const url = new URL(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/community/proposals`);
-        const token = localStorage.getItem('sf_token');
-        const headers = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        
-        const res = await fetch(url.toString(), { headers });
-        if (res.ok) {
-          const data = await res.json();
-          setCommunityCount(data.length || 0);
-        }
-      } catch (err) {
-        console.error("Failed to fetch community proposals count", err);
-      }
-    };
-    fetchCommunityCount();
-
     if (user?.role === 'sub_admin' && !myPrivileges) {
       const token = localStorage.getItem('sf_token');
       fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/subadmins/me`, {
@@ -84,7 +61,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         .then(data => { if (data?.privileges) setMyPrivileges(data.privileges); })
         .catch(err => console.error(err));
     }
-  }, [user]);
+  }, [user, myPrivileges]);
 
   return (
     <aside className="w-64 bg-white border-r border-slate-200 h-screen flex flex-col flex-shrink-0 sticky top-0 overflow-y-auto no-scrollbar font-sans">
@@ -97,9 +74,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'sub_admin' && user?.role !== 'expert' && (
           <SidebarSection title="Learn">
             <SidebarLink icon={LayoutDashboard} label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => onViewChange('dashboard')} />
-            <SidebarLink icon={ShoppingBag} label="Marketplace" isActive={activeView === 'marketplace'} onClick={() => onViewChange('marketplace')} />
             <SidebarLink icon={BookOpen} label="My Learning" isActive={activeView === 'mylearning'} onClick={() => onViewChange('mylearning')} />
-            <SidebarLink icon={Bot} label="Expert Guide" isActive={activeView === 'ai-assistant'} onClick={() => onViewChange('ai-assistant')} />
             <SidebarLink icon={FileText} label="Test" isActive={activeView === 'test' || activeView === 'topic-assessment' || activeView === 'assessment'} onClick={() => onViewChange('test')} />
           </SidebarSection>
         )}
@@ -113,16 +88,10 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
           </SidebarSection>
         )}
 
-        {user?.role !== 'reviewer' && user?.role !== 'admin' && user?.role !== 'sub_admin' && user?.role !== 'expert' && (
-          <SidebarSection title="Create">
-            <SidebarLink icon={FileEdit} label="Community feed" isActive={activeView === 'community-voting'} onClick={() => onViewChange('community-voting')} badge={communityCount > 0 ? communityCount : null} />
-          </SidebarSection>
-        )}
-
         {(user?.role === 'reviewer' || user?.role === 'admin' || user?.role === 'sub_admin') && (
           <SidebarSection title="Review Admin">
             {(user?.role === 'reviewer' || user?.role === 'admin') && (
-              <SidebarLink icon={FileEdit} label="Review Center" isActive={activeView === 'review-center'} onClick={() => onViewChange('review-center')} />
+              <SidebarLink icon={Shield} label="Review Center" isActive={activeView === 'review-center'} onClick={() => onViewChange('review-center')} />
             )}
             {user?.role === 'admin' && (
               <SidebarLink icon={Shield} label="Super Admin Panel" isActive={activeView === 'admin-panel'} onClick={() => onViewChange('admin-panel')} />
@@ -152,7 +121,6 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         </SidebarSection>
 
         <SidebarSection title="Account">
-          <SidebarLink icon={MessageSquare} label="Feedback" isActive={activeView === 'feedback'} onClick={() => onViewChange('feedback')} />
           <SidebarLink icon={Settings} label="Settings" isActive={activeView === 'settings'} onClick={() => onViewChange('settings')} />
         </SidebarSection>
       </div>

@@ -553,7 +553,7 @@ export default function SubAdminConsole({ user }) {
               className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'subjects' ? 'bg-white text-orange-700 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
               onClick={() => setActiveTab('subjects')}
             >
-              <FileText size={16} className="text-orange-500" /> Subjects
+              <FileText size={16} className="text-orange-500" /> Subjects & Specs
             </button>
             <button
               className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'examwindows' ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-600 hover:text-navy'}`}

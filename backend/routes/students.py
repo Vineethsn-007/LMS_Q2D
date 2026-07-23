@@ -22,10 +22,78 @@ def is_valid_email(email: str) -> bool:
 
 @router.get("/specializations", response_model=List[schemas.SpecializationResponse])
 def get_specializations(
+    active_only: bool = Query(False),
     current_user: Optional[models.User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
-    return db.query(models.Specialization).filter(models.Specialization.is_active == True).order_by(models.Specialization.name.asc()).all()
+    query = db.query(models.Specialization)
+    if active_only:
+        query = query.filter(models.Specialization.is_active == True)
+    return query.order_by(models.Specialization.name.asc()).all()
+
+@router.post("/specializations", response_model=schemas.SpecializationResponse, status_code=status.HTTP_201_CREATED)
+def create_specialization(
+    spec_in: schemas.SpecializationCreate,
+    current_user: models.User = Depends(verifySubAdminOrAdmin),
+    db: Session = Depends(get_db)
+):
+    existing = db.query(models.Specialization).filter(models.Specialization.name == spec_in.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Specialization '{spec_in.name}' already exists.")
+    
+    code_val = spec_in.code or spec_in.name.upper().replace(" ", "_")[:20]
+    spec = models.Specialization(
+        name=spec_in.name,
+        code=code_val,
+        description=spec_in.description,
+        is_active=spec_in.is_active
+    )
+    db.add(spec)
+    db.commit()
+    db.refresh(spec)
+    return spec
+
+@router.put("/specializations/{spec_id}", response_model=schemas.SpecializationResponse)
+def update_specialization(
+    spec_id: int,
+    spec_in: schemas.SpecializationCreate,
+    current_user: models.User = Depends(verifySubAdminOrAdmin),
+    db: Session = Depends(get_db)
+):
+    spec = db.query(models.Specialization).filter(models.Specialization.id == spec_id).first()
+    if not spec:
+        raise HTTPException(status_code=404, detail="Specialization not found.")
+    
+    existing = db.query(models.Specialization).filter(
+        models.Specialization.name == spec_in.name,
+        models.Specialization.id != spec_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Specialization '{spec_in.name}' already exists.")
+
+    spec.name = spec_in.name
+    if spec_in.code:
+        spec.code = spec_in.code
+    spec.description = spec_in.description
+    spec.is_active = spec_in.is_active
+    
+    db.commit()
+    db.refresh(spec)
+    return spec
+
+@router.delete("/specializations/{spec_id}")
+def delete_specialization(
+    spec_id: int,
+    current_user: models.User = Depends(verifySubAdminOrAdmin),
+    db: Session = Depends(get_db)
+):
+    spec = db.query(models.Specialization).filter(models.Specialization.id == spec_id).first()
+    if not spec:
+        raise HTTPException(status_code=404, detail="Specialization not found.")
+    
+    db.delete(spec)
+    db.commit()
+    return {"message": "Specialization deleted successfully."}
 
 @router.get("", response_model=List[schemas.UserResponse])
 def get_students(

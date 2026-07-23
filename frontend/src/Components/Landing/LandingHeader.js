@@ -21,17 +21,14 @@ const LandingHeader = ({ onOpenAuth, setActivePage, activePage }) => {
           <div className="hidden md:flex absolute inset-0 justify-center items-center pointer-events-none">
             <nav className="flex space-x-8 pointer-events-auto">
               <a href="#" onClick={(e) => { e.preventDefault(); setActivePage('home'); window.scrollTo(0,0); }} className="text-base font-medium text-slate-600 hover:text-navy transition-colors">Home</a>
-              <a href="#benefits" onClick={(e) => { if(activePage !== 'home') { e.preventDefault(); setActivePage('home'); setTimeout(()=>window.location.hash='#benefits', 100); } }} className="text-base font-medium text-slate-600 hover:text-navy transition-colors">Why Us</a>
-              <a href="#courses" onClick={(e) => { if(activePage !== 'home') { e.preventDefault(); setActivePage('home'); setTimeout(()=>window.location.hash='#courses', 100); } }} className="text-base font-medium text-slate-600 hover:text-navy transition-colors">Courses</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); setActivePage('faq'); window.scrollTo(0,0); }} className="text-base font-medium text-slate-600 hover:text-navy transition-colors">FAQ</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); setActivePage('feedback'); window.scrollTo(0,0); }} className="text-base font-medium text-slate-600 hover:text-navy transition-colors">Feedback</a>
+              <a href="#benefits" onClick={(e) => { if(activePage !== 'home') { e.preventDefault(); setActivePage('home'); setTimeout(()=>window.location.hash='#benefits', 100); } }} className="text-base font-medium text-slate-600 hover:text-navy transition-colors">Methodology</a>
             </nav>
           </div>
 
           {/* Desktop CTA */}
           <div className="hidden md:flex ml-auto items-center">
             <button onClick={onOpenAuth} className="bg-coral hover:bg-coral-hover text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all shadow-lg shadow-coral/20">
-              Log in
+              Sign In
             </button>
           </div>
 
@@ -53,15 +50,12 @@ const LandingHeader = ({ onOpenAuth, setActivePage, activePage }) => {
         <div className="md:hidden bg-white border-b border-slate-100">
           <div className="px-4 pt-2 pb-6 space-y-2">
             <a href="#" className="block px-3 py-3 text-lg font-medium text-slate-700 rounded-md hover:bg-slate-50" onClick={(e) => { e.preventDefault(); setActivePage('home'); setIsMobileMenuOpen(false); window.scrollTo(0,0); }}>Home</a>
-            <a href="#benefits" className="block px-3 py-3 text-lg font-medium text-slate-700 rounded-md hover:bg-slate-50" onClick={(e) => { if(activePage !== 'home') { e.preventDefault(); setActivePage('home'); setTimeout(()=>window.location.hash='#benefits', 100); } setIsMobileMenuOpen(false); }}>Why Us</a>
-            <a href="#courses" className="block px-3 py-3 text-lg font-medium text-slate-700 rounded-md hover:bg-slate-50" onClick={(e) => { if(activePage !== 'home') { e.preventDefault(); setActivePage('home'); setTimeout(()=>window.location.hash='#courses', 100); } setIsMobileMenuOpen(false); }}>Courses</a>
-            <a href="#" className="block px-3 py-3 text-lg font-medium text-slate-700 rounded-md hover:bg-slate-50" onClick={(e) => { e.preventDefault(); setActivePage('faq'); setIsMobileMenuOpen(false); window.scrollTo(0,0); }}>FAQ</a>
-            <a href="#" className="block px-3 py-3 text-lg font-medium text-slate-700 rounded-md hover:bg-slate-50" onClick={(e) => { e.preventDefault(); setActivePage('feedback'); setIsMobileMenuOpen(false); window.scrollTo(0,0); }}>Feedback</a>
+            <a href="#benefits" className="block px-3 py-3 text-lg font-medium text-slate-700 rounded-md hover:bg-slate-50" onClick={(e) => { if(activePage !== 'home') { e.preventDefault(); setActivePage('home'); setTimeout(()=>window.location.hash='#benefits', 100); } setIsMobileMenuOpen(false); }}>Methodology</a>
             <button 
               onClick={() => { setIsMobileMenuOpen(false); onOpenAuth(); }} 
               className="w-full mt-4 bg-coral text-white px-5 py-3 rounded-lg text-lg font-medium text-center"
             >
-              Enroll Now
+              Sign In
             </button>
           </div>
         </div>

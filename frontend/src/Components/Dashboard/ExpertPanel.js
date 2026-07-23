@@ -496,7 +496,7 @@ export default function ExpertPanel({ user }) {
                             {course.title}
                           </span>
                           <span className="text-xs font-semibold text-slate-500 truncate mt-0.5">
-                            {course.category} • {course.hours}h
+                            {course.hours} Hours
                           </span>
                         </div>
                       </div>
@@ -519,7 +519,7 @@ export default function ExpertPanel({ user }) {
 
                     <div className="flex justify-between items-start mb-4 relative z-10">
                       <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                        {selectedCourse.category}
+                        {selectedCourse.category || 'Curriculum'}
                       </span>
                       <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${selectedCourse.is_expert_validated ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                         }`}>
@@ -530,8 +530,6 @@ export default function ExpertPanel({ user }) {
                     <p className="text-sm font-medium text-slate-600 leading-relaxed max-w-3xl relative z-10">{selectedCourse.description}</p>
 
                     <div className="flex items-center gap-6 mt-6 relative z-10 text-sm font-bold text-slate-500">
-                      <div className="flex items-center gap-1.5"><Star size={16} className="text-amber-400 fill-amber-400" /> {selectedCourse.rating}</div>
-                      <div className="flex items-center gap-1.5"><Users size={16} /> {selectedCourse.students_count.toLocaleString()} Students</div>
                       <div className="flex items-center gap-1.5"><Clock size={16} /> {selectedCourse.hours} Hours</div>
                     </div>
                   </div>

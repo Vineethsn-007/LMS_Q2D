@@ -32,8 +32,7 @@ def get_dashboard_stats(
                 total_completed_items += len(completed_arr)
         except Exception:
             pass
-            
-    base_hours = current_user.weekly_progress_hours or (total_completed_items * 0.5)
+    base_hours = total_completed_items * 0.5
     activity_data = [
         {"name": "W1", "hours": round(max(0.5, base_hours * 0.4), 1)},
         {"name": "W2", "hours": round(max(1.0, base_hours * 0.6), 1)},
@@ -53,7 +52,7 @@ def get_dashboard_stats(
         c = course_map.get(p.course_id)
         if not c:
             continue
-        subj = c.category or c.title
+        subj = getattr(c, 'category', None) or c.title
         try:
             completed_arr = json.loads(p.completed_items or "[]")
             total_items = max(1, round((c.hours or 10) * 2))
@@ -77,71 +76,8 @@ def get_dashboard_stats(
         "activity_data": activity_data,
         "skill_data": skill_data,
         "total_completed_items": total_completed_items,
-        "weekly_progress_hours": round(base_hours, 1),
-        "streak": current_user.streak or 0,
-        "xp_points": current_user.xp_points or 0
+        "weekly_progress_hours": round(base_hours, 1)
     }
-
-@router.get("/bookmarks", response_model=List[schemas.BookmarkResponse])
-def get_bookmarks(
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Returns all bookmarks for the current user.
-    """
-    bookmarks = db.query(models.Bookmark).filter(
-        models.Bookmark.user_id == current_user.id
-    ).order_by(models.Bookmark.created_at.desc()).all()
-    return bookmarks
-
-@router.post("/bookmarks", response_model=schemas.BookmarkResponse, status_code=status.HTTP_201_CREATED)
-def create_bookmark(
-    bookmark_in: schemas.BookmarkCreate,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Creates a new bookmark for the current user. If duplicate exists, returns the existing bookmark.
-    """
-    existing = db.query(models.Bookmark).filter(
-        models.Bookmark.user_id == current_user.id,
-        models.Bookmark.item_type == bookmark_in.item_type,
-        models.Bookmark.item_id == bookmark_in.item_id
-    ).first()
-    if existing:
-        return existing
-
-    new_bm = models.Bookmark(
-        user_id=current_user.id,
-        item_type=bookmark_in.item_type,
-        item_id=bookmark_in.item_id,
-        title=bookmark_in.title,
-        url_path=bookmark_in.url_path
-    )
-    db.add(new_bm)
-    db.commit()
-    db.refresh(new_bm)
-    return new_bm
-
-@router.delete("/bookmarks/{bookmark_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_bookmark(
-    bookmark_id: int,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Deletes a bookmark belonging to the current user.
-    """
-    bm = db.query(models.Bookmark).filter(
-        models.Bookmark.id == bookmark_id,
-        models.Bookmark.user_id == current_user.id
-    ).first()
-    if not bm:
-        raise HTTPException(status_code=404, detail="Bookmark not found.")
-    db.delete(bm)
-    db.commit()
-    return None
 
 @router.get("/my-mock-results", response_model=List[schemas.MockTestAttemptResponse])
 def get_my_mock_results(
@@ -821,13 +757,6 @@ def update_course_progress(
             old_count = len(old_items) if isinstance(old_items, list) else 0
         except Exception:
             old_count = 0
-        new_count = len(payload.completed_items)
-        delta = max(0, new_count - old_count)
-        if delta > 0:
-            current_user.weekly_progress_hours = round((current_user.weekly_progress_hours or 0.0) + (delta * 0.5), 1)
-            current_user.xp_points = (current_user.xp_points or 0) + (delta * 25)
-            if not current_user.streak or current_user.streak == 0:
-                current_user.streak = 1
         progress.completed_items = json.dumps(payload.completed_items)
     if payload.quiz_answers is not None:
         progress.quiz_answers = json.dumps(payload.quiz_answers)

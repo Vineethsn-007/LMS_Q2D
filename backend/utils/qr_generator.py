@@ -10,8 +10,9 @@ def generate_qr_code(certificate_id: str, frontend_url: str = "http://localhost:
     Saves the image to uploads/qrcodes/{certificate_id}.png
     Returns the full backend URL to the saved image.
     """
-    if frontend_url == "http://localhost:3000":
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    env_fe = os.getenv("FRONTEND_URL")
+    if env_fe:
+        frontend_url = env_fe
     if backend_url == "http://localhost:8000":
         port = os.getenv("PORT", "8000")
         backend_url = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{port}"))

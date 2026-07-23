@@ -62,8 +62,6 @@ class UserResponse(BaseModel):
     name: str
     is_active: bool
     role: str
-    streak: Optional[int] = 0
-    xp_points: Optional[int] = 0
     weekly_goal_hours: Optional[float] = 8.0
     weekly_progress_hours: Optional[float] = 0.0
     institution_id: Optional[int] = None
@@ -89,13 +87,9 @@ class CourseResponse(BaseModel):
     id: int
     title: str
     description: str
-    category: str
-    rating: float
-    students_count: int
     hours: int
     is_ai_generated: bool
     is_expert_validated: bool
-    image_url: Optional[str] = None
     modules_data: Optional[List[Any]] = None
     quiz_questions: Optional[List[Any]] = None
 
@@ -110,81 +104,10 @@ class ExpertResponse(BaseModel):
     avatar_url: Optional[str] = None
     courses_validated_count: int
 
-    class Config:
-        from_attributes = True
-
-class StatResponse(BaseModel):
-    id: int
-    key: str
-    value: str
-    label: str
-
-    class Config:
-        from_attributes = True
-
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
-
-class CourseProposalCreate(BaseModel):
-    course_name: str
-    reason_to_learn: str
-    skill_level: str
-    preferred_learning_style: str
-    expected_outcome: str
-    additional_notes: Optional[str] = None
-    public_voting: bool = False
-    learner_id: Optional[int] = None
-    learner_name: Optional[str] = None
-    profile_image: Optional[str] = None
-
-class CourseProposalResponse(CourseProposalCreate):
-    id: int
-    status: str
-    ai_summary: Optional[str] = None
-    ai_category: Optional[str] = None
-    risk_level: Optional[str] = None
-    demand_score: Optional[int] = None
-    ai_recommendation: Optional[str] = None
-    duplicate_status: bool = False
-    ai_flagged_reason: Optional[str] = None
-    created_at: Optional[datetime] = None
-    rejection_reason: Optional[str] = None
-    reviewer_feedback: Optional[str] = None
-    upvotes: int = 0
-    downvotes: int = 0
-    comment_count: int = 0
-    user_vote: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-class VoteRequest(BaseModel):
-    vote_type: str
-
-class CommentCreate(BaseModel):
-    content: str
-    parent_comment_id: Optional[int] = None
-
-class CommentResponse(BaseModel):
-    id: int
-    proposal_id: int
-    user_id: int
-    parent_comment_id: Optional[int] = None
-    content: str
-    likes: int
-    created_at: datetime
-    user_name: str
-    user_image: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-class ProposalStatusUpdate(BaseModel):
-    status: str
-    rejection_reason: Optional[str] = None
-    reviewer_feedback: Optional[str] = None
 
 class NotificationResponse(BaseModel):
     id: int
@@ -216,13 +139,9 @@ class RoleUpdate(BaseModel):
 class CourseCreateUpdate(BaseModel):
     title: str
     description: str
-    category: str
-    rating: float
-    students_count: int
     hours: int
     is_ai_generated: bool
     is_expert_validated: bool
-    image_url: Optional[str] = None
     modules_data: Optional[List[Any]] = None
     quiz_questions: Optional[List[Any]] = None
 
@@ -261,37 +180,7 @@ class CertificateResponse(CertificateCreate):
         from_attributes = True
 
 
-# --- Course Feedback ---
-class CourseFeedbackCreate(BaseModel):
-    course_id: int
-    rating: int          # 1-5
-    title: Optional[str] = None
-    comment: str
 
-class CourseFeedbackResponse(BaseModel):
-    id: int
-    course_id: int
-    user_id: Optional[int] = None
-    user_name: str
-    rating: int
-    title: Optional[str] = None
-    comment: str
-    helpful_count: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class SubscriberCreate(BaseModel):
-    email: str
-
-class SubscriberResponse(BaseModel):
-    id: int
-    email: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class QuizQuestion(BaseModel):
     question: str
@@ -530,23 +419,7 @@ class StartMockExamRequest(BaseModel):
     difficulty: Optional[str] = "Intermediate"
     count: Optional[int] = 10
 
-class BookmarkCreate(BaseModel):
-    item_type: str
-    item_id: int
-    title: Optional[str] = None
-    url_path: Optional[str] = None
 
-class BookmarkResponse(BaseModel):
-    id: int
-    user_id: int
-    item_type: str
-    item_id: int
-    title: Optional[str] = None
-    url_path: Optional[str] = None
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class SubjectResponse(BaseModel):
     id: int

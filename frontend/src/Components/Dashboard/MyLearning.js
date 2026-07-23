@@ -98,7 +98,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
   };
 
   if (!course) {
-    return <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>No course selected. Please select a course from the Dashboard or Marketplace.</div>;
+    return <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>No course selected. Please select a subject course from your Dashboard or Registered Subjects.</div>;
   }
 
   const hasModules = course.modules_data && course.modules_data.length > 0;

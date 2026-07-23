@@ -1,7 +1,7 @@
 import logging
 import hashlib
 from database import SessionLocal, engine, Base
-from models import Course, Expert, Stat, User, Institution, Specialization, Subject, StudentRegistration, CourseProposal, CertificateIssue, PaymentConfig
+from models import Course, Expert, User, Institution, Specialization, Subject, StudentRegistration, CertificateIssue, PaymentConfig
 from datetime import datetime, timezone, timedelta
 
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +17,6 @@ def seed_db():
         # Clear existing data to avoid duplicates
         logger.info("Cleaning up existing records...")
         db.query(CertificateIssue).delete()
-        db.query(CourseProposal).delete()
         db.query(StudentRegistration).delete()
         db.query(Subject).delete()
         db.query(Specialization).delete()
@@ -25,7 +24,6 @@ def seed_db():
         db.query(User).delete()
         db.query(Course).delete()
         db.query(Expert).delete()
-        db.query(Stat).delete()
         db.query(PaymentConfig).delete()
         
         # 0. Seed Users
@@ -40,58 +38,33 @@ def seed_db():
                 name="Admin User",
                 hashed_password=admin_pwd,
                 role="admin",
-                is_active=True,
-                streak=5,
-                xp_points=1200,
-                weekly_goal_hours=10.0,
-                weekly_progress_hours=4.5
+                is_active=True
             ),
             User(
                 email="reviewer@skillforge.com",
                 name="Reviewer User",
                 hashed_password=reviewer_pwd,
                 role="reviewer",
-                is_active=True,
-                streak=8,
-                xp_points=1800,
-                weekly_goal_hours=8.0,
-                weekly_progress_hours=5.0
+                is_active=True
             ),
             User(
                 email="expert@skillforge.com",
                 name="Expert User",
                 hashed_password=expert_pwd,
                 role="expert",
-                is_active=True,
-                streak=15,
-                xp_points=3500,
-                weekly_goal_hours=12.0,
-                weekly_progress_hours=8.5
+                is_active=True
             ),
             User(
                 email="learner@skillforge.com",
                 name="Alex Learner",
                 hashed_password=learner_pwd,
                 role="learner",
-                is_active=True,
-                streak=12,
-                xp_points=2840,
-                weekly_goal_hours=8.0,
-                weekly_progress_hours=6.5
+                is_active=True
             )
         ]
         db.add_all(users)
         
-        # 1. Seed Stats
-        logger.info("Seeding statistics...")
-        stats = [
-            Stat(key="active_learners", value="50K+", label="Active Learners"),
-            Stat(key="expert_courses", value="2,400+", label="Expert-Approved Courses"),
-            Stat(key="domain_experts", value="500+", label="Domain Experts")
-        ]
-        db.add_all(stats)
-        
-        # 2. Seed Experts
+        # 1. Seed Experts
         logger.info("Seeding domain experts...")
         experts = [
             Expert(
@@ -117,76 +90,52 @@ def seed_db():
             )
         ]
         db.add_all(experts)
-        db.commit() # Commit experts so we can reference them if needed, or just insert them.
+        db.commit()
 
-        # 3. Seed Courses
+        # 2. Seed Courses
         logger.info("Seeding courses...")
         courses = [
             Course(
                 title="AI-Driven Systems Programming in Rust",
                 description="Harness Rust's safety and speed alongside AI-generated optimization models. Ideal for building backend services and compilers.",
-                category="AI & Machine Learning",
-                rating=4.9,
-                students_count=12450,
                 hours=40,
                 is_ai_generated=True,
-                is_expert_validated=True,
-                image_url="https://images.unsplash.com/photo-1607799279861-4dd421887fb3?auto=format&fit=crop&q=80&w=400"
+                is_expert_validated=True
             ),
             Course(
                 title="PostgreSQL Advanced Optimization & Architecture",
                 description="Master database sharding, connection pooling, complex query analysis, and schema tuning for hyper-scale PostgreSQL databases.",
-                category="Data Science & Databases",
-                rating=4.8,
-                students_count=8900,
                 hours=32,
                 is_ai_generated=False,
-                is_expert_validated=True,
-                image_url="https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&q=80&w=400"
+                is_expert_validated=True
             ),
             Course(
                 title="Neural Networks & Transformers from Scratch",
                 description="Build modern GPT models, learn attention mechanisms, backpropagation calculus, and train text classification networks from first principles.",
-                category="AI & Machine Learning",
-                rating=4.95,
-                students_count=15300,
                 hours=48,
                 is_ai_generated=True,
-                is_expert_validated=True,
-                image_url="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=400"
+                is_expert_validated=True
             ),
             Course(
                 title="Microservices Architecture with Python & FastAPI",
                 description="Design resilient, distributed RESTful and gRPC microservices. Set up OAuth2, Docker orchestration, and Redis cache clusters.",
-                category="Software Engineering",
-                rating=4.75,
-                students_count=18200,
                 hours=28,
                 is_ai_generated=True,
-                is_expert_validated=True,
-                image_url="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=400"
+                is_expert_validated=True
             ),
             Course(
                 title="Next.js 15 & React Server Components Deep Dive",
                 description="Understand how server-side rendering, static site generation, and streaming UI work under the hood. Implement beautiful UX interfaces.",
-                category="Software Engineering",
-                rating=4.85,
-                students_count=21400,
                 hours=36,
                 is_ai_generated=False,
-                is_expert_validated=True,
-                image_url="https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=400"
+                is_expert_validated=True
             ),
             Course(
                 title="Kubernetes Operators and Cloud Native DevOps",
                 description="Build custom Kubernetes controllers using Go and SDK. Master GitOps deployments with ArgoCD and custom autoscaling rules.",
-                category="Product & DevOps",
-                rating=4.7,
-                students_count=6700,
                 hours=30,
                 is_ai_generated=True,
-                is_expert_validated=True,
-                image_url="https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&q=80&w=400"
+                is_expert_validated=True
             )
         ]
         db.add_all(courses)
@@ -211,36 +160,6 @@ def seed_db():
         subj1 = Subject(specialization_id=spec1.id, name="Federated Learning & Edge AI", code="AIML-301", semester_tier="District")
         subj2 = Subject(specialization_id=spec1.id, name="Generative AI Systems Architecture", code="AIML-401", semester_tier="State")
         db.add_all([subj1, subj2])
-
-        # 6. Seed Course Proposals
-        logger.info("Seeding community proposals...")
-        proposals = [
-            CourseProposal(
-                course_name="Federated Learning for Privacy-Preserving ML",
-                reason_to_learn="High demand in healthcare and banking for distributed training.",
-                skill_level="Advanced",
-                preferred_learning_style="Interactive Code & Labs",
-                expected_outcome="Build federated pipelines",
-                public_voting=True,
-                status="pending",
-                ai_category="AI/ML",
-                learner_name="alex_dev",
-                upvotes=412
-            ),
-            CourseProposal(
-                course_name="Rust for High-Performance Systems & WASM",
-                reason_to_learn="Replace C++ memory leaks with memory safety.",
-                skill_level="Intermediate",
-                preferred_learning_style="Hands-on Projects",
-                expected_outcome="Write production WASM modules",
-                public_voting=True,
-                status="pending",
-                ai_category="Systems",
-                learner_name="rustacean_pro",
-                upvotes=328
-            )
-        ]
-        db.add_all(proposals)
 
         # 7. Seed Certificate Issues
         logger.info("Seeding review center certificate issues...")
