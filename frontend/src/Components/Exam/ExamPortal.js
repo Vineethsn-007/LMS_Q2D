@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertCircle, Clock, ShieldCheck, PlayCircle, Loader2, Save, Send, Eye, ShieldAlert, FileText, Maximize2, AlertTriangle, UserCheck } from 'lucide-react';
+import { AlertCircle, Clock, ShieldCheck, PlayCircle, Loader2, Save, Send, Eye, ShieldAlert, FileText, Maximize2, AlertTriangle, UserCheck, Volume2, VolumeX, Camera, RefreshCw, Smartphone } from 'lucide-react';
 
 const enterFullScreen = () => {
   try {
@@ -64,11 +64,67 @@ const ExamPortal = ({ credentialId }) => {
   const screenStreamRef = useRef(null);
   const [tabWarningCountdown, setTabWarningCountdown] = useState(5);
   const [tabWarningActive, setTabWarningActive] = useState(false);
+  const [muteAlerts, setMuteAlerts] = useState(false);
+  const muteAlertsRef = useRef(false);
 
   useEffect(() => {
     examStateRef.current = examState;
     credentialIdRef.current = credentialId;
-  }, [examState, credentialId]);
+    muteAlertsRef.current = muteAlerts;
+  }, [examState, credentialId, muteAlerts]);
+
+  const playAlertSound = (severity = 1) => {
+    if (muteAlertsRef.current) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (severity >= 2) {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(660, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(330, ctx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.35);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(550, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch (e) {
+      console.log("Audio synthesis error:", e);
+    }
+  };
+
+  const reopenCamera = async () => {
+    setCameraPermission('pending');
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(t => t.stop());
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, facingMode: 'user' } });
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      setCameraPermission('granted');
+      setLiveStatusMessage("Proctoring Active - Clean Frame");
+      setLiveStatusType('clean');
+    } catch (err) {
+      console.error("Camera error:", err);
+      setCameraPermission('denied');
+      if (examState === 'taking') {
+        triggerSuspension('hardware', 'Camera access was denied or hardware disconnected.');
+      }
+    }
+  };
 
   useEffect(() => {
     const verifyCredential = async () => {
@@ -98,6 +154,7 @@ const ExamPortal = ({ credentialId }) => {
   };
 
   const triggerSuspension = async (type, message) => {
+    playAlertSound(2);
     setSuspensionReason(message);
     setExamState('suspended');
     
@@ -171,6 +228,7 @@ const ExamPortal = ({ credentialId }) => {
 
     const handleTabSwitchAlert = (violationType) => {
       if (tabWarningActiveRef.current) return;
+      playAlertSound(1);
       tabWarningActiveRef.current = true;
       setTabWarningActive(true);
       setTabWarningCountdown(5);
@@ -293,6 +351,23 @@ const ExamPortal = ({ credentialId }) => {
     let faceDetected = false;
     let faceCount = 0;
     let headTurned = false;
+    let phoneDetected = false;
+
+    if (window.BarcodeDetector) {
+      try {
+        if (!window._barcodeDetector) window._barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code', 'code_128', 'data_matrix'] });
+        const barcodes = await window._barcodeDetector.detect(canvas);
+        if (barcodes && barcodes.length > 0) phoneDetected = true;
+      } catch (e) {}
+    }
+    if (!phoneDetected) {
+      const imageData = ctx.getImageData(0, 0, 160, 120).data;
+      let glarePixels = 0;
+      for (let i = 0; i < imageData.length; i += 4) {
+        if (imageData[i] > 240 && imageData[i+1] > 240 && imageData[i+2] > 240) glarePixels++;
+      }
+      if (glarePixels > 300) phoneDetected = true;
+    }
 
     if (window.FaceDetector) {
       try {
@@ -321,19 +396,27 @@ const ExamPortal = ({ credentialId }) => {
     const now = Date.now();
     if (now - lastWarningTimeRef.current < 4000) return; // Debounce
 
-    if (!faceDetected || faceCount === 0) {
+    if (phoneDetected) {
       lastWarningTimeRef.current = now;
+      playAlertSound(2);
+      setLiveStatusMessage("⚠️ Unauthorized Phone/Device Detected!");
+      setLiveStatusType('error');
+      triggerSuspension('phone', 'Unauthorized mobile phone or screen detected in camera frame.');
+    } else if (!faceDetected || faceCount === 0) {
+      lastWarningTimeRef.current = now;
+      playAlertSound(1);
       setLiveStatusMessage("⚠️ Learner Out of Frame");
       setLiveStatusType('error');
       logViolation('body', 'Learner out of camera frame.');
-      // After multiple missing frames, could trigger suspension
     } else if (faceCount > 1) {
       lastWarningTimeRef.current = now;
+      playAlertSound(2);
       setLiveStatusMessage("⚠️ Multiple Faces Detected!");
       setLiveStatusType('error');
-      triggerSuspension('body', 'Multiple individuals detected in camera frame.');
+      triggerSuspension('multi_person', 'Multiple individuals detected in camera frame.');
     } else if (headTurned) {
       lastWarningTimeRef.current = now;
+      playAlertSound(1);
       setLiveStatusMessage("⚠️ Eye/Head deviation detected.");
       setLiveStatusType('warning');
       logViolation('eye', 'Eye or head deviation detected.');
@@ -595,6 +678,13 @@ const ExamPortal = ({ credentialId }) => {
           </div>
 
           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setMuteAlerts(!muteAlerts)} 
+              title={muteAlerts ? "Unmute Proctoring Alerts" : "Mute Proctoring Alerts"}
+              className="p-2 rounded-lg bg-indigo-800/60 hover:bg-indigo-800 text-indigo-300 transition-colors"
+            >
+              {muteAlerts ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            </button>
             {savingAnswer && <span className="text-xs text-indigo-300 flex items-center gap-1"><Save size={12} className="animate-pulse" /> Saving...</span>}
             <div className={`font-mono text-lg font-bold flex items-center gap-2 bg-indigo-800/50 py-1.5 px-4 rounded-lg ${timeLeft < 300 ? 'text-rose-400' : 'text-emerald-400'}`}>
               <Clock size={18} /> {formatTime(timeLeft)}
@@ -617,8 +707,12 @@ const ExamPortal = ({ credentialId }) => {
               />
               <canvas ref={canvasRef} className="hidden" />
               {cameraPermission !== 'granted' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-lg">
-                  <Loader2 className="animate-spin text-slate-400" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 rounded-lg p-3 text-center">
+                  <Camera className="text-slate-400 mb-2" size={24} />
+                  <p className="text-xs text-slate-300 mb-2">{cameraPermission === 'denied' ? 'Camera Denied / Error' : 'Connecting Camera...'}</p>
+                  <button onClick={reopenCamera} className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded flex items-center gap-1 shadow">
+                    <RefreshCw size={12} /> Re-open Camera
+                  </button>
                 </div>
               )}
             </div>
@@ -757,6 +851,25 @@ const ExamPortal = ({ credentialId }) => {
                   <span>By proceeding, you agree to the Academic Integrity Honor Code.</span>
                 </li>
               </ul>
+            </div>
+            
+            <div className="bg-slate-900 rounded-xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 border border-slate-800 text-white shadow-inner">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-lg ${cameraPermission === 'granted' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                  <Camera size={22} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm">Hardware & Webcam Readiness</h4>
+                  <p className="text-xs text-slate-400">{cameraPermission === 'granted' ? 'Webcam active & verified ready' : cameraPermission === 'denied' ? 'Camera permission denied or disconnected' : 'Webcam not tested yet'}</p>
+                </div>
+              </div>
+              <button 
+                onClick={reopenCamera}
+                type="button"
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold py-2 px-4 rounded-lg text-xs flex items-center gap-2 shrink-0 transition-all shadow"
+              >
+                <RefreshCw size={14} /> {cameraPermission === 'granted' ? 'Re-test Camera' : 'Test & Open Camera'}
+              </button>
             </div>
             
             <div className="flex justify-between items-center border-t border-slate-100 pt-6">

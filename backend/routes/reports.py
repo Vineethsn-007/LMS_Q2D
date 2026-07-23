@@ -142,7 +142,7 @@ def get_system_dashboard(
     rev_tiers = db.query(
         models.PaymentRecord.target_tier,
         func.sum(models.PaymentRecord.total_amount)
-    ).filter(models.PaymentRecord.status == "success").group_by(models.PaymentRecord.target_tier).all()
+    ).filter(models.PaymentRecord.status.in_(["success", "paid"])).group_by(models.PaymentRecord.target_tier).all()
     for tier, total in rev_tiers:
         if tier:
             revenue.append({

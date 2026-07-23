@@ -1,14 +1,17 @@
+import os
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
+from typing import Optional, Dict, Any, List
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Query
 from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
-from auth import get_current_user
+from auth import get_current_user, verifySubAdminOrAdmin
 from services.payment_service import (
     create_order_for_tier,
     verify_razorpay_signature,
     process_successful_payment,
+    get_tier_pricing as fetch_tier_pricing,
     TIER_PRICING
 )
 
@@ -16,9 +19,9 @@ router = APIRouter()
 logger = logging.getLogger("payments_router")
 
 @router.get("/pricing")
-def get_tier_pricing():
-    """ Returns INR pricing breakdown including 18% GST for frontend checkout. """
-    return TIER_PRICING
+def get_tier_pricing(db: Session = Depends(get_db)):
+    """ Returns dynamic INR pricing breakdown including 18% GST for frontend checkout. """
+    return fetch_tier_pricing(db)
 
 @router.get("/history")
 def get_payment_history(
@@ -31,7 +34,72 @@ def get_payment_history(
     ).order_by(models.PaymentRecord.created_at.desc()).all()
     return records
 
-import os
+@router.get("/admin/pricing", response_model=Dict[str, Any])
+def get_admin_tier_pricing(
+    current_user: models.User = Depends(verifySubAdminOrAdmin),
+    db: Session = Depends(get_db)
+):
+    """ Admin endpoint to fetch current pricing breakdown from DB / defaults """
+    return fetch_tier_pricing(db)
+
+@router.put("/admin/pricing/{tier_name}", response_model=schemas.PaymentConfigResponse)
+def update_tier_pricing(
+    tier_name: str,
+    update_data: schemas.PaymentConfigUpdate,
+    current_user: models.User = Depends(verifySubAdminOrAdmin),
+    db: Session = Depends(get_db)
+):
+    """ Admin endpoint to update dynamic pricing and required score for a tier """
+    if tier_name not in ["State", "National"]:
+        raise HTTPException(status_code=400, detail="Invalid tier name. Must be 'State' or 'National'.")
+    
+    config = db.query(models.PaymentConfig).filter(models.PaymentConfig.tier_name == tier_name).first()
+    if not config:
+        config = models.PaymentConfig(tier_name=tier_name)
+        db.add(config)
+    
+    base = float(update_data.base_amount)
+    gst_rate = float(update_data.gst_rate or 0.18)
+    gst_amt = round(base * gst_rate, 2)
+    total_amt = round(base + gst_amt, 2)
+    
+    config.base_amount = base
+    config.gst_rate = gst_rate
+    config.gst_amount = gst_amt
+    config.total_amount = total_amt
+    config.required_score = float(update_data.required_score)
+    
+    db.commit()
+    db.refresh(config)
+    return config
+
+@router.get("/admin/history", response_model=List[schemas.AdminPaymentHistoryItem])
+def get_admin_payment_history(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    tier_filter: Optional[str] = Query(None, alias="tier"),
+    user_id_filter: Optional[int] = Query(None, alias="user_id"),
+    current_user: models.User = Depends(verifySubAdminOrAdmin),
+    db: Session = Depends(get_db)
+):
+    """ Admin endpoint to fetch system-wide payment history with user details """
+    query = db.query(models.PaymentRecord, models.User).join(
+        models.User, models.PaymentRecord.user_id == models.User.id
+    )
+    if status_filter:
+        query = query.filter(models.PaymentRecord.status == status_filter)
+    if tier_filter:
+        query = query.filter(models.PaymentRecord.target_tier == tier_filter)
+    if user_id_filter:
+        query = query.filter(models.PaymentRecord.user_id == user_id_filter)
+        
+    records = query.order_by(models.PaymentRecord.created_at.desc()).all()
+    results = []
+    for pr, usr in records:
+        item = schemas.AdminPaymentHistoryItem.model_validate(pr)
+        item.user_name = usr.name
+        item.user_email = usr.email
+        results.append(item)
+    return results
 
 @router.post("/create-order", response_model=schemas.PaymentOrderResponse)
 def create_payment_order(

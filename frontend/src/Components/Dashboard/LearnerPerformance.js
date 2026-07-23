@@ -660,7 +660,7 @@ const LearnerPerformance = ({ user, embedded = false }) => {
                             </div>
                           </div>
                           <a
-                            href={`http://localhost:3000/verify/${cp.assessment.certificate_id}`}
+                            href={`${process.env.REACT_APP_FRONTEND_URL || window.location.origin}/verify/${cp.assessment.certificate_id}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm shrink-0"

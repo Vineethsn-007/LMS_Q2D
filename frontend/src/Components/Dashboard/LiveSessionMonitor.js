@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, PlayCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Shield, PlayCircle, Clock, AlertCircle, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 
 export default function LiveSessionMonitor() {
   const [sessions, setSessions] = useState([]);
@@ -7,6 +7,48 @@ export default function LiveSessionMonitor() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [violations, setViolations] = useState([]);
   const [loadingViolations, setLoadingViolations] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [newCredData, setNewCredData] = useState(null);
+  const [muteAlerts, setMuteAlerts] = useState(false);
+  const muteAlertsRef = useRef(false);
+  const prevViolationsCountRef = useRef(0);
+
+  useEffect(() => {
+    muteAlertsRef.current = muteAlerts;
+  }, [muteAlerts]);
+
+  const playProctorAlert = (severity = 2) => {
+    if (muteAlertsRef.current) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (severity >= 2) {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(293.66, ctx.currentTime + 0.3); // D4
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.35);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(550, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch (e) {
+      console.log("Audio alert error:", e);
+    }
+  };
 
   const fetchSessions = async () => {
     try {
@@ -30,11 +72,17 @@ export default function LiveSessionMonitor() {
 
   const handleSelectSession = async (session) => {
     setSelectedSession(session);
+    setNewCredData(null);
     setLoadingViolations(true);
     try {
       const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/exam-engine/admin/sessions/${session.session_ref}/violations`);
       if (res.ok) {
         const data = await res.json();
+        if (data.length > prevViolationsCountRef.current && prevViolationsCountRef.current !== 0) {
+          const latest = data[0];
+          playProctorAlert(latest?.severity >= 2 || latest?.violation_type in ('phone', 'device', 'multi_person') ? 2 : 1);
+        }
+        prevViolationsCountRef.current = data.length;
         setViolations(data);
       }
     } catch (err) {
@@ -59,6 +107,28 @@ export default function LiveSessionMonitor() {
       }
     } catch (err) {
       alert("Error resuming session: " + err.message);
+    }
+  };
+
+  const handleRegenerate = async (sessionRef) => {
+    if (!window.confirm("Are you sure you want to regenerate credentials for this session? A new Temp ID and password will be created and emailed to the student.")) return;
+    setRegenerating(true);
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/exam-engine/admin/poc/regenerate-credential/${sessionRef}`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNewCredData(data);
+        fetchSessions();
+      } else {
+        const err = await res.json();
+        alert("Failed to regenerate credential: " + (err.detail || "Unknown error"));
+      }
+    } catch (err) {
+      alert("Error regenerating credential: " + err.message);
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -109,15 +179,45 @@ export default function LiveSessionMonitor() {
                 <Shield size={18} className="text-indigo-600"/> 
                 Violation Logs
               </h3>
-              {selectedSession.status === 'suspended' && (
+              <div className="flex gap-2 items-center">
                 <button 
-                  onClick={() => handleResume(selectedSession.session_ref)}
-                  className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+                  onClick={() => setMuteAlerts(!muteAlerts)} 
+                  title={muteAlerts ? "Unmute Proctoring Alerts" : "Mute Proctoring Alerts"}
+                  className="p-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-600 transition-colors flex items-center gap-1 text-xs font-semibold"
                 >
-                  <PlayCircle size={16} /> Resume Session
+                  {muteAlerts ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} className="text-emerald-600" />}
+                  <span>{muteAlerts ? 'Alerts Muted' : 'Audio On'}</span>
                 </button>
-              )}
+                <button 
+                  onClick={() => handleRegenerate(selectedSession.session_ref)}
+                  disabled={regenerating}
+                  className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-sm font-bold flex items-center gap-1.5 hover:bg-amber-600 transition-colors"
+                >
+                  <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} /> Regenerate Credential
+                </button>
+                {selectedSession.status === 'suspended' && (
+                  <button 
+                    onClick={() => handleResume(selectedSession.session_ref)}
+                    className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+                  >
+                    <PlayCircle size={16} /> Resume Session
+                  </button>
+                )}
+              </div>
             </div>
+            {newCredData && (
+              <div className="p-4 bg-emerald-50 border-b border-emerald-200">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-bold text-emerald-900 text-sm">New Credentials Generated & Emailed!</h4>
+                  <button onClick={() => setNewCredData(null)} className="text-emerald-700 font-bold text-xs hover:underline">Dismiss</button>
+                </div>
+                <div className="mt-2 text-xs font-mono bg-white p-2.5 rounded border border-emerald-200 space-y-1">
+                  <p><strong>Temp User ID:</strong> {newCredData.temp_user_id}</p>
+                  <p><strong>Password:</strong> {newCredData.temp_password}</p>
+                  <p><strong>Link:</strong> <a href={newCredData.assessment_link} target="_blank" rel="noreferrer" className="text-indigo-600 underline">{newCredData.assessment_link}</a></p>
+                </div>
+              </div>
+            )}
             <div className="overflow-y-auto flex-1 p-4">
               {loadingViolations ? (
                 <p className="text-slate-500 text-center"><RefreshCw className="animate-spin inline mr-2" /> Loading logs...</p>

@@ -1,7 +1,7 @@
 import logging
 import hashlib
 from database import SessionLocal, engine, Base
-from models import Course, Expert, Stat, User, Institution, Specialization, Subject, StudentRegistration, CourseProposal, CertificateIssue
+from models import Course, Expert, Stat, User, Institution, Specialization, Subject, StudentRegistration, CourseProposal, CertificateIssue, PaymentConfig
 from datetime import datetime, timezone, timedelta
 
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +26,7 @@ def seed_db():
         db.query(Course).delete()
         db.query(Expert).delete()
         db.query(Stat).delete()
+        db.query(PaymentConfig).delete()
         
         # 0. Seed Users
         logger.info("Seeding users...")
@@ -307,6 +308,30 @@ def seed_db():
                 current_tier="District"
             )
             db.add(reg)
+
+        # 9. Seed Payment Configs
+        logger.info("Seeding Payment Configs...")
+        payment_configs = [
+            PaymentConfig(
+                tier_name="State",
+                base_amount=1500.0,
+                gst_rate=0.18,
+                gst_amount=270.0,
+                total_amount=1770.0,
+                currency="INR",
+                required_score=50.0
+            ),
+            PaymentConfig(
+                tier_name="National",
+                base_amount=2000.0,
+                gst_rate=0.18,
+                gst_amount=360.0,
+                total_amount=2360.0,
+                currency="INR",
+                required_score=60.0
+            )
+        ]
+        db.add_all(payment_configs)
 
         db.commit()
         logger.info("Successfully seeded database with sample data!")

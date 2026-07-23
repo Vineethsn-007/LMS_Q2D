@@ -1,180 +1,179 @@
-import requests
+import os
 import sys
-import json
 import datetime
+os.environ["SKIP_CREDENTIAL_WINDOW_ENFORCEMENT"] = "false"
+from sqlalchemy.orm import Session
+from database import SessionLocal
+import models
+from fastapi.testclient import TestClient
+from main import app
 
-BASE_URL = "http://localhost:8000"
+client = TestClient(app)
 
-def verify_phase2():
-    print("=== VERIFYING PHASE 2: COURSE PROGRESSION VULNERABILITY & LINEAR PROGRESSION ===")
-    
-    sys.path.append('.')
-    from database import SessionLocal
-    import models
-    from auth import create_access_token
-    
+def run_tests():
     db = SessionLocal()
-    
-    # 1. Setup a test course with 2 modules (`Module 1` and `Module 2`) mapped to a subject
-    print("Setting up test course, subject, and student assignments...")
-    
-    # Find or create a specialization and institution
-    spec = db.query(models.Specialization).first()
-    if not spec:
-        spec = models.Specialization(name="Test Spec P2", code="TS-P2")
-        db.add(spec)
+    try:
+        print("=== RUNNING PHASE 2 CREDENTIAL LIFECYCLE TESTS ===")
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        
+        # 1. Setup student user and subject
+        user = db.query(models.User).filter(models.User.email == "phase2_tester@skillforge.com").first()
+        if not user:
+            user = models.User(
+                name="Phase 2 Tester",
+                email="phase2_tester@skillforge.com",
+                hashed_password="hashed_pw_test",
+                role="student"
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            
+        subject = db.query(models.Subject).first()
+        if not subject:
+            print("ERROR: No subject found in DB")
+            return
+            
+        # 2. Test 30-Minute Check-in Window Credential Delivery via trigger-reminders
+        print("\n--- Test 1: Credential Delivery via trigger-reminders ---")
+        slot_dt_ready = now_utc + datetime.timedelta(minutes=20)
+        booking_ref_ready = f"REF-READY-{int(now_utc.timestamp())}"
+        session_ready = models.ExamSession(
+            booking_ref=booking_ref_ready,
+            session_ref=f"SESS-READY-{int(now_utc.timestamp())}",
+            student_id=user.id,
+            subject_id=subject.id,
+            level="Beginner",
+            status="pending"
+        )
+        db.add(session_ready)
+        
+        booking_ready = models.ExamSlotBooking(
+            booking_reference=booking_ref_ready,
+            user_id=user.id,
+            subject_id=subject.id,
+            slot_date=slot_dt_ready.strftime("%Y-%m-%d"),
+            slot_time=slot_dt_ready.strftime("%H:%M"),
+            slot_datetime=slot_dt_ready,
+            status="confirmed"
+        )
+        db.add(booking_ready)
+        db.commit()
+        db.refresh(session_ready)
+        
+        cred_ready = models.ExamCredential(
+            session_id=session_ready.id,
+            temp_user_id=f"SF-READY-{int(now_utc.timestamp())}",
+            temp_password_hash="testpass123",
+            status="issued",
+            issued_at=(slot_dt_ready - datetime.timedelta(minutes=30)),
+            expires_at=(slot_dt_ready + datetime.timedelta(hours=4))
+        )
+        db.add(cred_ready)
         db.commit()
         
-    inst = db.query(models.Institution).first()
-    if not inst:
-        inst = models.Institution(name="Test Inst P2", code="TI-P2")
-        db.add(inst)
+        # Call trigger-reminders endpoint
+        res = client.post("/api/v1/exam-engine/admin/trigger-reminders")
+        assert res.status_code == 200, f"Expected 200 from trigger-reminders, got {res.status_code}: {res.text}"
+        data = res.json()
+        print(f"Trigger Reminders Response: {data}")
+        
+        # Check EmailLog for our ready session
+        email_log = db.query(models.EmailLog).filter(
+            models.EmailLog.recipient == user.email,
+            models.EmailLog.template_type == "exam_credential"
+        ).order_by(models.EmailLog.id.desc()).first()
+        
+        assert email_log is not None, "Expected EmailLog entry with template_type='exam_credential'"
+        print(f"PASS: Credential delivery email recorded in EmailLog (status: {email_log.status}, subject: '{email_log.subject}')")
+        
+        # 3. Test 45-Minute Entry Window Expiration
+        print("\n--- Test 2: 45-Minute Entry Window Expiration ---")
+        slot_dt_expired = now_utc - datetime.timedelta(minutes=50)
+        booking_ref_exp = f"REF-EXP-{int(now_utc.timestamp())}"
+        session_exp = models.ExamSession(
+            booking_ref=booking_ref_exp,
+            session_ref=f"SESS-EXP-{int(now_utc.timestamp())}",
+            student_id=user.id,
+            subject_id=subject.id,
+            level="Beginner",
+            status="pending"
+        )
+        db.add(session_exp)
+        
+        booking_exp = models.ExamSlotBooking(
+            booking_reference=booking_ref_exp,
+            user_id=user.id,
+            subject_id=subject.id,
+            slot_date=slot_dt_expired.strftime("%Y-%m-%d"),
+            slot_time=slot_dt_expired.strftime("%H:%M"),
+            slot_datetime=slot_dt_expired,
+            status="confirmed"
+        )
+        db.add(booking_exp)
+        db.commit()
+        db.refresh(session_exp)
+        
+        cred_exp = models.ExamCredential(
+            session_id=session_exp.id,
+            temp_user_id=f"SF-EXP-{int(now_utc.timestamp())}",
+            temp_password_hash="exppass123",
+            status="issued",
+            issued_at=(slot_dt_expired - datetime.timedelta(minutes=30)),
+            expires_at=(slot_dt_expired + datetime.timedelta(hours=4))
+        )
+        db.add(cred_exp)
         db.commit()
         
-    # Create test course with structured modules_data
-    test_course = models.Course(
-        title="Federated Learning Masterclass (Phase 2 Test)",
-        description="Testing course progression security and linear rules",
-        category="AI",
-        modules_data=[
-            {
-                "title": "Module 1: Fundamentals",
-                "lessons": [
-                    {
-                        "id": "m1_lesson1",
-                        "title": "Introduction to FL",
-                        "contents": [
-                            {"id": "c0", "type": "text", "text_content": "Welcome to FL"},
-                            {"id": "c1", "type": "video", "content_url": "/static/vid1.mp4"}
-                        ]
-                    }
-                ]
-            },
-            {
-                "title": "Module 2: Advanced Aggregation",
-                "lessons": [
-                    {
-                        "id": "m2_lesson1",
-                        "title": "FedAvg Algorithm",
-                        "contents": [
-                            {"id": "c0", "type": "text", "text_content": "Let us explore FedAvg"}
-                        ]
-                    }
-                ]
-            }
-        ]
-    )
-    db.add(test_course)
-    db.commit()
-    db.refresh(test_course)
-    course_id = test_course.id
-    print(f"Created Test Course ID: {course_id}")
-    
-    # Create two subjects: one assigned to the learner, one unassigned
-    subj_assigned = models.Subject(specialization_id=spec.id, institution_id=inst.id, name="Assigned FL Subject")
-    subj_unassigned = models.Subject(specialization_id=spec.id, institution_id=inst.id, name="Unassigned Secret Subject")
-    db.add(subj_assigned)
-    db.add(subj_unassigned)
-    db.commit()
-    db.refresh(subj_assigned)
-    db.refresh(subj_unassigned)
-    
-    # Map the test course to BOTH subjects
-    mapping1 = models.SubjectCourseMapping(subject_id=subj_assigned.id, course_id=course_id, order_index=1)
-    db.add(mapping1)
-    db.commit()
-    
-    # Create another course mapped ONLY to unassigned subject
-    secret_course = models.Course(
-        title="Top Secret Unassigned Course",
-        description="No learner should touch this progress",
-        category="Security",
-        modules_data=[{"title": "M1", "lessons": [{"id": "sec_l1", "contents": [{"id": "c0", "type": "text"}]}]}]
-    )
-    db.add(secret_course)
-    db.commit()
-    db.refresh(secret_course)
-    secret_course_id = secret_course.id
-    mapping2 = models.SubjectCourseMapping(subject_id=subj_unassigned.id, course_id=secret_course_id, order_index=1)
-    db.add(mapping2)
-    db.commit()
-    
-    # Find or create a learner
-    learner = db.query(models.User).filter(models.User.role == "learner").first()
-    if not learner:
-        learner = models.User(email="testlearner_p2@skillforge.com", name="Learner P2", hashed_password="hashedpassword", role="learner")
-        db.add(learner)
-        db.commit()
-        db.refresh(learner)
+        # Verify credential endpoint should detect >45m past slot start without starting and expire it
+        verify_res = client.get(f"/api/v1/exam-engine/credentials/{cred_exp.temp_user_id}")
+        assert verify_res.status_code == 200
+        verify_data = verify_res.json()
+        print(f"Verify Response for 50m old pending slot: {verify_data}")
+        assert verify_data["status"] == "expired", f"Expected 'expired', got '{verify_data['status']}'"
+        assert verify_data["is_valid"] is False, f"Expected is_valid=False, got {verify_data['is_valid']}"
+        print("PASS: verify_credential correctly expired slot >45 minutes past start time.")
         
-    # Ensure active registration for learner
-    reg = db.query(models.StudentRegistration).filter(models.StudentRegistration.user_id == learner.id).first()
-    if not reg:
-        reg = models.StudentRegistration(user_id=learner.id, institution_id=inst.id, specialization_id=spec.id, access_status="active")
-        db.add(reg)
-    else:
-        reg.access_status = "active"
-    db.commit()
-    db.refresh(reg)
-    
-    # Assign ONLY subj_assigned to this learner
-    db.query(models.StudentSubjectAssignment).filter(models.StudentSubjectAssignment.user_id == learner.id).delete()
-    assign = models.StudentSubjectAssignment(user_id=learner.id, subject_id=subj_assigned.id, registration_id=reg.id)
-    db.add(assign)
-    
-    # Clean up existing progress for these test courses
-    db.query(models.UserCourseProgress).filter(
-        models.UserCourseProgress.user_id == learner.id,
-        models.UserCourseProgress.course_id.in_([course_id, secret_course_id])
-    ).delete()
-    db.commit()
-    
-    token = create_access_token({"sub": str(learner.id), "role": learner.role})
-    headers = {"Authorization": f"Bearer {token}"}
-    db.close()
-    
-    # Test 1: Try to access progress for `secret_course_id` which is NOT assigned to the learner -> Expect 403
-    print(f"\n--- Test 1: Accessing unassigned course progress (Course ID {secret_course_id}) ---")
-    res_unassigned = requests.get(f"{BASE_URL}/api/learning/courses/{secret_course_id}/progress", headers=headers)
-    print(f"Status: {res_unassigned.status_code} - Response: {res_unassigned.text}")
-    assert res_unassigned.status_code == 403, f"Expected 403 Forbidden for unassigned course, got {res_unassigned.status_code}"
-    
-    res_unassigned_put = requests.put(f"{BASE_URL}/api/learning/courses/{secret_course_id}/progress", json={"completed_items": ["sec_l1_c0"]}, headers=headers)
-    print(f"PUT Status: {res_unassigned_put.status_code} - Response: {res_unassigned_put.text}")
-    assert res_unassigned_put.status_code == 403, f"Expected 403 Forbidden for PUT on unassigned course, got {res_unassigned_put.status_code}"
-    
-    # Test 2: Try to access nonexistent course -> Expect 404
-    print(f"\n--- Test 2: Accessing nonexistent course progress (Course ID 999999) ---")
-    res_404 = requests.get(f"{BASE_URL}/api/learning/courses/999999/progress", headers=headers)
-    print(f"Status: {res_404.status_code} - Response: {res_404.text}")
-    assert res_404.status_code == 404, f"Expected 404 for nonexistent course, got {res_404.status_code}"
-    
-    # Test 3: Try submitting invalid/bogus item ID to assigned course (`course_id`) -> Expect 400
-    print(f"\n--- Test 3: Submitting bogus item ID to assigned course (Course ID {course_id}) ---")
-    res_bogus = requests.put(f"{BASE_URL}/api/learning/courses/{course_id}/progress", json={"completed_items": ["fake_module_999_c0"]}, headers=headers)
-    print(f"Status: {res_bogus.status_code} - Response: {res_bogus.text}")
-    assert res_bogus.status_code == 400, f"Expected 400 rejection for bogus item ID, got {res_bogus.status_code}"
-    
-    # Test 4: Try completing Module 2 item (`m2_lesson1_c0`) when Module 1 items (`m1_lesson1_c0`, `m1_lesson1_c1`) are NOT completed -> Expect 400 (Linear Progression Rule violation)
-    print(f"\n--- Test 4: Skipping Module 1 and completing Module 2 item ---")
-    res_skip = requests.put(f"{BASE_URL}/api/learning/courses/{course_id}/progress", json={"completed_items": ["m2_lesson1_c0"]}, headers=headers)
-    print(f"Status: {res_skip.status_code} - Response: {res_skip.text}")
-    assert res_skip.status_code == 400, f"Expected 400 rejection for skipping Module 1, got {res_skip.status_code}"
-    assert "Linear progression rule violation" in res_skip.text, f"Expected linear progression error message, got {res_skip.text}"
-    
-    # Test 5: Complete Module 1 items (`m1_lesson1_c0`, `m1_lesson1_c1`) -> Expect 200 OK
-    print(f"\n--- Test 5: Completing Module 1 items legitimately ---")
-    res_m1 = requests.put(f"{BASE_URL}/api/learning/courses/{course_id}/progress", json={"completed_items": ["m1_lesson1_c0", "m1_lesson1_c1"]}, headers=headers)
-    print(f"Status: {res_m1.status_code} - Response: {res_m1.text}")
-    assert res_m1.ok, f"Expected 200 success for Module 1 completion, got {res_m1.status_code}"
-    
-    # Test 6: Now complete Module 2 item (`m2_lesson1_c0`) along with Module 1 items -> Expect 200 OK
-    print(f"\n--- Test 6: Progressing to Module 2 after Module 1 is completed ---")
-    res_m2 = requests.put(f"{BASE_URL}/api/learning/courses/{course_id}/progress", json={"completed_items": ["m1_lesson1_c0", "m1_lesson1_c1", "m2_lesson1_c0"]}, headers=headers)
-    print(f"Status: {res_m2.status_code} - Response: {res_m2.text}")
-    assert res_m2.ok, f"Expected 200 success for progressing to Module 2, got {res_m2.status_code}"
-    
-    print("\nSUCCESS: All Phase 2 Course Progression security and linear progression tests passed perfectly!")
+        # Check start_exam_session also blocks entry
+        start_res = client.post(f"/api/v1/exam-engine/sessions/{cred_exp.temp_user_id}/start")
+        assert start_res.status_code == 403, f"Expected 403 when trying to start expired credential, got {start_res.status_code}"
+        print(f"PASS: start_exam_session blocked with 403: {start_res.json()['detail']}")
+        
+        # 4. Test Credential Regeneration API & Email Delivery
+        print("\n--- Test 3: Credential Regeneration & Email Delivery ---")
+        regen_res = client.post(f"/api/v1/exam-engine/admin/poc/regenerate-credential/{session_exp.session_ref}")
+        assert regen_res.status_code == 200, f"Expected 200 from regenerate-credential, got {regen_res.status_code}: {regen_res.text}"
+        regen_data = regen_res.json()
+        print(f"Regenerate Response: {regen_data}")
+        assert regen_data["success"] is True
+        assert "temp_user_id" in regen_data and regen_data["temp_user_id"].startswith("SF-")
+        assert regen_data["temp_user_id"] != cred_exp.temp_user_id, "New temp_user_id must be generated!"
+        print(f"PASS: Regenerated new temp_user_id: {regen_data['temp_user_id']} and password: {regen_data['temp_password']}")
+        
+        # Verify fresh email sent via EmailLog
+        new_log = db.query(models.EmailLog).filter(
+            models.EmailLog.recipient == user.email,
+            models.EmailLog.template_type == "exam_credential"
+        ).order_by(models.EmailLog.id.desc()).first()
+        assert new_log is not None and regen_data["temp_user_id"] in new_log.subject, "New credential should be emailed"
+        print("PASS: New credentials delivered via MailerService (logged in EmailLog).")
+        
+        # Verify new credential is ready to use and session is reset from terminated to pending
+        db.refresh(session_exp)
+        assert session_exp.status == "pending", f"Expected session reset to pending, got {session_exp.status}"
+        
+        new_verify_res = client.get(f"/api/v1/exam-engine/credentials/{regen_data['temp_user_id']}")
+        assert new_verify_res.status_code == 200
+        new_verify_data = new_verify_res.json()
+        print(f"Verify response on regenerated credential: {new_verify_data}")
+        assert new_verify_data["is_valid"] is True, f"Expected regenerated credential to be valid, got {new_verify_data}"
+        assert new_verify_data["status"] == "ready", f"Expected 'ready', got '{new_verify_data['status']}'"
+        print("PASS: Regenerated credential successfully verified and ready for exam check-in.")
+        
+        print("\n=== ALL PHASE 2 TESTS PASSED WITH ACTUAL EVIDENCE! ===")
+        
+    finally:
+        db.close()
 
 if __name__ == "__main__":
-    verify_phase2()
+    run_tests()

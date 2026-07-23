@@ -19,10 +19,10 @@ export const getCertificateHTML = (arg1, courseName, dateString, certId = '', qr
   }
 
   // Ensure absolute URL for QR code so it renders reliably in print mode and previews
-  const rawQr = certificate.qr_code_path || '';
+  const apiBase = process.env.REACT_APP_API_URL || 'http://localhost:8000';
   const qrSrc = rawQr 
-    ? (rawQr.startsWith('http') ? rawQr : `http://localhost:8000${rawQr.startsWith('/') ? '' : '/'}${rawQr}`) 
-    : (certificate.certId ? `http://localhost:8000/uploads/qrcodes/${certificate.certId}.png` : '');
+    ? (rawQr.startsWith('http') ? rawQr : `${apiBase}${rawQr.startsWith('/') ? '' : '/'}${rawQr}`) 
+    : (certificate.certId ? `${apiBase}/uploads/qrcodes/${certificate.certId}.png` : '');
 
   certificate.qr_code_path = qrSrc;
 

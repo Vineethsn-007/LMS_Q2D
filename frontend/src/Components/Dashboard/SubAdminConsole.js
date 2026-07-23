@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   Shield, Building, GraduationCap, UploadCloud, BarChart3, Plus, Trash2, Edit,
   RefreshCw, X, Check, Lock, Key, Download, AlertCircle, Search, Filter,
-  CheckCircle, FileText, Users, Sliders, Megaphone, Ticket, CalendarDays
+  CheckCircle, FileText, Users, Sliders, Megaphone, Ticket, CalendarDays, CreditCard
 } from 'lucide-react';
 import './AdminPanel.css';
 import TicketQueue from './TicketQueue';
 import AnnouncementComposer from './AnnouncementComposer';
 import SubjectManager from './SubjectManager';
+import PaymentConfigManager from './PaymentConfigManager';
 
 export default function SubAdminConsole({ user }) {
   const [activeTab, setActiveTab] = useState(user?.role === 'admin' ? 'subadmins' : 'institutions');
@@ -559,6 +560,12 @@ export default function SubAdminConsole({ user }) {
               onClick={() => { setActiveTab('examwindows'); fetchExamSubjects(); }}
             >
               <CalendarDays size={16} className="text-violet-500" /> Exam Windows
+            </button>
+            <button
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'payments' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => setActiveTab('payments')}
+            >
+              <CreditCard size={16} className="text-amber-500" /> Payments & Pricing
             </button>
           </div>
         </div>
@@ -1252,6 +1259,13 @@ export default function SubAdminConsole({ user }) {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* --- TAB: PAYMENTS & PRICING --- */}
+        {activeTab === 'payments' && (
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 md:p-8 shadow-sm flex flex-col gap-6">
+            <PaymentConfigManager />
           </div>
         )}
 

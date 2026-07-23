@@ -30,9 +30,40 @@ TIER_PRICING = {
     }
 }
 
+def get_tier_pricing(db: Optional[Session] = None) -> Dict[str, Any]:
+    """ Returns dynamic tier pricing dictionary from PaymentConfig DB table, with fallback to default TIER_PRICING. """
+    if db is not None:
+        try:
+            configs = db.query(models.PaymentConfig).all()
+            if configs:
+                pricing = {}
+                for cfg in configs:
+                    if cfg.tier_name == "State":
+                        pricing["State"] = {
+                            "base_amount": cfg.base_amount,
+                            "gst_rate": cfg.gst_rate,
+                            "gst_amount": cfg.gst_amount,
+                            "total_amount": cfg.total_amount,
+                            "required_district_score": cfg.required_score
+                        }
+                    elif cfg.tier_name == "National":
+                        pricing["National"] = {
+                            "base_amount": cfg.base_amount,
+                            "gst_rate": cfg.gst_rate,
+                            "gst_amount": cfg.gst_amount,
+                            "total_amount": cfg.total_amount,
+                            "required_state_score": cfg.required_score
+                        }
+                if "State" in pricing and "National" in pricing:
+                    return pricing
+        except Exception as e:
+            logger.warning(f"Failed to fetch PaymentConfig from DB, using fallback: {e}")
+    return TIER_PRICING
+
 def create_order_for_tier(db: Session, user_id: int, registration_id: int, target_tier: str) -> models.PaymentRecord:
     """ Creates a PaymentRecord for Razorpay checkout with tax breakdown and calls Razorpay API. """
-    tier_info = TIER_PRICING.get(target_tier)
+    pricing_map = get_tier_pricing(db)
+    tier_info = pricing_map.get(target_tier)
     if not tier_info:
         raise ValueError(f"Invalid target tier '{target_tier}' for payment.")
 
@@ -47,12 +78,14 @@ def create_order_for_tier(db: Session, user_id: int, registration_id: int, targe
     # Validate eligibility scores
     if target_tier == "State":
         score = registration.district_score
-        if score is None or score < tier_info["required_district_score"]:
-            raise ValueError("Cannot unlock State level without passing District level (score >= 50%).")
+        req_score = tier_info.get("required_district_score", 50.0)
+        if score is None or score < req_score:
+            raise ValueError(f"Cannot unlock State level without passing District level (score >= {int(req_score)}%).")
     elif target_tier == "National":
         score = registration.state_score
-        if score is None or score < tier_info["required_state_score"]:
-            raise ValueError("Cannot unlock National level without passing State level (score >= 60%).")
+        req_score = tier_info.get("required_state_score", 60.0)
+        if score is None or score < req_score:
+            raise ValueError(f"Cannot unlock National level without passing State level (score >= {int(req_score)}%).")
 
     import requests
     razorpay_amount = int(round(tier_info["total_amount"] * 100))
@@ -138,7 +171,8 @@ def process_successful_payment(
     if not registration:
         raise ValueError(f"Registration ID {registration_id} not found.")
 
-    tier_info = TIER_PRICING.get(target_tier, {
+    pricing_map = get_tier_pricing(db)
+    tier_info = pricing_map.get(target_tier, {
         "base_amount": 0.0, "gst_amount": 0.0, "total_amount": 0.0
     })
 

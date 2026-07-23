@@ -131,19 +131,40 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(exam_session)
     
-    expires_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    expires_at = now_utc + datetime.timedelta(days=1)
+    issued_at = now_utc
+    slot_dt = None
     if request.slot_datetime:
         try:
-            slot_time = datetime.datetime.fromisoformat(request.slot_datetime.replace('Z', '+00:00'))
-            expires_at = slot_time + datetime.timedelta(hours=4)
+            slot_dt = datetime.datetime.fromisoformat(request.slot_datetime.replace('Z', '+00:00'))
         except Exception:
             pass
+    if not slot_dt and request.slot_date and request.slot_time:
+        try:
+            time_part = request.slot_time.split(' - ')[0].strip()
+            dt_str = f"{request.slot_date} {time_part}"
+            for fmt in ("%Y-%m-%d %I:%M %p", "%Y-%m-%d %I:%M%p", "%Y-%m-%d %H:%M"):
+                try:
+                    slot_dt = datetime.datetime.strptime(dt_str, fmt).replace(tzinfo=datetime.timezone.utc)
+                    break
+                except ValueError:
+                    continue
+        except Exception:
+            pass
+
+    if slot_dt:
+        if slot_dt.tzinfo is None:
+            slot_dt = slot_dt.replace(tzinfo=datetime.timezone.utc)
+        issued_at = slot_dt - datetime.timedelta(minutes=30)
+        expires_at = slot_dt + datetime.timedelta(hours=4)
             
     temp_user_id = f"SF-{uuid.uuid4().hex[:8].upper()}"
     credential = models.ExamCredential(
         session_id=exam_session.id,
         temp_user_id=temp_user_id,
         temp_password_hash=uuid.uuid4().hex, # plain token for now
+        issued_at=issued_at,
         expires_at=expires_at,
         status="issued"
     )
@@ -202,15 +223,20 @@ def verify_credential(temp_user_id: str, db: Session = Depends(get_db)):
     is_valid = False
     status_msg = cred.status
     now = datetime.datetime.now(datetime.timezone.utc)
+    cred_expires = cred.expires_at.astimezone(datetime.timezone.utc) if cred.expires_at.tzinfo else cred.expires_at.replace(tzinfo=datetime.timezone.utc)
+    cred_issued = cred.issued_at.astimezone(datetime.timezone.utc) if cred.issued_at.tzinfo else cred.issued_at.replace(tzinfo=datetime.timezone.utc)
     
+    entry_deadline = cred_issued + datetime.timedelta(minutes=75) # slot start + 45 minutes
     if cred.status == "revoked":
         status_msg = "revoked"
     elif cred.status == "used":
         status_msg = "used"
-    elif now > cred.expires_at:
+    elif now > cred_expires or (session.status == "pending" and now > entry_deadline):
         status_msg = "expired"
         if cred.status != "expired":
             cred.status = "expired"
+            if session.status == "pending":
+                session.status = "terminated"
             
             # Notify admin
             admin_email = "admin@skillforge.com" # Simplification for now
@@ -222,6 +248,9 @@ def verify_credential(temp_user_id: str, db: Session = Depends(get_db)):
             )
             db.add(email_log)
             db.commit()
+    elif now < cred_issued:
+        status_msg = "not_yet_available"
+        is_valid = False
     else:
         is_valid = True
         status_msg = "ready"
@@ -287,9 +316,11 @@ def trigger_link_webhooks(db: Session = Depends(get_db)):
             
     return {"processed": count, "errors": errors}
 
+from services.mailer import MailerService
+
 @router.post("/admin/poc/regenerate-credential/{session_ref}")
 def regenerate_credential(session_ref: str, db: Session = Depends(get_db)):
-    """Admin endpoint to regenerate an expired credential."""
+    """Admin endpoint to regenerate an expired or lost credential."""
     session = db.query(models.ExamSession).filter(models.ExamSession.session_ref == session_ref).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -298,11 +329,51 @@ def regenerate_credential(session_ref: str, db: Session = Depends(get_db)):
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")
         
-    cred.status = "issued"
-    cred.expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=4)
-    db.commit()
+    user = db.query(models.User).filter(models.User.id == session.student_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Student user not found")
+
+    new_temp_user_id = f"SF-{uuid.uuid4().hex[:8].upper()}"
+    new_temp_password = uuid.uuid4().hex[:8]
     
-    return {"success": True, "message": "Credential regenerated"}
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    cred.temp_user_id = new_temp_user_id
+    cred.temp_password_hash = new_temp_password
+    cred.status = "issued"
+    cred.issued_at = now_utc
+    cred.expires_at = now_utc + datetime.timedelta(hours=4)
+    
+    if session.status in ("terminated", "expired"):
+        session.status = "pending"
+        
+    db.commit()
+    db.refresh(cred)
+    
+    import os
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    frontend_url = os.getenv("FRONTEND_URL", default_fe).rstrip("/")
+    link = f"{frontend_url}/exam/take/{new_temp_user_id}"
+    slot_time_str = now_utc.strftime("%Y-%m-%d %I:%M %p UTC")
+    
+    # Send email notification with new credential
+    MailerService.send_exam_credential_email(
+        email=user.email,
+        name=user.name,
+        temp_user_id=new_temp_user_id,
+        temp_password=new_temp_password,
+        assessment_link=link,
+        slot_time_str=slot_time_str,
+        db=db
+    )
+    
+    return {
+        "success": True,
+        "message": "Credential regenerated and emailed to student successfully",
+        "temp_user_id": new_temp_user_id,
+        "temp_password": new_temp_password,
+        "assessment_link": link,
+        "expires_at": cred.expires_at.isoformat()
+    }
 
 class SlotCancelRequest(BaseModel):
     exam_engine_session_ref: str

@@ -1071,6 +1071,29 @@ class PaymentRecordResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class PaymentConfigResponse(BaseModel):
+    id: int
+    tier_name: str
+    base_amount: float
+    gst_rate: float
+    gst_amount: float
+    total_amount: float
+    currency: str
+    required_score: float
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class PaymentConfigUpdate(BaseModel):
+    base_amount: float
+    gst_rate: Optional[float] = 0.18
+    required_score: float
+
+class AdminPaymentHistoryItem(PaymentRecordResponse):
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+
 class AccessAuditLogResponse(BaseModel):
     id: int
     registration_id: int

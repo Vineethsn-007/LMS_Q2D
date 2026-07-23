@@ -26,12 +26,15 @@ const skillData = [
   { subject: 'Sys. Design', A: 85, fullMark: 100 },
 ];
 
-const DashboardContent = ({ user, onStartCourse }) => {
+const DashboardContent = ({ user, onStartCourse, searchQuery = '' }) => {
   const greeting = useDynamicGreeting();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [completedCourses, setCompletedCourses] = useState([]);
   const [progressTick, setProgressTick] = useState(0);
+  const [stats, setStats] = useState(null);
+  const [activityChartData, setActivityChartData] = useState(activityData);
+  const [skillRadarData, setSkillRadarData] = useState(skillData);
 
   useEffect(() => {
     const handleProgressChange = () => {
@@ -68,9 +71,38 @@ const DashboardContent = ({ user, onStartCourse }) => {
     fetchCourses();
   }, []);
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem('sf_token');
+        if (!token) return;
+        const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/learning/dashboard-stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+          if (data.activity_data && data.activity_data.length > 0) setActivityChartData(data.activity_data);
+          if (data.skill_data && data.skill_data.length > 0) setSkillRadarData(data.skill_data);
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard stats:", err);
+      }
+    };
+    fetchStats();
+  }, [progressTick]);
+
   const enrolledCourses = JSON.parse(localStorage.getItem('sf_enrolled_courses') || '[]');
+  const filterBySearch = (c) => {
+    if (!searchQuery || !searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (c.title && c.title.toLowerCase().includes(q)) ||
+           (c.category && c.category.toLowerCase().includes(q)) ||
+           (c.description && c.description.toLowerCase().includes(q));
+  };
+
   const continueLearningCourses = [...courses]
-    .filter(c => !completedCourses.includes(c.id))
+    .filter(c => !completedCourses.includes(c.id) && filterBySearch(c))
     .sort((a, b) => {
       const progA = JSON.parse(localStorage.getItem(`sf_progress_${a.id}`) || '[]').length;
       const progB = JSON.parse(localStorage.getItem(`sf_progress_${b.id}`) || '[]').length;
@@ -80,11 +112,13 @@ const DashboardContent = ({ user, onStartCourse }) => {
       return enrB - enrA;
     })
     .slice(0, 3);
-  const aiRecommended = courses.filter(c => c.is_ai_generated).slice(0, 3);
+  const aiRecommended = courses.filter(c => c.is_ai_generated && filterBySearch(c)).slice(0, 3);
   
-  const enrolledCount = courses.length;
-  const completedCount = courses.filter(c => c.is_expert_validated).length;
-  const totalHours = courses.reduce((acc, c) => acc + c.hours, 0);
+  const enrolledCount = enrolledCourses.length > 0 ? enrolledCourses.length : courses.length;
+  const completedCount = completedCourses.length > 0 ? completedCourses.length : courses.filter(c => c.is_expert_validated).length;
+  const totalHours = courses.reduce((acc, c) => acc + (c.hours || 0), 0);
+  const dynamicSkillScore = stats?.xp_points || user?.xp_points || 840;
+  const streakBonus = stats?.streak || user?.streak || 1;
 
   const progressPercent = user?.weekly_goal_hours 
     ? Math.min(100, (user.weekly_progress_hours / user.weekly_goal_hours) * 100) 
@@ -173,8 +207,8 @@ const DashboardContent = ({ user, onStartCourse }) => {
                 </div>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Skill Score</span>
               </div>
-              <div className="text-2xl font-bold text-navy-900 mb-1">840</div>
-              <div className="text-xs text-emerald-500 font-medium">+45 points</div>
+              <div className="text-2xl font-bold text-navy-900 mb-1">{dynamicSkillScore}</div>
+              <div className="text-xs text-emerald-500 font-medium">+{streakBonus * 10} streak XP</div>
             </div>
           </div>
 
@@ -279,7 +313,7 @@ const DashboardContent = ({ user, onStartCourse }) => {
             </div>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={activityData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
+                <LineChart data={activityChartData} margin={{ top: 5, right: 10, bottom: 5, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
@@ -330,7 +364,7 @@ const DashboardContent = ({ user, onStartCourse }) => {
             <h2 className="text-base font-bold text-navy-900 mb-6">Skill Radar</h2>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={skillData}>
+                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={skillRadarData}>
                   <PolarGrid stroke="#f1f5f9" />
                   <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} />
                   <Radar name="Skills" dataKey="A" stroke="#0B3D91" fill="#0B3D91" fillOpacity={0.15} />

@@ -415,6 +415,19 @@ class UserCourseProgress(Base):
     quiz_answers = Column(Text, default="{}")     # JSON string dict of quiz answers
     last_accessed_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+class PaymentConfig(Base):
+    __tablename__ = "payment_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tier_name = Column(String, unique=True, index=True, nullable=False) # e.g., 'State', 'National'
+    base_amount = Column(Float, nullable=False)
+    gst_rate = Column(Float, default=0.18)
+    gst_amount = Column(Float, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    currency = Column(String, default="INR")
+    required_score = Column(Float, nullable=False) # e.g., 50.0 for State, 60.0 for National
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
 class PaymentRecord(Base):
     __tablename__ = "payment_records"
 

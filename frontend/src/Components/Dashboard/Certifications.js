@@ -12,6 +12,10 @@ const Certifications = ({ user }) => {
   const [targetTier, setTargetTier] = useState('State');
   const [paying, setPaying] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [pricingMap, setPricingMap] = useState({
+    State: { base_amount: 1500, gst_amount: 270, total_amount: 1770 },
+    National: { base_amount: 2000, gst_amount: 360, total_amount: 2360 }
+  });
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -27,10 +31,11 @@ const Certifications = ({ user }) => {
       const token = localStorage.getItem('sf_token') || localStorage.getItem('token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-      const [certRes, regRes, progRes] = await Promise.all([
+      const [certRes, regRes, progRes, pricingRes] = await Promise.all([
         fetch(`${API_URL}/api/certificates/${user.id}`, { headers }),
         fetch(`${API_URL}/api/learning/my-registration`, { headers }),
         fetch(`${API_URL}/api/learning/subjects-progress`, { headers }),
+        fetch(`${API_URL}/api/payments/pricing`, { headers })
       ]);
 
       if (certRes.ok) setCertificates(await certRes.json());
@@ -45,6 +50,12 @@ const Certifications = ({ user }) => {
         setSubjectsProgress(progData || []);
         if (progData?.length > 0 && !selectedSubjectId) {
           setSelectedSubjectId(progData[0].subject_id);
+        }
+      }
+      if (pricingRes.ok) {
+        const pData = await pricingRes.json();
+        if (pData && pData.State && pData.National) {
+          setPricingMap(pData);
         }
       }
     } catch (err) {
@@ -191,11 +202,12 @@ const Certifications = ({ user }) => {
     }
   };
 
-  const pricingMap = {
-    State: { base: 1500, gst: 270, total: 1770 },
-    National: { base: 2000, gst: 360, total: 2360 }
+  const pricingInfo = pricingMap[targetTier] || pricingMap.State || { base_amount: 1500, gst_amount: 270, total_amount: 1770 };
+  const pricing = {
+    base: pricingInfo.base_amount !== undefined ? pricingInfo.base_amount : (pricingInfo.base || 1500),
+    gst: pricingInfo.gst_amount !== undefined ? pricingInfo.gst_amount : (pricingInfo.gst || 270),
+    total: pricingInfo.total_amount !== undefined ? pricingInfo.total_amount : (pricingInfo.total || 1770)
   };
-  const pricing = pricingMap[targetTier] || pricingMap.State;
 
   const badgeConfig = {
     Bronze: {

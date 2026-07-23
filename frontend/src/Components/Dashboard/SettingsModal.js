@@ -69,7 +69,7 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
           name: trimmedName,
           email: email.trim(),
           weekly_goal_hours: hours,
-          ...(password && !isLearner ? { password } : {})
+          ...(password ? { password } : {})
         })
       });
 
@@ -139,7 +139,7 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
             />
           </div>
 
-          {isLearner ? (
+          {isLearner && (
             <div className="settings-input-group">
               <label className="settings-label">
                 <Clock size={16} className="settings-input-icon" />
@@ -159,44 +159,44 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
                 We'll track your progress against this goal on your dashboard.
               </span>
             </div>
-          ) : (
-            <div className="settings-input-group">
-              <label className="settings-label">
-                <Shield size={16} className="settings-input-icon" />
-                Password
-              </label>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  className="settings-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Leave blank to keep current password"
-                  disabled={loading || success}
-                  style={{ width: '100%', paddingRight: '40px' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#666',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-              <span className="settings-helper-text">
-                Update your password.
-              </span>
-            </div>
           )}
+
+          <div className="settings-input-group">
+            <label className="settings-label">
+              <Shield size={16} className="settings-input-icon" />
+              Password
+            </label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                className="settings-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Leave blank to keep current password"
+                disabled={loading || success}
+                style={{ width: '100%', paddingRight: '40px' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#666',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            <span className="settings-helper-text">
+              Update your password.
+            </span>
+          </div>
 
           <div className="settings-modal-footer">
             <button

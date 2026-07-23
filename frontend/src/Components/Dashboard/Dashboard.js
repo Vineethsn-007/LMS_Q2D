@@ -59,6 +59,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('sf_welcome_shown'));
   const [isProposalOpen, setIsProposalOpen] = useState(false);
   const [activeSubject, setActiveSubject] = useState(null);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const greeting = useDynamicGreeting();
 
   useEffect(() => {
@@ -156,6 +157,13 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
               <input 
                 type="text" 
                 placeholder="Search courses, skills, experts..." 
+                value={globalSearchQuery}
+                onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && activeView !== 'dashboard' && activeView !== 'marketplace') {
+                    setActiveView('marketplace');
+                  }
+                }}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border-transparent rounded-lg text-sm focus:bg-white focus:border-navy focus:ring-2 focus:ring-navy/20 transition-all outline-none"
               />
             </div>
@@ -233,12 +241,13 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
               <ExpertPanel user={user} />
             </ExpertProtectedRoute>
           ) : (
-            <DashboardContent user={user} onStartCourse={handleStartCourse} />
+            <DashboardContent user={user} onStartCourse={handleStartCourse} searchQuery={globalSearchQuery} />
           )
         )}
         {activeView === 'marketplace' && (
           <Marketplace 
             user={user}
+            searchQuery={globalSearchQuery}
             onStartCourse={handleStartCourse} 
             onCheckout={(course) => {
               setCheckoutCourse(course);

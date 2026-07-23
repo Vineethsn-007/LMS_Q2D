@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users, Trash2, Edit, Plus, Shield, RefreshCw, X, ShieldAlert, Check, Mail, BarChart2, FileText
+  Users, Trash2, Edit, Plus, Shield, RefreshCw, X, ShieldAlert, Check, Mail, BarChart2, FileText, CreditCard
 } from 'lucide-react';
 import SubAdminConsole from './SubAdminConsole';
 import AdminAnalyticsDashboard from './AdminAnalyticsDashboard';
 import QuestionBankManager from './QuestionBankManager';
 import ExamConfigPanel from './ExamConfigPanel';
 import LiveSessionMonitor from './LiveSessionMonitor';
+import PaymentConfigManager from './PaymentConfigManager';
 
 export default function AdminPanel({ user }) {
   const [activeTab, setActiveTab] = useState('users');
@@ -223,6 +224,12 @@ export default function AdminPanel({ user }) {
             >
               <ShieldAlert size={16} className="text-red-500" /> Live Monitoring
             </button>
+            <button 
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'payments' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => setActiveTab('payments')}
+            >
+              <CreditCard size={16} className="text-amber-500" /> Payments & Pricing
+            </button>
           </div>
         </div>
 
@@ -255,6 +262,10 @@ export default function AdminPanel({ user }) {
         ) : activeTab === 'live_sessions' ? (
           <div className="flex flex-col gap-6">
             <LiveSessionMonitor />
+          </div>
+        ) : activeTab === 'payments' ? (
+          <div className="flex flex-col gap-6">
+            <PaymentConfigManager />
           </div>
         ) : activeTab === 'exam_engine' ? (
           <div className="flex flex-col gap-6">

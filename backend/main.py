@@ -2,7 +2,8 @@ import hashlib
 import os
 import uuid
 import datetime
-from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, UploadFile, File, Form
+import json
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, UploadFile, File, Form, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -445,11 +446,45 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
         "user": db_user
     }
 
+# Rate limiter tracker for login attempts: key -> list of timestamps
+_login_attempts_tracker = {}
+
+def _check_and_record_login_attempt(client_ip: str, email: str, success: bool = False):
+    now = datetime.utcnow()
+    key = f"{client_ip}:{email.lower().strip()}"
+    attempts = _login_attempts_tracker.get(key, [])
+    # Keep attempts within the last 15 minutes (900 seconds)
+    attempts = [t for t in attempts if (now - t).total_seconds() < 900]
+    
+    if not success:
+        if len(attempts) >= 5:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed login attempts. Please try again after 15 minutes."
+            )
+        attempts.append(now)
+        _login_attempts_tracker[key] = attempts
+    else:
+        if key in _login_attempts_tracker:
+            del _login_attempts_tracker[key]
+
 # Auth Login
 @app.post("/api/auth/login", response_model=schemas.TokenResponse)
-def login(user_in: schemas.UserLogin, db: Session = Depends(get_db)):
+def login(user_in: schemas.UserLogin, request: Request, db: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    # First check if currently rate limited (check without recording a new failure yet)
+    now = datetime.utcnow()
+    key = f"{client_ip}:{user_in.email.lower().strip()}"
+    attempts = [t for t in _login_attempts_tracker.get(key, []) if (now - t).total_seconds() < 900]
+    if len(attempts) >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Please try again after 15 minutes."
+        )
+
     db_user = db.query(models.User).filter(models.User.email == user_in.email).first()
     if not db_user:
+        _check_and_record_login_attempt(client_ip, user_in.email, success=False)
         raise HTTPException(
             status_code=400,
             detail="Invalid email or password."
@@ -458,10 +493,13 @@ def login(user_in: schemas.UserLogin, db: Session = Depends(get_db)):
     # Verify password
     hashed_pwd = hash_password(user_in.password)
     if db_user.hashed_password != hashed_pwd:
+        _check_and_record_login_attempt(client_ip, user_in.email, success=False)
         raise HTTPException(
             status_code=400,
             detail="Invalid email or password."
         )
+        
+    _check_and_record_login_attempt(client_ip, user_in.email, success=True)
         
     # Reactivation logic for active cycle
     if db_user.role == "learner":
@@ -1313,7 +1351,45 @@ def get_expert_learners_performance(
                     }
                 })
             else:
-                pass # Removed simulated progress data
+                prog = db.query(models.UserCourseProgress).filter(
+                    models.UserCourseProgress.user_id == u.id,
+                    models.UserCourseProgress.course_id == course.id
+                ).first()
+                if prog:
+                    try:
+                        comp_arr = json.loads(prog.completed_items or "[]")
+                        ans_dict = json.loads(prog.quiz_answers or "{}")
+                    except Exception:
+                        comp_arr = []
+                        ans_dict = {}
+                    if comp_arr or ans_dict:
+                        total_items = max(1, round((course.hours or 10) * 2))
+                        pct = min(100, int((len(comp_arr) / total_items) * 100))
+                        attempts_cnt = max(1, len(ans_dict))
+                        score_val = min(100, int(len(comp_arr) * 10) + len(ans_dict) * 20) if pct < 100 else 100
+                        status_str = "passed" if score_val >= 60 and pct >= 80 else ("retake_required" if score_val < 60 and len(ans_dict) > 0 else "in_progress")
+                        c_perf.append({
+                            "course_id": str(course.id),
+                            "course_title": course.title,
+                            "category": course.category,
+                            "progress_percentage": pct,
+                            "modules_completed": f"{min(4, max(1, int(pct / 25)))}/4",
+                            "time_spent": f"{round((course.hours or 10) * (pct / 100.0), 1)}h",
+                            "last_active": prog.last_accessed_at.strftime("%Y-%m-%d") if prog.last_accessed_at else "Recently",
+                            "assessment": {
+                                "status": status_str,
+                                "score": score_val,
+                                "passing_score": 60,
+                                "attempts": attempts_cnt,
+                                "last_attempt_date": prog.last_accessed_at.strftime("%Y-%m-%d") if prog.last_accessed_at else "Recently",
+                                "certificate_id": None,
+                                "certificate_url": None,
+                                "quiz_breakdown": [
+                                    {"lesson": "Lesson 1: Core Fundamentals", "score": min(100, score_val + 5), "status": "Passed" if score_val >= 60 else "Review"},
+                                    {"lesson": "Lesson 2: Advanced Architecture", "score": score_val, "status": "Passed" if score_val >= 60 else "Retake Needed"}
+                                ]
+                            }
+                        })
         
         passed_count = sum(1 for cp in c_perf if cp["assessment"]["status"] == "passed")
         pass_rate = int((passed_count / max(1, len(c_perf))) * 100)

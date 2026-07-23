@@ -67,7 +67,7 @@ export default function SettingsPanel({ user, onUserUpdate }) {
           name: trimmedName,
           email: email.trim(),
           weekly_goal_hours: hours,
-          ...(password && !isLearner ? { password } : {})
+          ...(password ? { password } : {})
         })
       });
 
@@ -152,7 +152,7 @@ export default function SettingsPanel({ user, onUserUpdate }) {
                 />
               </div>
 
-              {isLearner ? (
+              {isLearner && (
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold text-navy-900 flex items-center gap-2">
                     <Clock size={16} className="text-navy" /> Weekly Study Goal (Hours)
@@ -171,33 +171,33 @@ export default function SettingsPanel({ user, onUserUpdate }) {
                     Your target weekly hours will show up on your dashboard progress bar.
                   </span>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-bold text-navy-900 flex items-center gap-2">
-                    <Shield size={16} className="text-navy" /> Password
-                  </label>
-                  <div className="relative flex items-center">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all disabled:opacity-50"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Leave blank to keep current password"
-                      disabled={loading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                  <span className="text-xs font-medium text-slate-400 mt-1">
-                    Update your password.
-                  </span>
-                </div>
               )}
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-bold text-navy-900 flex items-center gap-2">
+                  <Shield size={16} className="text-navy" /> Password
+                </label>
+                <div className="relative flex items-center">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all disabled:opacity-50"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Leave blank to keep current password"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <span className="text-xs font-medium text-slate-400 mt-1">
+                  Update your password.
+                </span>
+              </div>
 
               <div className="mt-4">
                 <button 

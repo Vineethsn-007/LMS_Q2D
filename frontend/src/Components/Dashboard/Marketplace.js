@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, CheckCircle2, Clock, Sparkles, Star, Users, RefreshCw, Award, ArrowRight, Play } from 'lucide-react';
 import CertificateModal from './CertificateModal';
 
-const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart, onViewChange }) => {
+const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart, onViewChange, searchQuery: externalSearchQuery = "" }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(externalSearchQuery || "");
   const [activeCategory] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All levels");
   const [selectedStatus, setSelectedStatus] = useState("All status");
@@ -46,6 +46,12 @@ const Marketplace = ({ user, onStartCourse, onCheckout, onGoToCart, onViewChange
       window.removeEventListener('cart_updated', updateCart);
     };
   }, [user]);
+
+  useEffect(() => {
+    if (externalSearchQuery !== undefined && externalSearchQuery !== null) {
+      setSearchQuery(externalSearchQuery);
+    }
+  }, [externalSearchQuery]);
 
   const showToast = (message) => {
     setToastMessage(message);

@@ -12,6 +12,8 @@ from services.email_templates import (
     get_announcement_template,
     get_ticket_update_template,
     get_subadmin_onboarding_template,
+    get_exam_credential_template,
+    get_exam_reminder_template,
 )
 
 logger = logging.getLogger(__name__)
@@ -192,3 +194,38 @@ class MailerService:
             template_type=payload["template_type"],
             db=db,
         )
+
+    @classmethod
+    def send_exam_credential_email(
+        cls, email: str, name: str, temp_user_id: str, temp_password: str, assessment_link: str, slot_time_str: str, db: Optional[Session] = None
+    ) -> bool:
+        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        payload = get_exam_credential_template(
+            name=name, temp_user_id=temp_user_id, temp_password=temp_password, assessment_link=assessment_link, slot_time_str=slot_time_str, portal_url=portal_url
+        )
+        return cls.send_email(
+            recipient=email,
+            subject=payload["subject"],
+            text_body=payload["text_body"],
+            html_body=payload["html_body"],
+            template_type=payload["template_type"],
+            db=db,
+        )
+
+    @classmethod
+    def send_exam_reminder_email(
+        cls, email: str, name: str, level: str, booking_ref: str, assessment_link: str, temp_user_id: str, db: Optional[Session] = None
+    ) -> bool:
+        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        payload = get_exam_reminder_template(
+            name=name, level=level, booking_ref=booking_ref, assessment_link=assessment_link, temp_user_id=temp_user_id, portal_url=portal_url
+        )
+        return cls.send_email(
+            recipient=email,
+            subject=payload["subject"],
+            text_body=payload["text_body"],
+            html_body=payload["html_body"],
+            template_type=payload["template_type"],
+            db=db,
+        )
+

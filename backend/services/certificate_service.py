@@ -127,13 +127,17 @@ def get_user_certificates_service(db: Session, user_id: Any) -> List[models.Cert
     certs = db.query(models.Certificate).filter(
         models.Certificate.user_id.in_([str_user_id, int(str_user_id) if str_user_id.isdigit() else str_user_id])
     ).order_by(models.Certificate.created_at.desc()).all()
-    return [ensure_qr_code_exists(db, c) for c in certs]
+    fe = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    be = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{os.getenv('PORT', '8000')}"))
+    return [ensure_qr_code_exists(db, c, fe, be) for c in certs]
 
 def verify_certificate_service(db: Session, certificate_id: str) -> Optional[models.Certificate]:
     cert = db.query(models.Certificate).filter(
         models.Certificate.certificate_id == certificate_id
     ).first()
-    return ensure_qr_code_exists(db, cert) if cert else None
+    fe = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    be = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{os.getenv('PORT', '8000')}"))
+    return ensure_qr_code_exists(db, cert, fe, be) if cert else None
 
 def issue_level_certificate_and_badge(
     db: Session,

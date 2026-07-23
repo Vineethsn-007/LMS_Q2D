@@ -16,6 +16,17 @@ def get_session_info(temp_user_id: str, db: Session = Depends(get_db)):
     if not cred or cred.status != "issued":
         raise HTTPException(status_code=403, detail="Invalid or non-issued credential")
         
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    cred_issued = cred.issued_at if cred.issued_at.tzinfo else cred.issued_at.replace(tzinfo=datetime.timezone.utc)
+    if now_utc < cred_issued:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Exam is not yet available. Your scheduled access window opens at {cred_issued.strftime('%Y-%m-%d %I:%M %p UTC')}."
+        )
+    cred_expires = cred.expires_at if cred.expires_at.tzinfo else cred.expires_at.replace(tzinfo=datetime.timezone.utc)
+    if now_utc > cred_expires:
+        raise HTTPException(status_code=403, detail="Exam window has expired.")
+        
     session = db.query(models.ExamSession).filter(models.ExamSession.id == cred.session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -42,9 +53,27 @@ def start_exam_session(temp_user_id: str, db: Session = Depends(get_db)):
     if not cred or cred.status != "issued":
         raise HTTPException(status_code=403, detail="Invalid or non-issued credential")
         
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    cred_issued = cred.issued_at.astimezone(datetime.timezone.utc) if cred.issued_at.tzinfo else cred.issued_at.replace(tzinfo=datetime.timezone.utc)
+    if now_utc < cred_issued:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Exam is not yet available. Your scheduled access window opens at {cred_issued.strftime('%Y-%m-%d %I:%M %p UTC')}."
+        )
+    cred_expires = cred.expires_at.astimezone(datetime.timezone.utc) if cred.expires_at.tzinfo else cred.expires_at.replace(tzinfo=datetime.timezone.utc)
+    entry_deadline = cred_issued + datetime.timedelta(minutes=75)
+    
     session = db.query(models.ExamSession).filter(models.ExamSession.id == cred.session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+        
+    if now_utc > cred_expires or (session.status == "pending" and now_utc > entry_deadline):
+        if cred.status != "expired":
+            cred.status = "expired"
+            if session.status == "pending":
+                session.status = "terminated"
+            db.commit()
+        raise HTTPException(status_code=403, detail="The 45-minute entry window for starting this exam has expired. Please contact an administrator to regenerate your credential.")
         
     if session.status != "pending" and session.status != "active":
         raise HTTPException(status_code=400, detail=f"Session is {session.status}, cannot start")
@@ -215,19 +244,24 @@ def log_violation(temp_user_id: str, request: schemas.ViolationCreate, db: Sessi
         models.ExamViolationLog.session_id == session.id,
         models.ExamViolationLog.severity > 0
     ).count()
-    if current_violations >= max_v and session.status == "active":
+    
+    is_critical = request.severity is not None and request.severity >= 2
+    is_critical_type = request.type in ("phone", "device", "multi_person", "screen_share")
+    
+    if (current_violations >= max_v or is_critical or is_critical_type) and session.status == "active":
         session.status = "suspended"
         session.suspended_at = datetime.datetime.utcnow()
         
+        reason_desc = f"Auto-suspended due to critical violation ({request.type})" if (is_critical or is_critical_type) else f"Auto-suspended due to exceeding max violations ({max_v})"
         audit = models.ExamAuditLog(
             session_id=session.id,
             action="session_suspended",
-            description=f"Auto-suspended due to exceeding max violations ({max_v})",
+            description=reason_desc,
             actor_id="System"
         )
         db.add(audit)
         db.commit()
-        return {"success": True, "status": "suspended", "message": "Max violations reached. Session suspended."}
+        return {"success": True, "status": "suspended", "message": reason_desc}
         
     return {"success": True, "status": session.status}
 
@@ -490,18 +524,23 @@ def submit_exam(temp_user_id: str, background_tasks: BackgroundTasks, db: Sessio
 
 @router.post("/admin/sweep-expired-sessions")
 def sweep_expired_sessions(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    """Sweep sessions that have passed their credential expiration time and were not submitted."""
-    now = datetime.datetime.utcnow()
+    """Sweep sessions that have passed their credential expiration time or 45m entry window."""
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
     
     creds = db.query(models.ExamCredential).filter(
-        models.ExamCredential.expires_at < now,
         models.ExamCredential.status.in_(["issued", "active", "expired"])
     ).all()
     
     count = 0
     for cred in creds:
+        cred_expires = cred.expires_at if cred.expires_at.tzinfo else cred.expires_at.replace(tzinfo=datetime.timezone.utc)
+        cred_issued = cred.issued_at if cred.issued_at.tzinfo else cred.issued_at.replace(tzinfo=datetime.timezone.utc)
+        entry_deadline = cred_issued + datetime.timedelta(minutes=75)
+        
         session = db.query(models.ExamSession).filter(models.ExamSession.id == cred.session_id).first()
-        if session and session.status in ["pending", "active", "suspended"]:
+        is_expired = now_utc > cred_expires or (session and session.status == "pending" and now_utc > entry_deadline)
+        
+        if is_expired and session and session.status in ["pending", "active", "suspended"]:
             session.status = "terminated"
             cred.status = "expired"
             

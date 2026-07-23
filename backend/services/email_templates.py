@@ -195,3 +195,106 @@ The SkillForge Team
         "template_type": "subadmin_onboarding"
     }
 
+
+def get_exam_credential_template(name: str, temp_user_id: str, temp_password: str, assessment_link: str, slot_time_str: str, portal_url: str = PORTAL_DEFAULT_URL) -> dict:
+    """
+    Returns subject, text body, and HTML body for formal exam credential delivery 30 minutes prior to exam.
+    """
+    subject = f"Your SkillForge Formal Exam Access Credentials [{temp_user_id}] ({slot_time_str})"
+    
+    text_body = f"""Hello {name},
+
+Your formal SkillForge assessment check-in window is opening soon. Below are your secure exam access credentials:
+
+Exam Window: {slot_time_str}
+Assessment Link: {assessment_link}
+Temporary User ID: {temp_user_id}
+Temporary Access Token / Password: {temp_password}
+
+IMPORTANT EXAM RULES:
+1. You must join and complete proctoring compliance check-in before the 45-minute entry window closes.
+2. Ensure camera and microphone access are enabled.
+3. Your screen will be monitored for compliance during the session.
+
+Best regards,
+SkillForge Exam Proctoring Team
+"""
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #2563eb;">SkillForge Exam Access Credentials</h2>
+        <p>Hello <strong>{name}</strong>,</p>
+        <p>Your formal SkillForge assessment check-in window is opening soon ({slot_time_str}). Below are your secure access credentials:</p>
+        <div style="background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #2563eb;">
+          <p style="margin: 5px 0;"><strong>Assessment Link:</strong> <a href="{assessment_link}">{assessment_link}</a></p>
+          <p style="margin: 5px 0;"><strong>Temporary User ID:</strong> <code>{temp_user_id}</code></p>
+          <p style="margin: 5px 0;"><strong>Access Token / Password:</strong> <code>{temp_password}</code></p>
+        </div>
+        <p><strong>Important Rules:</strong><br/>
+        - You must start the assessment within 45 minutes of the scheduled start time or your credentials will expire.<br/>
+        - Ensure a stable internet connection and quiet, well-lit environment.</p>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #64748b;">This is an automated notification from SkillForge LMS.</p>
+      </div>
+    </body>
+    </html>
+    """
+
+    return {
+        "subject": subject,
+        "text_body": text_body,
+        "html_body": html_body,
+        "template_type": "exam_credential"
+    }
+
+
+def get_exam_reminder_template(name: str, level: str, booking_ref: str, assessment_link: str, temp_user_id: str, portal_url: str = PORTAL_DEFAULT_URL) -> dict:
+    """
+    Returns subject, text body, and HTML body for general exam reminders.
+    """
+    subject = f"Reminder: Upcoming SkillForge Formal Exam [{booking_ref}] ({level} Level)"
+    
+    text_body = f"""Hello {name},
+
+This is a reminder for your upcoming SkillForge formal assessment.
+
+Level: {level}
+Booking Reference: {booking_ref}
+Assessment Link: {assessment_link}
+Temporary Credential ID: {temp_user_id}
+
+Ensure your environment complies with AI proctoring standards prior to starting.
+
+Best regards,
+SkillForge Exam Proctoring Team
+"""
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #2563eb;">Exam Reminder: {level} Level</h2>
+        <p>Hello <strong>{name}</strong>,</p>
+        <p>This is a friendly reminder for your upcoming formal assessment (Ref: <strong>{booking_ref}</strong>).</p>
+        <div style="background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Assessment Link:</strong> <a href="{assessment_link}">{assessment_link}</a></p>
+          <p style="margin: 5px 0;"><strong>Temporary ID:</strong> <code>{temp_user_id}</code></p>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #64748b;">SkillForge LMS</p>
+      </div>
+    </body>
+    </html>
+    """
+
+    return {
+        "subject": subject,
+        "text_body": text_body,
+        "html_body": html_body,
+        "template_type": "exam_reminder"
+    }
+
