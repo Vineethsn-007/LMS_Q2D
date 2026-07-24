@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { API_BASE } from '../config/api';
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [email, setEmail] = useState('');
@@ -16,7 +17,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

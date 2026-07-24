@@ -24,6 +24,20 @@ def migrate():
         except Exception as e:
             logger.warning(f"Note dropping table '{table}': {e}")
 
+    # Ensure courses table has all columns
+    for col_name, col_type in [
+        ("category", "VARCHAR DEFAULT 'Software Engineering'"),
+        ("rating", "FLOAT DEFAULT 4.5"),
+        ("students_count", "INTEGER DEFAULT 1000"),
+        ("image_url", "VARCHAR")
+    ]:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE courses ADD COLUMN {col_name} {col_type}"))
+                logger.info(f"Added column '{col_name}' to 'courses' table")
+        except Exception:
+            logger.info(f"Column '{col_name}' on 'courses' already exists or skipped")
+
     # Ensure default PaymentConfig records exist if table is empty
     try:
         from database import SessionLocal

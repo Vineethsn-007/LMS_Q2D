@@ -148,6 +148,7 @@ def get_announcements(
 @router.post("/announcements", response_model=schemas.AnnouncementResponse, status_code=201)
 def create_announcement(
     announcement_in: schemas.AnnouncementCreate,
+    background_tasks: BackgroundTasks,
     current_user: models.User = Depends(verifySubAdminOrAdmin),
     db: Session = Depends(get_db),
 ):
@@ -161,6 +162,42 @@ def create_announcement(
     db.add(db_ann)
     db.commit()
     db.refresh(db_ann)
+
+    # Dispatch email notification to targeted students asynchronously
+    def _dispatch_announcement_emails(ann_title: str, ann_content: str, inst_id: Optional[int], spec_id: Optional[int]):
+        from database import SessionLocal
+        db_sub = SessionLocal()
+        try:
+            query = db_sub.query(models.User).filter(models.User.role == "learner", models.User.is_active == True)
+            if inst_id:
+                query = query.filter(models.User.institution_id == inst_id)
+            if spec_id:
+                spec = db_sub.query(models.Specialization).filter(models.Specialization.id == spec_id).first()
+                if spec:
+                    query = query.filter(models.User.specialization == spec.name)
+            target_users = query.all()
+            for u in target_users:
+                MailerService.send_announcement_email(
+                    email=u.email,
+                    name=u.name,
+                    title=ann_title,
+                    content=ann_content,
+                    db=None
+                )
+        except Exception as err:
+            import logging
+            logging.getLogger("communications").error(f"Error dispatching announcement emails: {err}")
+        finally:
+            db_sub.close()
+
+    background_tasks.add_task(
+        _dispatch_announcement_emails,
+        db_ann.title,
+        db_ann.content,
+        db_ann.target_institution_id,
+        db_ann.target_specialization_id
+    )
+
     return schemas.AnnouncementResponse(**db_ann.__dict__, is_read=True)
 
 
@@ -354,8 +391,9 @@ def reply_to_ticket(
                     update_body=msg_in.body,
                     db=db,
                 )
-            except Exception:
-                pass
+            except Exception as mail_err:
+                import logging
+                logging.getLogger("communications").error(f"Support ticket update email failed: {mail_err}")
 
     db.refresh(ticket)
     messages = db.query(models.TicketMessage).filter(models.TicketMessage.ticket_id == ticket.id).all()

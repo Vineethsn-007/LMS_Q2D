@@ -14,17 +14,13 @@ from services.email_templates import (
     get_subadmin_onboarding_template,
     get_exam_credential_template,
     get_exam_reminder_template,
+    get_payment_receipt_template,
+    get_certificate_issued_template,
 )
 
 logger = logging.getLogger(__name__)
 
 class MailerService:
-    @classmethod
-    def _get_db_session(cls, db: Optional[Session] = None):
-        if db is not None:
-            return db, False
-        return SessionLocal(), True
-
     @classmethod
     def _record_email_log(
         cls,
@@ -35,8 +31,15 @@ class MailerService:
         error_message: Optional[str] = None,
         db: Optional[Session] = None,
     ):
-        session, should_close = cls._get_db_session(db)
+        session = None
+        should_close = False
         try:
+            if db is not None and getattr(db, 'is_active', True):
+                session = db
+            else:
+                session = SessionLocal()
+                should_close = True
+
             log_entry = models.EmailLog(
                 recipient=recipient,
                 template_type=template_type,
@@ -48,10 +51,17 @@ class MailerService:
             session.commit()
         except Exception as e:
             logger.error(f"Failed to record EmailLog for {recipient}: {e}")
-            session.rollback()
+            if session:
+                try:
+                    session.rollback()
+                except Exception:
+                    pass
         finally:
-            if should_close:
-                session.close()
+            if should_close and session:
+                try:
+                    session.close()
+                except Exception:
+                    pass
 
     @classmethod
     def send_email(
@@ -104,7 +114,7 @@ class MailerService:
             msg.attach(part1)
             msg.attach(part2)
 
-            with smtplib.SMTP(smtp_host, smtp_port) as server:
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
                 server.starttls()
                 if smtp_user and smtp_password:
                     server.login(smtp_user, smtp_password)
@@ -228,4 +238,39 @@ class MailerService:
             template_type=payload["template_type"],
             db=db,
         )
+
+    @classmethod
+    def send_payment_receipt_email(
+        cls, email: str, name: str, target_tier: str, amount: float, transaction_id: str, db: Optional[Session] = None
+    ) -> bool:
+        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        payload = get_payment_receipt_template(
+            name=name, target_tier=target_tier, amount=amount, transaction_id=transaction_id, portal_url=portal_url
+        )
+        return cls.send_email(
+            recipient=email,
+            subject=payload["subject"],
+            text_body=payload["text_body"],
+            html_body=payload["html_body"],
+            template_type=payload["template_type"],
+            db=db,
+        )
+
+    @classmethod
+    def send_certificate_issued_email(
+        cls, email: str, name: str, course_name: str, cert_id: str, cert_url: str, db: Optional[Session] = None
+    ) -> bool:
+        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        payload = get_certificate_issued_template(
+            name=name, course_name=course_name, cert_id=cert_id, cert_url=cert_url, portal_url=portal_url
+        )
+        return cls.send_email(
+            recipient=email,
+            subject=payload["subject"],
+            text_body=payload["text_body"],
+            html_body=payload["html_body"],
+            template_type=payload["template_type"],
+            db=db,
+        )
+
 

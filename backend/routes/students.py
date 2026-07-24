@@ -246,7 +246,21 @@ def reset_student_password(
         raise HTTPException(status_code=403, detail="Not authorized to reset password for this student.")
         
     user.hashed_password = hash_password(pwd_in.new_password)
+    user.must_change_password = True
+    user.force_password_change = True
     db.commit()
+
+    # Send Password Reset Email
+    try:
+        MailerService.send_onboarding_email(
+            email=user.email,
+            name=user.name,
+            temp_password=pwd_in.new_password,
+            db=db
+        )
+    except Exception as mail_err:
+        print(f"Password reset email notification error: {mail_err}")
+
     return {"message": f"Password for {user.email} reset successfully."}
 
 @router.put("/{user_id}/specialization", response_model=schemas.UserResponse)

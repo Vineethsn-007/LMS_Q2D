@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE } from '../../config/api';
 import {
   BookOpen, Video, FileText, Image, File, Upload,
   ExternalLink, Sparkles, RefreshCw, CheckCircle, AlertCircle, Plus, X, Trash2, Edit, Star, LayoutGrid, Check, PlayCircle, Users, Clock
@@ -58,7 +59,7 @@ export default function ExpertPanel({ user }) {
 
     try {
       setIsGeneratingQuiz(true);
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/courses/quiz/generate`, {
+      const res = await fetch(`${API_BASE}/api/courses/quiz/generate`, {
         method: 'POST',
         headers: {
           ...headers,
@@ -103,7 +104,7 @@ export default function ExpertPanel({ user }) {
       const lessonTitle = lesson?.title || "Lesson";
       const modTitle = mod?.title || "Module";
 
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/courses/quiz/generate`, {
+      const res = await fetch(`${API_BASE}/api/courses/quiz/generate`, {
         method: 'POST',
         headers: {
           ...headers,
@@ -158,7 +159,7 @@ export default function ExpertPanel({ user }) {
   const handleDeleteCourse = async (id) => {
     if (!window.confirm("Are you sure you want to delete this course from the catalog?")) return;
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/courses/${id}`, {
+      const res = await fetch(`${API_BASE}/api/admin/courses/${id}`, {
         method: 'DELETE',
         headers
       });
@@ -176,7 +177,7 @@ export default function ExpertPanel({ user }) {
     setLoadingCourses(true);
     setError(null);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/expert/courses`, { headers });
+      const res = await fetch(`${API_BASE}/api/expert/courses`, { headers });
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
           localStorage.removeItem('sf_token');
@@ -208,7 +209,7 @@ export default function ExpertPanel({ user }) {
     if (!file) return null;
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/upload`, {
+    const res = await fetch(`${API_BASE}/api/admin/upload`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -332,8 +333,8 @@ export default function ExpertPanel({ user }) {
 
       // 2. Save course
       const url = currentCourse
-        ? `${process.env.REACT_APP_API_URL}/api/admin/courses/${currentCourse.id}`
-        : `${process.env.REACT_APP_API_URL}/api/admin/courses`;
+        ? `${API_BASE}/api/admin/courses/${currentCourse.id}`
+        : `${API_BASE}/api/admin/courses`;
       const method = currentCourse ? 'PUT' : 'POST';
 
       const coreData = {
@@ -359,7 +360,10 @@ export default function ExpertPanel({ user }) {
         body: JSON.stringify(coreData)
       });
 
-      if (!res.ok) throw new Error('Failed to save course');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to save course');
+      }
 
       setIsCourseModalOpen(false);
 
@@ -739,7 +743,7 @@ export default function ExpertPanel({ user }) {
                         </div>
                         {courseFormData.image_url && !thumbnailFile && (
                           <div className="text-xs font-semibold text-slate-500 flex items-center gap-1 mt-1 ml-1">
-                            Current: <a href={`${process.env.REACT_APP_API_URL}${courseFormData.image_url}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">View Image</a>
+                            Current: <a href={`${API_BASE}${courseFormData.image_url}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">View Image</a>
                           </div>
                         )}
                       </div>

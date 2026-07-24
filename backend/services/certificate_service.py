@@ -123,6 +123,24 @@ def generate_certificate_service(
     db.commit()
     db.refresh(new_cert)
     logger.info(f"Generated new certificate: {cert_id}")
+
+    # Send Certificate Issued Email
+    try:
+        from services.mailer import MailerService
+        user_id_val = int(str_user_id) if str_user_id.isdigit() else str_user_id
+        user_obj = db.query(models.User).filter(models.User.id == user_id_val).first()
+        if user_obj:
+            MailerService.send_certificate_issued_email(
+                email=user_obj.email,
+                name=user_obj.name,
+                course_name=course_name,
+                cert_id=cert_id,
+                cert_url=verify_url,
+                db=db
+            )
+    except Exception as mail_err:
+        logger.error(f"Failed to send certificate email: {mail_err}")
+
     return new_cert
 
 def get_user_certificates_service(db: Session, user_id: Any) -> List[models.Certificate]:
@@ -225,6 +243,23 @@ def issue_level_certificate_and_badge(
     db.add(new_cert)
     db.commit()
     db.refresh(new_cert)
+
+    # Send Certificate Issued Email
+    try:
+        from services.mailer import MailerService
+        user_id_val = int(str_user_id) if str_user_id.isdigit() else str_user_id
+        user_obj = db.query(models.User).filter(models.User.id == user_id_val).first()
+        if user_obj:
+            MailerService.send_certificate_issued_email(
+                email=user_obj.email,
+                name=user_obj.name,
+                course_name=cert_title,
+                cert_id=cert_id,
+                cert_url=verify_url,
+                db=db
+            )
+    except Exception as mail_err:
+        logger.error(f"Failed to send level certificate email: {mail_err}")
 
     logger.info(f"Auto-issued {cert_title} ({cert_id}) for user {user_id} (badge={badge_tier})")
     return {

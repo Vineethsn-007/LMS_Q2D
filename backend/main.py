@@ -411,12 +411,25 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
         db.add(new_reg)
         db.commit()
     
+    # Send Onboarding Email for self-registration
+    try:
+        MailerService.send_onboarding_email(
+            email=db_user.email,
+            name=db_user.name,
+            temp_password=user_in.password,
+            db=db
+        )
+    except Exception as mail_err:
+        print(f"Onboarding email notification error: {mail_err}")
+    
     access_token = create_access_token(data={"sub": str(db_user.id), "role": db_user.role})
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "user": db_user
     }
+
+from services.mailer import MailerService
 
 # Rate limiter tracker for login attempts: key -> list of timestamps
 _login_attempts_tracker = {}
@@ -765,7 +778,8 @@ def create_course(
     current_user: models.User = Depends(verifyExpertRole),
     db: Session = Depends(get_db)
 ):
-    course = models.Course(**course_in.dict())
+    course_data = course_in.model_dump() if hasattr(course_in, 'model_dump') else course_in.dict()
+    course = models.Course(**course_data)
     db.add(course)
     db.commit()
     db.refresh(course)
@@ -781,7 +795,8 @@ def update_course(
     course = db.query(models.Course).filter(models.Course.id == course_id).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    for key, value in course_in.dict().items():
+    course_data = course_in.model_dump() if hasattr(course_in, 'model_dump') else course_in.dict()
+    for key, value in course_data.items():
         setattr(course, key, value)
     db.commit()
     db.refresh(course)

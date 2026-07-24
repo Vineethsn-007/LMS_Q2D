@@ -239,6 +239,24 @@ def process_successful_payment(
     db.commit()
 
     logger.info(f"Payment succeeded for registration {registration_id} -> {target_tier} active.")
+
+    # Send payment receipt email notification
+    try:
+        from services.mailer import MailerService
+        user = db.query(models.User).filter(models.User.id == registration.user_id).first()
+        if user:
+            tx_id = gateway_payment_id or (payment_record.gateway_payment_id if payment_record else f"pay_{uuid.uuid4().hex[:12]}")
+            MailerService.send_payment_receipt_email(
+                email=user.email,
+                name=user.name,
+                target_tier=target_tier,
+                amount=tier_info["total_amount"],
+                transaction_id=tx_id,
+                db=db
+            )
+    except Exception as mail_err:
+        logger.error(f"Failed to send payment receipt email: {mail_err}")
+
     return {
         "status": "success",
         "registration_id": registration.id,

@@ -87,9 +87,13 @@ class CourseResponse(BaseModel):
     id: int
     title: str
     description: str
+    category: Optional[str] = "Software Engineering"
+    rating: Optional[float] = 4.5
+    students_count: Optional[int] = 1000
     hours: int
     is_ai_generated: bool
     is_expert_validated: bool
+    image_url: Optional[str] = None
     modules_data: Optional[List[Any]] = None
     quiz_questions: Optional[List[Any]] = None
 
@@ -139,9 +143,13 @@ class RoleUpdate(BaseModel):
 class CourseCreateUpdate(BaseModel):
     title: str
     description: str
+    category: Optional[str] = "Software Engineering"
+    rating: Optional[float] = 4.5
+    students_count: Optional[int] = 1000
     hours: int
-    is_ai_generated: bool
-    is_expert_validated: bool
+    is_ai_generated: bool = True
+    is_expert_validated: bool = False
+    image_url: Optional[str] = None
     modules_data: Optional[List[Any]] = None
     quiz_questions: Optional[List[Any]] = None
 

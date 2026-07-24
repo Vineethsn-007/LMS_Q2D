@@ -8,6 +8,7 @@ from database import get_db
 import models
 import schemas
 from auth import get_current_user
+from services.mailer import MailerService
 
 router = APIRouter()
 
@@ -568,6 +569,28 @@ def book_exam_slot(
     db.add(db_booking)
     db.commit()
     db.refresh(db_booking)
+
+    # Send exam credential email notification
+    try:
+        import os
+        default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+        frontend_url = os.getenv("FRONTEND_URL", default_fe).rstrip("/")
+        assessment_link = client_res.get("assessment_link") or f"{frontend_url}/mock-assessment/{booking_ref}"
+        temp_user_id = f"SF-{booking_ref}"
+        temp_password = "Exam-Access-Token"
+        slot_time_str = f"{booking_in.slot_date} {booking_in.slot_time}"
+        MailerService.send_exam_credential_email(
+            email=current_user.email,
+            name=current_user.name,
+            temp_user_id=temp_user_id,
+            temp_password=temp_password,
+            assessment_link=assessment_link,
+            slot_time_str=slot_time_str,
+            db=db
+        )
+    except Exception as mail_err:
+        print(f"Exam slot booking email error: {mail_err}")
+
     return db_booking
 
 @router.get("/slots", response_model=List[schemas.ExamSlotBookingResponse])

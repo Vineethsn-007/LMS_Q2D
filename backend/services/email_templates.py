@@ -298,3 +298,106 @@ SkillForge Exam Proctoring Team
         "template_type": "exam_reminder"
     }
 
+
+def get_payment_receipt_template(name: str, target_tier: str, amount: float, transaction_id: str, portal_url: str = PORTAL_DEFAULT_URL) -> dict:
+    """
+    Returns subject, text body, and HTML body for payment receipt and tier upgrade confirmation.
+    """
+    subject = f"SkillForge Payment Confirmation & Tier Upgrade to {target_tier} Level"
+    
+    text_body = f"""Hello {name},
+
+Thank you for your payment! Your transaction has been successfully processed and your tier access has been upgraded.
+
+Payment Details:
+--------------------------------------------------
+Tier Unlocked: {target_tier} Level
+Amount Paid: ₹{amount:,.2f} (Inclusive of GST)
+Transaction / Payment ID: {transaction_id}
+
+You now have full access to register for {target_tier} Level assessments and specialized learning paths.
+
+Access Portal: {portal_url}
+
+Best regards,
+The SkillForge Team
+"""
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #10b981;">Payment Successful & Tier Upgraded!</h2>
+        <p>Hello <strong>{name}</strong>,</p>
+        <p>Your payment has been successfully processed and your tier access has been upgraded to <strong>{target_tier} Level</strong>.</p>
+        <div style="background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #10b981;">
+          <p style="margin: 5px 0;"><strong>Unlocked Tier:</strong> {target_tier} Level</p>
+          <p style="margin: 5px 0;"><strong>Amount Paid:</strong> ₹{amount:,.2f}</p>
+          <p style="margin: 5px 0;"><strong>Transaction ID:</strong> <code>{transaction_id}</code></p>
+        </div>
+        <p><a href="{portal_url}" style="background: #10b981; color: white; padding: 10px 18px; text-decoration: none; border-radius: 5px; display: inline-block;">Go to Portal</a></p>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #64748b;">SkillForge LMS Payment Services</p>
+      </div>
+    </body>
+    </html>
+    """
+
+    return {
+        "subject": subject,
+        "text_body": text_body,
+        "html_body": html_body,
+        "template_type": "payment_receipt"
+    }
+
+
+def get_certificate_issued_template(name: str, course_name: str, cert_id: str, cert_url: str, portal_url: str = PORTAL_DEFAULT_URL) -> dict:
+    """
+    Returns subject, text body, and HTML body for certificate issuance notification.
+    """
+    subject = f"Congratulations! Your SkillForge Certificate is Ready [{cert_id}]"
+    
+    text_body = f"""Congratulations {name}!
+
+You have successfully completed: {course_name}
+
+Your official, cryptographically verified certificate has been issued.
+
+Certificate ID: {cert_id}
+Verification Link: {cert_url}
+
+Log in to your certificate wallet on SkillForge to view and download your PDF certificate: {portal_url}
+
+Best regards,
+The SkillForge Academic Team
+"""
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <h2 style="color: #6366f1;">Congratulations! Certificate Issued 🎉</h2>
+        <p>Hello <strong>{name}</strong>,</p>
+        <p>You have successfully completed <strong>{course_name}</strong>. Your official certificate is now ready in your wallet!</p>
+        <div style="background: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #6366f1;">
+          <p style="margin: 5px 0;"><strong>Certificate ID:</strong> <code>{cert_id}</code></p>
+          <p style="margin: 5px 0;"><strong>Public Verification Link:</strong> <a href="{cert_url}">{cert_url}</a></p>
+        </div>
+        <p><a href="{portal_url}" style="background: #6366f1; color: white; padding: 10px 18px; text-decoration: none; border-radius: 5px; display: inline-block;">View Certificate Wallet</a></p>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #64748b;">SkillForge Cryptographic Ledger</p>
+      </div>
+    </body>
+    </html>
+    """
+
+    return {
+        "subject": subject,
+        "text_body": text_body,
+        "html_body": html_body,
+        "template_type": "certificate_issued"
+    }
+
+
