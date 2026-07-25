@@ -1,6 +1,7 @@
 import os
 import logging
 import smtplib
+import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
@@ -73,17 +74,84 @@ class MailerService:
         template_type: str,
         db: Optional[Session] = None,
     ) -> bool:
+        resend_api_key = os.getenv("RESEND_API_KEY", "")
+        sendgrid_api_key = os.getenv("SENDGRID_API_KEY", "")
+
+        original_recipient = recipient
+        demo_override = os.getenv("DEMO_EMAIL_OVERRIDE", "")
+        if demo_override:
+            recipient = demo_override
+            subject = f"[Diverted from {original_recipient}] {subject}"
+
+        # 1. Resend HTTP API (Port 443 HTTPS - Works on Render Free Tier)
+        if resend_api_key:
+            try:
+                from_email = os.getenv("RESEND_FROM_EMAIL", "SkillForge LMS <onboarding@resend.dev>")
+                resp = requests.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {resend_api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "from": from_email,
+                        "to": [recipient],
+                        "subject": subject,
+                        "html": html_body,
+                        "text": text_body
+                    },
+                    timeout=10
+                )
+                if resp.status_code in (200, 201):
+                    cls._record_email_log(recipient, template_type, subject, "sent", db=db)
+                    return True
+                else:
+                    err_msg = f"Resend API HTTP {resp.status_code}: {resp.text}"
+                    logger.error(err_msg)
+                    cls._record_email_log(recipient, template_type, subject, "failed", error_message=err_msg, db=db)
+                    return False
+            except Exception as e:
+                logger.error(f"Resend HTTP API error: {e}")
+
+        # 2. SendGrid HTTP API (Port 443 HTTPS - Works on Render Free Tier)
+        if sendgrid_api_key:
+            try:
+                from_email = os.getenv("SMTP_USER") or os.getenv("SENDGRID_FROM_EMAIL", "noreply@skillforge.edu")
+                resp = requests.post(
+                    "https://api.sendgrid.com/v3/mail/send",
+                    headers={
+                        "Authorization": f"Bearer {sendgrid_api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "personalizations": [{"to": [{"email": recipient}]}],
+                        "from": {"email": from_email},
+                        "subject": subject,
+                        "content": [
+                            {"type": "text/plain", "value": text_body},
+                            {"type": "text/html", "value": html_body}
+                        ]
+                    },
+                    timeout=10
+                )
+                if resp.status_code in (200, 201, 202):
+                    cls._record_email_log(recipient, template_type, subject, "sent", db=db)
+                    return True
+                else:
+                    err_msg = f"SendGrid API HTTP {resp.status_code}: {resp.text}"
+                    logger.error(err_msg)
+                    cls._record_email_log(recipient, template_type, subject, "failed", error_message=err_msg, db=db)
+                    return False
+            except Exception as e:
+                logger.error(f"SendGrid HTTP API error: {e}")
+
+        # Fallback to standard SMTP
         smtp_host = os.getenv("SMTP_HOST", "")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         smtp_user = os.getenv("SMTP_USER", "")
         smtp_password = os.getenv("SMTP_PASSWORD", "")
         smtp_from_env = os.getenv("SMTP_FROM_EMAIL", "")
-        demo_override = os.getenv("DEMO_EMAIL_OVERRIDE", "")
 
-        # Gmail (and most SMTP providers) require From == authenticated user.
-        # If SMTP_FROM_EMAIL is set to a different address (e.g. a vanity alias)
-        # the send will fail silently. Fall back to SMTP_USER when they differ
-        # and we're on a standard gmail/smtp setup.
         if smtp_user and smtp_from_env and smtp_from_env != smtp_user:
             logger.warning(
                 f"SMTP_FROM_EMAIL ({smtp_from_env}) differs from SMTP_USER ({smtp_user}). "
