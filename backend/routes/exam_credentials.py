@@ -186,28 +186,21 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
     frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
     link = f"{frontend_url}/exam/take/{temp_user_id}"
 
-    if skip_enforcement:
-        # Auto-activate for demo purposes
-        exam_session.status = "active"
-        db.commit()
+    # Activate session and make credential immediately accessible.
+    # issued_at is set to now so students can access the exam portal as soon
+    # as they receive the email, without waiting for the 30-min pre-slot window.
+    credential.issued_at = now_utc
+    exam_session.status = "active"
+    db.commit()
 
-        return {
-            "success": True,
-            "booking_reference": request.booking_reference,
-            "exam_engine_session_ref": session_ref,
-            "assessment_link": link,
-            "link_status": "confirmed",
-            "message": "Slot booked and link generated immediately (Demo Mode)."
-        }
-    else:
-        return {
-            "success": True,
-            "booking_reference": request.booking_reference,
-            "exam_engine_session_ref": session_ref,
-            "assessment_link": link,
-            "link_status": "confirmed",
-            "message": "Slot booked and credential issued."
-        }
+    return {
+        "success": True,
+        "booking_reference": request.booking_reference,
+        "exam_engine_session_ref": session_ref,
+        "assessment_link": link,
+        "link_status": "confirmed",
+        "message": "Slot booked and exam link is ready." if skip_enforcement else "Slot booked and credential issued.",
+    }
 
 @router.get("/credentials/{temp_user_id}", response_model=schemas.CredentialVerifyResponse)
 def verify_credential(temp_user_id: str, db: Session = Depends(get_db)):
