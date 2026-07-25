@@ -588,6 +588,7 @@ def book_exam_slot(
         import os
         default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
         frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
+        # exam_credentials.py now always returns a proper /exam/take/{temp_user_id} link
         assessment_link = client_res.get("assessment_link") or f"{frontend_url}/mock-assessment/{booking_ref}"
         temp_user_id = f"SF-{booking_ref}"
         temp_password = "Exam-Access-Token"

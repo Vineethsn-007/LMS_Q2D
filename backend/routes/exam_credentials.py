@@ -182,15 +182,15 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
     import os
     skip_enforcement = os.getenv("SKIP_CREDENTIAL_WINDOW_ENFORCEMENT", "false").lower() == "true"
     
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
+    link = f"{frontend_url}/exam/take/{temp_user_id}"
+
     if skip_enforcement:
-        default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
-        frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
-        link = f"{frontend_url}/exam/take/{temp_user_id}"
-        
         # Auto-activate for demo purposes
         exam_session.status = "active"
         db.commit()
-    
+
         return {
             "success": True,
             "booking_reference": request.booking_reference,
@@ -204,8 +204,9 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
             "success": True,
             "booking_reference": request.booking_reference,
             "exam_engine_session_ref": session_ref,
-            "link_status": "pending",
-            "message": "Slot booked and credential pending."
+            "assessment_link": link,
+            "link_status": "confirmed",
+            "message": "Slot booked and credential issued."
         }
 
 @router.get("/credentials/{temp_user_id}", response_model=schemas.CredentialVerifyResponse)
