@@ -614,8 +614,13 @@ def test_email_dispatch(
         "SMTP_USER": os.getenv("SMTP_USER", "<NOT SET>"),
         "SMTP_PASSWORD_SET": bool(os.getenv("SMTP_PASSWORD")),
         "SMTP_FROM_EMAIL": os.getenv("SMTP_FROM_EMAIL", "<NOT SET>"),
+        "BREVO_API_KEY_SET": bool(os.getenv("BREVO_API_KEY")),
+        "BREVO_API_KEY_PREFIX": (os.getenv("BREVO_API_KEY") or "")[:10] or "<NOT SET>",
+        "BREVO_FROM_EMAIL": os.getenv("BREVO_FROM_EMAIL", "<NOT SET>"),
+        "RESEND_API_KEY_SET": bool(os.getenv("RESEND_API_KEY")),
+        "SENDGRID_API_KEY_SET": bool(os.getenv("SENDGRID_API_KEY")),
     }
-    
+
     success = MailerService.send_email(
         recipient=recipient,
         subject="SkillForge Test Email Diagnostic",
@@ -624,12 +629,12 @@ def test_email_dispatch(
         template_type="test",
         db=db
     )
-    
+
     last_log = db.query(models.EmailLog).filter(
         models.EmailLog.recipient == recipient,
         models.EmailLog.template_type == "test"
     ).order_by(models.EmailLog.id.desc()).first()
-    
+
     return {
         "success": success,
         "recipient": recipient,
