@@ -74,19 +74,55 @@ class MailerService:
         template_type: str,
         db: Optional[Session] = None,
     ) -> bool:
-        resend_api_key = os.getenv("RESEND_API_KEY", "")
-        sendgrid_api_key = os.getenv("SENDGRID_API_KEY", "")
-
-        original_recipient = recipient
         demo_override = os.getenv("DEMO_EMAIL_OVERRIDE", "")
         if demo_override:
             recipient = demo_override
-            subject = f"[Diverted from {original_recipient}] {subject}"
+            subject = f"[Diverted] {subject}"
 
-        # 1. Resend HTTP API (Port 443 HTTPS - Works on Render Free Tier)
+        brevo_api_key = os.getenv("BREVO_API_KEY", "")
+        resend_api_key = os.getenv("RESEND_API_KEY", "")
+        sendgrid_api_key = os.getenv("SENDGRID_API_KEY", "")
+        smtp_user = os.getenv("SMTP_USER", "")
+
+        # ── 1. Brevo (formerly Sendinblue) ───────────────────────────────────
+        # Free tier: 300 emails/day, sends to ANY recipient, no domain needed.
+        # Uses HTTPS Port 443 → works on Render.
+        if brevo_api_key:
+            try:
+                from_email = os.getenv("BREVO_FROM_EMAIL", smtp_user or "noreply@skillforge.edu")
+                from_name = os.getenv("BREVO_FROM_NAME", "SkillForge LMS")
+                resp = requests.post(
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers={
+                        "api-key": brevo_api_key,
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "sender": {"name": from_name, "email": from_email},
+                        "to": [{"email": recipient}],
+                        "subject": subject,
+                        "htmlContent": html_body,
+                        "textContent": text_body
+                    },
+                    timeout=10
+                )
+                if resp.status_code in (200, 201):
+                    cls._record_email_log(recipient, template_type, subject, "sent", db=db)
+                    logger.info(f"Brevo: email sent to {recipient} (template: {template_type})")
+                    return True
+                else:
+                    err_msg = f"Brevo API HTTP {resp.status_code}: {resp.text}"
+                    logger.error(err_msg)
+                    cls._record_email_log(recipient, template_type, subject, "failed", error_message=err_msg, db=db)
+                    return False
+            except Exception as e:
+                logger.error(f"Brevo HTTP API error: {e}")
+
+        # ── 2. Resend ─────────────────────────────────────────────────────────
+        # Free tier requires a verified domain to send to anyone besides account email.
         if resend_api_key:
             try:
-                from_email = os.getenv("RESEND_FROM_EMAIL", "SkillForge LMS <onboarding@resend.dev>")
+                from_email = os.getenv("RESEND_FROM_EMAIL", f"SkillForge LMS <{smtp_user or 'noreply@resend.dev'}>")
                 resp = requests.post(
                     "https://api.resend.com/emails",
                     headers={
@@ -113,10 +149,10 @@ class MailerService:
             except Exception as e:
                 logger.error(f"Resend HTTP API error: {e}")
 
-        # 2. SendGrid HTTP API (Port 443 HTTPS - Works on Render Free Tier)
+        # ── 3. SendGrid ───────────────────────────────────────────────────────
         if sendgrid_api_key:
             try:
-                from_email = os.getenv("SMTP_USER") or os.getenv("SENDGRID_FROM_EMAIL", "noreply@skillforge.edu")
+                from_email = os.getenv("SENDGRID_FROM_EMAIL", smtp_user or "noreply@skillforge.edu")
                 resp = requests.post(
                     "https://api.sendgrid.com/v3/mail/send",
                     headers={
@@ -145,42 +181,16 @@ class MailerService:
             except Exception as e:
                 logger.error(f"SendGrid HTTP API error: {e}")
 
-        # Fallback to standard SMTP
+        # ── 4. SMTP Fallback (may be blocked on cloud hosts) ──────────────────
         smtp_host = os.getenv("SMTP_HOST", "")
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_user = os.getenv("SMTP_USER", "")
         smtp_password = os.getenv("SMTP_PASSWORD", "")
         smtp_from_env = os.getenv("SMTP_FROM_EMAIL", "")
+        smtp_from = smtp_user if (smtp_user and smtp_from_env and smtp_from_env != smtp_user) else (smtp_from_env or smtp_user or "noreply@skillforge.edu")
 
-        if smtp_user and smtp_from_env and smtp_from_env != smtp_user:
-            logger.warning(
-                f"SMTP_FROM_EMAIL ({smtp_from_env}) differs from SMTP_USER ({smtp_user}). "
-                "Gmail requires these to match — using SMTP_USER as From address."
-            )
-            smtp_from = smtp_user
-        else:
-            smtp_from = smtp_from_env or smtp_user or "noreply@skillforge.edu"
-
-        original_recipient = recipient
-        if demo_override:
-            recipient = demo_override
-            subject = f"[Diverted from {original_recipient}] {subject}"
-
-        # Dev / Console Fallback Mode
         if not smtp_host:
-            logger.info("=== DEV MOCK EMAIL OUTPUT ===")
-            logger.info(f"To: {recipient}")
-            logger.info(f"Template Type: {template_type}")
-            logger.info(f"Subject: {subject}")
-            logger.info(f"Body:\n{text_body}")
-            logger.info("=============================")
-            cls._record_email_log(
-                recipient=recipient,
-                template_type=template_type,
-                subject=subject,
-                status="mocked",
-                db=db,
-            )
+            logger.info(f"[DEV MOCK] To={recipient} Template={template_type} Subject={subject}")
+            cls._record_email_log(recipient, template_type, subject, "mocked", db=db)
             return True
 
         # SMTP Sending
