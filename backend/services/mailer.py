@@ -141,13 +141,18 @@ class MailerService:
             return False
 
     @classmethod
+    def _get_portal_url(cls) -> str:
+        default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+        return (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
+
+    @classmethod
     def send_onboarding_email(
         cls, email: str, name: str, temp_password: str, db: Optional[Session] = None
     ) -> bool:
         """
         Sends onboarding email with temporary credentials and first login instructions.
         """
-        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        portal_url = cls._get_portal_url()
         payload = get_onboarding_template(name, email, temp_password, portal_url)
         return cls.send_email(
             recipient=email,
@@ -162,7 +167,7 @@ class MailerService:
     def send_announcement_email(
         cls, email: str, name: str, title: str, content: str, db: Optional[Session] = None
     ) -> bool:
-        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        portal_url = cls._get_portal_url()
         payload = get_announcement_template(name, title, content, portal_url)
         return cls.send_email(
             recipient=email,
@@ -177,7 +182,7 @@ class MailerService:
     def send_ticket_update_email(
         cls, email: str, name: str, ticket_number: str, subject_text: str, update_body: str, db: Optional[Session] = None
     ) -> bool:
-        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        portal_url = cls._get_portal_url()
         payload = get_ticket_update_template(name, ticket_number, subject_text, update_body, portal_url)
         return cls.send_email(
             recipient=email,
@@ -192,7 +197,7 @@ class MailerService:
     def send_subadmin_onboarding_email(
         cls, email: str, name: str, temp_password: str, assigned_institutions_text: str, privileges_text: str, db: Optional[Session] = None
     ) -> bool:
-        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        portal_url = cls._get_portal_url()
         payload = get_subadmin_onboarding_template(
             name, email, temp_password, assigned_institutions_text, privileges_text, portal_url
         )
@@ -209,7 +214,7 @@ class MailerService:
     def send_exam_credential_email(
         cls, email: str, name: str, temp_user_id: str, temp_password: str, assessment_link: str, slot_time_str: str, db: Optional[Session] = None
     ) -> bool:
-        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        portal_url = cls._get_portal_url()
         payload = get_exam_credential_template(
             name=name, temp_user_id=temp_user_id, temp_password=temp_password, assessment_link=assessment_link, slot_time_str=slot_time_str, portal_url=portal_url
         )
@@ -226,7 +231,7 @@ class MailerService:
     def send_exam_reminder_email(
         cls, email: str, name: str, level: str, booking_ref: str, assessment_link: str, temp_user_id: str, db: Optional[Session] = None
     ) -> bool:
-        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        portal_url = cls._get_portal_url()
         payload = get_exam_reminder_template(
             name=name, level=level, booking_ref=booking_ref, assessment_link=assessment_link, temp_user_id=temp_user_id, portal_url=portal_url
         )
@@ -243,7 +248,7 @@ class MailerService:
     def send_payment_receipt_email(
         cls, email: str, name: str, target_tier: str, amount: float, transaction_id: str, db: Optional[Session] = None
     ) -> bool:
-        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        portal_url = cls._get_portal_url()
         payload = get_payment_receipt_template(
             name=name, target_tier=target_tier, amount=amount, transaction_id=transaction_id, portal_url=portal_url
         )
@@ -260,7 +265,7 @@ class MailerService:
     def send_certificate_issued_email(
         cls, email: str, name: str, course_name: str, cert_id: str, cert_url: str, db: Optional[Session] = None
     ) -> bool:
-        portal_url = os.getenv("PORTAL_URL", "http://localhost:3000")
+        portal_url = cls._get_portal_url()
         payload = get_certificate_issued_template(
             name=name, course_name=course_name, cert_id=cert_id, cert_url=cert_url, portal_url=portal_url
         )

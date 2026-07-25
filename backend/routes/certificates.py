@@ -47,7 +47,8 @@ def generate_cert_endpoint(req: CertificateGenerateRequest, request: Request, db
     origin_hdr = request.headers.get("origin") or request.headers.get("referer")
     if origin_hdr:
         origin_hdr = origin_hdr.rstrip("/").split("/verify")[0]
-    frontend_url = os.getenv("FRONTEND_URL") or origin_hdr or "http://localhost:3000"
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    frontend_url = os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or origin_hdr or default_fe
     return generate_certificate_service(
         db=db,
         user_id=req.user_id,
@@ -81,6 +82,9 @@ def delete_cert_endpoint(cert_id: str, db: Session = Depends(get_db)):
 def verify_cert_endpoint(certificate_id: str, request: Request, db: Session = Depends(get_db)):
     cert = verify_certificate_service(db=db, certificate_id=certificate_id)
     
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
+    
     accept_header = request.headers.get("accept", "")
     if "application/json" in accept_header or request.url.path.startswith("/api/"):
         if not cert:
@@ -106,28 +110,28 @@ def verify_cert_endpoint(certificate_id: str, request: Request, db: Session = De
         }
     
     if not cert:
-        html_content = """
+        html_content = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>SkillForge - Verification Failed</title>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
-                .card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 40px; max-width: 450px; width: 100%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
-                .icon { width: 80px; height: 80px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px; border: 2px solid rgba(239, 68, 68, 0.3); }
-                h1 { font-size: 24px; margin-bottom: 10px; color: #f8fafc; }
-                p { color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
-                .btn { display: inline-block; background: #3b82f6; color: white; text-decoration: none; padding: 12px 28px; border-radius: 12px; font-weight: 600; transition: background 0.2s; }
-                .btn:hover { background: #2563eb; }
+                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }}
+                .card {{ background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 40px; max-width: 450px; width: 100%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }}
+                .icon {{ width: 80px; height: 80px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px; border: 2px solid rgba(239, 68, 68, 0.3); }}
+                h1 {{ font-size: 24px; margin-bottom: 10px; color: #f8fafc; }}
+                p {{ color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 30px; }}
+                .btn {{ display: inline-block; background: #3b82f6; color: white; text-decoration: none; padding: 12px 28px; border-radius: 12px; font-weight: 600; transition: background 0.2s; }}
+                .btn:hover {{ background: #2563eb; }}
             </style>
         </head>
         <body>
             <div class="card">
                 <div class="icon">✕</div>
                 <h1>Invalid Certificate ❌</h1>
-                <p>We could not find a verified certificate with the ID <strong>""" + certificate_id + """</strong> in the SkillForge database.</p>
-                <a href="http://localhost:3000" class="btn">Return to SkillForge</a>
+                <p>We could not find a verified certificate with the ID <strong>{certificate_id}</strong> in the SkillForge database.</p>
+                <a href="{frontend_url}" class="btn">Return to SkillForge</a>
             </div>
         </body>
         </html>
@@ -193,7 +197,7 @@ def verify_cert_endpoint(certificate_id: str, request: Request, db: Session = De
                 <span>🛡️ Officially verified by SkillForge LMS Authority</span>
             </div>
             
-            <a href="http://localhost:3000" class="btn">Go to SkillForge</a>
+            <a href="{frontend_url}" class="btn">Go to SkillForge</a>
         </div>
     </body>
     </html>
@@ -202,6 +206,9 @@ def verify_cert_endpoint(certificate_id: str, request: Request, db: Session = De
 
 @verify_router.get("/student/{student_id}")
 def verify_student_certs_endpoint(student_id: str, request: Request, db: Session = Depends(get_db)):
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
+    
     # Try by user ID or registration number
     user = None
     if student_id.isdigit():
@@ -218,28 +225,28 @@ def verify_student_certs_endpoint(student_id: str, request: Request, db: Session
         if wants_json:
             return JSONResponse(status_code=404, content={"valid": False, "status": "Student not found ❌"})
         
-        html_content = """
+        html_content = f"""
         <!DOCTYPE html>
         <html>
         <head>
             <title>SkillForge - Verification Failed</title>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
-                .card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 40px; max-width: 450px; width: 100%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
-                .icon { width: 80px; height: 80px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px; border: 2px solid rgba(239, 68, 68, 0.3); }
-                h1 { font-size: 24px; margin-bottom: 10px; color: #f8fafc; }
-                p { color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 30px; }
-                .btn { display: inline-block; background: #3b82f6; color: white; text-decoration: none; padding: 12px 28px; border-radius: 12px; font-weight: 600; transition: background 0.2s; }
-                .btn:hover { background: #2563eb; }
+                body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }}
+                .card {{ background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 40px; max-width: 450px; width: 100%; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }}
+                .icon {{ width: 80px; height: 80px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px; border: 2px solid rgba(239, 68, 68, 0.3); }}
+                h1 {{ font-size: 24px; margin-bottom: 10px; color: #f8fafc; }}
+                p {{ color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 30px; }}
+                .btn {{ display: inline-block; background: #3b82f6; color: white; text-decoration: none; padding: 12px 28px; border-radius: 12px; font-weight: 600; transition: background 0.2s; }}
+                .btn:hover {{ background: #2563eb; }}
             </style>
         </head>
         <body>
             <div class="card">
                 <div class="icon">✕</div>
                 <h1>Student Not Found ❌</h1>
-                <p>We could not find a student matching the ID <strong>""" + student_id + """</strong> in the SkillForge database.</p>
-                <a href="http://localhost:3000" class="btn">Return to SkillForge</a>
+                <p>We could not find a student matching the ID <strong>{student_id}</strong> in the SkillForge database.</p>
+                <a href="{frontend_url}" class="btn">Return to SkillForge</a>
             </div>
         </body>
         </html>
@@ -328,7 +335,7 @@ def verify_student_certs_endpoint(student_id: str, request: Request, db: Session
                 <span>🛡️ Verified by SkillForge LMS Authority</span>
             </div>
             
-            <a href="http://localhost:3000" class="btn">Go to SkillForge</a>
+            <a href="{frontend_url}" class="btn">Go to SkillForge</a>
         </div>
     </body>
     </html>

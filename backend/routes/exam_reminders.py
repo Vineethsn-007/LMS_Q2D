@@ -27,7 +27,7 @@ def trigger_reminders(db: Session = Depends(get_db)):
     
     import os
     default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
-    frontend_url = os.getenv("FRONTEND_URL", default_fe).rstrip("/")
+    frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
     
     for cred in issued_creds:
         session = db.query(models.ExamSession).filter(models.ExamSession.id == cred.session_id).first()

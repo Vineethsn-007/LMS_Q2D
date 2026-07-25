@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 def ensure_qr_code_exists(db: Session, cert: models.Certificate, frontend_url: str = "http://localhost:3000", backend_url: str = "http://localhost:8000") -> models.Certificate:
     if not cert:
         return cert
-    env_fe = os.getenv("FRONTEND_URL")
-    if env_fe:
-        frontend_url = env_fe
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    if not frontend_url or frontend_url == "http://localhost:3000":
+        frontend_url = os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe
     if backend_url == "http://localhost:8000":
         port = os.getenv("PORT", "8000")
         backend_url = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{port}"))
@@ -57,8 +57,9 @@ def generate_certificate_service(
     frontend_url: str = "http://localhost:3000",
     backend_url: str = "http://localhost:8000"
 ) -> models.Certificate:
-    if frontend_url == "http://localhost:3000":
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    if not frontend_url or frontend_url == "http://localhost:3000":
+        frontend_url = os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe
     if backend_url == "http://localhost:8000":
         port = os.getenv("PORT", "8000")
         backend_url = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{port}"))
@@ -148,7 +149,8 @@ def get_user_certificates_service(db: Session, user_id: Any) -> List[models.Cert
     certs = db.query(models.Certificate).filter(
         models.Certificate.user_id.in_([str_user_id, int(str_user_id) if str_user_id.isdigit() else str_user_id])
     ).order_by(models.Certificate.created_at.desc()).all()
-    fe = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    fe = os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe
     be = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{os.getenv('PORT', '8000')}"))
     return [ensure_qr_code_exists(db, c, fe, be) for c in certs]
 
@@ -156,7 +158,8 @@ def verify_certificate_service(db: Session, certificate_id: str) -> Optional[mod
     cert = db.query(models.Certificate).filter(
         models.Certificate.certificate_id == certificate_id
     ).first()
-    fe = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    fe = os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe
     be = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{os.getenv('PORT', '8000')}"))
     return ensure_qr_code_exists(db, cert, fe, be) if cert else None
 
@@ -173,8 +176,9 @@ def issue_level_certificate_and_badge(
     Auto-generates instant certificate and tiered badge (Bronze/Silver/Gold) on exam completion.
     Configurable template engine supporting 'pending IBM confirmation' participation templates.
     """
-    if frontend_url == "http://localhost:3000":
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    if not frontend_url or frontend_url == "http://localhost:3000":
+        frontend_url = os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe
     if backend_url == "http://localhost:8000":
         port = os.getenv("PORT", "8000")
         backend_url = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{port}"))

@@ -1147,7 +1147,7 @@ def get_expert_learners_performance(
                         "attempts": att,
                         "last_attempt_date": f"2026-07-0{1 + (c_idx % 3)}",
                         "certificate_id": f"SF-VAL-{2026}-{5000+sim_id*10+c_idx}" if status == "passed" else None,
-                        "certificate_url": f"http://localhost:3000/verify/SF-VAL-{2026}-{5000+sim_id*10+c_idx}" if status == "passed" else None,
+                        "certificate_url": f"{(os.getenv('FRONTEND_URL') or os.getenv('PORTAL_URL') or ('https://skillforge-frontend-r6va.onrender.com' if (os.getenv('RENDER') or os.getenv('RENDER_EXTERNAL_URL') or os.getenv('PORT')) else 'http://localhost:3000')).rstrip('/')}/verify/SF-VAL-{2026}-{5000+sim_id*10+c_idx}" if status == "passed" else None,
                         "quiz_breakdown": [
                             {"lesson": "Lesson 1: Core Fundamentals", "score": min(100, score + 8), "status": "Passed" if score + 8 >= 60 else "Failed"},
                             {"lesson": "Lesson 2: Advanced Architecture", "score": score, "status": "Passed" if score >= 60 else "Failed"},

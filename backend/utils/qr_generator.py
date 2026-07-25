@@ -10,9 +10,9 @@ def generate_qr_code(certificate_id: str, frontend_url: str = "http://localhost:
     Saves the image to uploads/qrcodes/{certificate_id}.png
     Returns the full backend URL to the saved image.
     """
-    env_fe = os.getenv("FRONTEND_URL")
-    if env_fe:
-        frontend_url = env_fe
+    default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
+    if not frontend_url or frontend_url == "http://localhost:3000":
+        frontend_url = os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe
     if backend_url == "http://localhost:8000":
         port = os.getenv("PORT", "8000")
         backend_url = os.getenv("BACKEND_URL", os.getenv("RENDER_EXTERNAL_URL", f"http://127.0.0.1:{port}"))

@@ -1,7 +1,10 @@
-# email_templates.py
-# Separate, customizable email templates for SkillForge LMS communications.
+import os
 
-PORTAL_DEFAULT_URL = "http://localhost:3000"
+PORTAL_DEFAULT_URL = (
+    os.getenv("FRONTEND_URL")
+    or os.getenv("PORTAL_URL")
+    or ("https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000")
+).rstrip("/")
 
 def get_onboarding_template(name: str, email: str, temp_password: str, portal_url: str = PORTAL_DEFAULT_URL) -> dict:
     """

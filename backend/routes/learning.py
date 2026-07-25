@@ -379,6 +379,12 @@ from services.exam_engine_client import ExamEngineClient
 import datetime
 import uuid
 
+IST_TZ = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+
+def get_now_ist():
+    """Returns current naive datetime in IST (Indian Standard Time, UTC +5:30)."""
+    return datetime.datetime.now(datetime.timezone.utc).astimezone(IST_TZ).replace(tzinfo=None)
+
 @router.get("/subjects/{subject_id}/slots/available")
 def get_available_slots(
     subject_id: int,
@@ -405,10 +411,12 @@ def get_available_slots(
         return []
         
     delta_days = (end_date - start_date).days
+    now_ist = get_now_ist()
+    today_date = now_ist.date()
     
     for i in range(delta_days + 1):
         slot_date = start_date + datetime.timedelta(days=i)
-        if slot_date < datetime.date.today():
+        if slot_date < today_date:
             continue
             
         # Parse daily start and end times
@@ -427,7 +435,8 @@ def get_available_slots(
         times = []
         while current_dt + datetime.timedelta(minutes=slot_duration) <= end_dt:
             next_dt = current_dt + datetime.timedelta(minutes=slot_duration)
-            times.append(f"{current_dt.strftime('%I:%M %p')} - {next_dt.strftime('%I:%M %p')}")
+            if current_dt > now_ist:
+                times.append(f"{current_dt.strftime('%I:%M %p')} - {next_dt.strftime('%I:%M %p')}")
             current_dt = next_dt
             
         if times:
@@ -503,6 +512,10 @@ def book_exam_slot(
             
     if not slot_dt:
         raise HTTPException(status_code=400, detail=f"Invalid slot date or time format provided: '{booking_in.slot_date} {booking_in.slot_time}'")
+
+    now_ist = get_now_ist()
+    if slot_dt <= now_ist:
+        raise HTTPException(status_code=400, detail="Requested slot time has already passed or started. Please select an upcoming time slot.")
         
     slot_dt_iso = slot_dt.isoformat()
     slot_date_obj = slot_dt.date()
@@ -574,7 +587,7 @@ def book_exam_slot(
     try:
         import os
         default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
-        frontend_url = os.getenv("FRONTEND_URL", default_fe).rstrip("/")
+        frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
         assessment_link = client_res.get("assessment_link") or f"{frontend_url}/mock-assessment/{booking_ref}"
         temp_user_id = f"SF-{booking_ref}"
         temp_password = "Exam-Access-Token"

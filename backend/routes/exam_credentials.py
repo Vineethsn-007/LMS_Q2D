@@ -156,6 +156,13 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
     if slot_dt:
         if slot_dt.tzinfo is None:
             slot_dt = slot_dt.replace(tzinfo=datetime.timezone.utc)
+        if slot_dt <= now_utc:
+            return {
+                "success": False,
+                "booking_reference": request.booking_reference,
+                "link_status": "rejected",
+                "message": "Slot booking rejected: Requested slot time is in the past."
+            }
         issued_at = slot_dt - datetime.timedelta(minutes=30)
         expires_at = slot_dt + datetime.timedelta(hours=4)
             
@@ -177,7 +184,7 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
     
     if skip_enforcement:
         default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
-        frontend_url = os.getenv("FRONTEND_URL", default_fe).rstrip("/")
+        frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
         link = f"{frontend_url}/exam/take/{temp_user_id}"
         
         # Auto-activate for demo purposes
@@ -283,7 +290,7 @@ def trigger_link_webhooks(db: Session = Depends(get_db)):
             
         import os
         default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
-        frontend_url = os.getenv("FRONTEND_URL", default_fe).rstrip("/")
+        frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
         link = f"{frontend_url}/exam/take/{cred.temp_user_id}"
         
         payload = {
@@ -351,7 +358,7 @@ def regenerate_credential(session_ref: str, db: Session = Depends(get_db)):
     
     import os
     default_fe = "https://skillforge-frontend-r6va.onrender.com" if (os.getenv("RENDER") or os.getenv("RENDER_EXTERNAL_URL") or os.getenv("PORT")) else "http://localhost:3000"
-    frontend_url = os.getenv("FRONTEND_URL", default_fe).rstrip("/")
+    frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
     link = f"{frontend_url}/exam/take/{new_temp_user_id}"
     slot_time_str = now_utc.strftime("%Y-%m-%d %I:%M %p UTC")
     
