@@ -77,8 +77,21 @@ class MailerService:
         smtp_port = int(os.getenv("SMTP_PORT", "587"))
         smtp_user = os.getenv("SMTP_USER", "")
         smtp_password = os.getenv("SMTP_PASSWORD", "")
-        smtp_from = os.getenv("SMTP_FROM_EMAIL", "noreply@skillforge.edu")
+        smtp_from_env = os.getenv("SMTP_FROM_EMAIL", "")
         demo_override = os.getenv("DEMO_EMAIL_OVERRIDE", "")
+
+        # Gmail (and most SMTP providers) require From == authenticated user.
+        # If SMTP_FROM_EMAIL is set to a different address (e.g. a vanity alias)
+        # the send will fail silently. Fall back to SMTP_USER when they differ
+        # and we're on a standard gmail/smtp setup.
+        if smtp_user and smtp_from_env and smtp_from_env != smtp_user:
+            logger.warning(
+                f"SMTP_FROM_EMAIL ({smtp_from_env}) differs from SMTP_USER ({smtp_user}). "
+                "Gmail requires these to match — using SMTP_USER as From address."
+            )
+            smtp_from = smtp_user
+        else:
+            smtp_from = smtp_from_env or smtp_user or "noreply@skillforge.edu"
 
         original_recipient = recipient
         if demo_override:

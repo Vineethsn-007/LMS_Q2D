@@ -602,7 +602,8 @@ def book_exam_slot(
             db=db
         )
     except Exception as mail_err:
-        print(f"Exam slot booking email error: {mail_err}")
+        import logging as _logging
+        _logging.getLogger(__name__).error(f"[EXAM BOOKING EMAIL FAILED] Booking {booking_ref} for {current_user.email}: {mail_err}", exc_info=True)
 
     return db_booking
 
