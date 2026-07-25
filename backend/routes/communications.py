@@ -601,3 +601,39 @@ def get_email_logs(
     if template_type:
         query = query.filter(models.EmailLog.template_type == template_type)
     return query.order_by(models.EmailLog.sent_at.desc()).limit(200).all()
+
+@router.post("/test-email")
+def test_email_dispatch(
+    recipient: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    import os
+    env_info = {
+        "SMTP_HOST": os.getenv("SMTP_HOST", "<NOT SET>"),
+        "SMTP_PORT": os.getenv("SMTP_PORT", "<NOT SET>"),
+        "SMTP_USER": os.getenv("SMTP_USER", "<NOT SET>"),
+        "SMTP_PASSWORD_SET": bool(os.getenv("SMTP_PASSWORD")),
+        "SMTP_FROM_EMAIL": os.getenv("SMTP_FROM_EMAIL", "<NOT SET>"),
+    }
+    
+    success = MailerService.send_email(
+        recipient=recipient,
+        subject="SkillForge Test Email Diagnostic",
+        text_body=f"This is a test email from SkillForge LMS to {recipient}.",
+        html_body=f"<h3>SkillForge Test Email Diagnostic</h3><p>This is a test email from SkillForge LMS to {recipient}.</p>",
+        template_type="test",
+        db=db
+    )
+    
+    last_log = db.query(models.EmailLog).filter(
+        models.EmailLog.recipient == recipient,
+        models.EmailLog.template_type == "test"
+    ).order_by(models.EmailLog.id.desc()).first()
+    
+    return {
+        "success": success,
+        "recipient": recipient,
+        "status": last_log.status if last_log else "unknown",
+        "error_message": last_log.error_message if last_log else None,
+        "env": env_info
+    }
