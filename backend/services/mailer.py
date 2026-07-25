@@ -127,20 +127,49 @@ class MailerService:
             msg.attach(part1)
             msg.attach(part2)
 
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
-                server.starttls()
-                if smtp_user and smtp_password:
-                    server.login(smtp_user, smtp_password)
-                server.sendmail(smtp_from, recipient, msg.as_string())
+            sent = False
+            last_err = None
 
-            cls._record_email_log(
-                recipient=recipient,
-                template_type=template_type,
-                subject=subject,
-                status="sent",
-                db=db,
-            )
-            return True
+            # Primary Attempt (Configured Port, e.g. 587 with STARTTLS or 465 with SSL)
+            try:
+                if smtp_port == 465:
+                    with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10) as server:
+                        if smtp_user and smtp_password:
+                            server.login(smtp_user, smtp_password)
+                        server.sendmail(smtp_from, recipient, msg.as_string())
+                    sent = True
+                else:
+                    with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+                        server.starttls()
+                        if smtp_user and smtp_password:
+                            server.login(smtp_user, smtp_password)
+                        server.sendmail(smtp_from, recipient, msg.as_string())
+                    sent = True
+            except Exception as e1:
+                last_err = e1
+                logger.warning(f"SMTP attempt on port {smtp_port} failed ({e1}). Retrying via SSL port 465...")
+                # Secondary Fallback Attempt (Port 465 with SSL)
+                if smtp_port != 465:
+                    try:
+                        with smtplib.SMTP_SSL(smtp_host, 465, timeout=10) as server:
+                            if smtp_user and smtp_password:
+                                server.login(smtp_user, smtp_password)
+                            server.sendmail(smtp_from, recipient, msg.as_string())
+                        sent = True
+                    except Exception as e2:
+                        last_err = f"Port {smtp_port}: {e1} | Port 465: {e2}"
+
+            if sent:
+                cls._record_email_log(
+                    recipient=recipient,
+                    template_type=template_type,
+                    subject=subject,
+                    status="sent",
+                    db=db,
+                )
+                return True
+            else:
+                raise Exception(str(last_err))
         except Exception as e:
             logger.error(f"SMTP send failed for {recipient}: {e}")
             cls._record_email_log(
