@@ -1091,6 +1091,8 @@ class RevenueItem(BaseModel):
     currency: str = "INR"
 
 class AdminAggregateDashboardResponse(BaseModel):
+    total_users: int = 0
+    active_learners: int = 0
     batch_analytics: List[BatchAnalyticsItem]
     progression: List[ProgressionItem]
     revenue: List[RevenueItem]

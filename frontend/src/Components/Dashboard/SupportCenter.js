@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  LifeBuoy, Plus, CheckCircle, Clock, AlertCircle, Loader,
-  Send, MessageSquare, X, ChevronRight, ChevronDown
+  LifeBuoy, Plus, CheckCircle, Loader,
+  Send, MessageSquare, X
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';

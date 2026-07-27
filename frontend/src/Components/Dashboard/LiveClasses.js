@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Video, Clock, CalendarDays, ExternalLink, Loader, AlertCircle,
-  Plus, X, Trash2, Edit3, Lock, CheckCircle, BookOpen, Users, Building2
+  Plus, X, Trash2, Edit3, Lock, CheckCircle, Users
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -73,7 +73,8 @@ export default function LiveClasses({ user }) {
       }
     };
     fetchData();
-  }, [token, isAdmin, showAll]); // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, isAdmin, showAll]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

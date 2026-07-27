@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Video, Calendar, Clock, Link as LinkIcon, Plus, Edit3, Trash2,
-  X, CheckCircle, AlertCircle, Users, Building2, BookOpen, ExternalLink,
+  X, CheckCircle, AlertCircle, Users, BookOpen, ExternalLink,
   Loader, Filter, PlayCircle, StopCircle, Ban
 } from 'lucide-react';
 
@@ -37,7 +37,7 @@ export default function LiveClassConfig({ user }) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
-  const [institutions, setInstitutions] = useState([]);
+  const [, setInstitutions] = useState([]);
   const [specializations, setSpecializations] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -79,7 +79,8 @@ export default function LiveClassConfig({ user }) {
       }
     };
     fetchMetadata();
-  }, []); // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -484,10 +485,20 @@ export default function LiveClassConfig({ user }) {
                   </label>
                   <input
                     type="number"
-                    min="15"
+                    min="1"
                     max="480"
                     value={form.duration_minutes}
-                    onChange={e => setForm({ ...form, duration_minutes: e.target.value })}
+                    onChange={e => {
+                      const val = e.target.value;
+                      // Prevent negative values
+                      if (val === '' || parseInt(val) >= 0 || val === '0') {
+                        setForm({ ...form, duration_minutes: val === '' ? '' : Math.max(1, parseInt(val) || 1) });
+                      }
+                    }}
+                    onKeyDown={e => {
+                      // Prevent minus key
+                      if (e.key === '-' || e.key === 'e') e.preventDefault();
+                    }}
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
                   />
                 </div>

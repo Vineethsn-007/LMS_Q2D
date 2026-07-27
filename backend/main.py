@@ -717,6 +717,13 @@ def get_users(
 ):
     return db.query(models.User).order_by(models.User.id.asc()).all()
 
+@app.get("/api/admin/subscribers", response_model=List[schemas.UserResponse])
+def get_subscribers(
+    current_user: models.User = Depends(verifyAdminRole),
+    db: Session = Depends(get_db)
+):
+    return db.query(models.User).filter(models.User.role == "learner").order_by(models.User.id.desc()).all()
+
 @app.post("/api/admin/users", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user_by_admin(
     user_in: schemas.UserCreateByAdmin,
@@ -1206,7 +1213,7 @@ from routes.exam_engine_webhooks import router as exam_engine_webhooks_router
 from routes.payments import router as payments_router
 from routes.communications import router as communications_router
 from routes.analytics import router as analytics_router
-from routes.poc import router as poc_router
+# POC removed per requirements
 from routes.demo import router as demo_router
 
 app.include_router(certificates_router, prefix="/api/certificates", tags=["Certificates"])
@@ -1225,5 +1232,5 @@ app.include_router(communications_router, prefix="/api/communications", tags=["C
 app.include_router(analytics_router, prefix="/api/analytics", tags=["Analytics & Leaderboard"])
 app.include_router(analytics_router, prefix="/api/learning/analytics", tags=["Analytics & Leaderboard"])
 app.include_router(analytics_router, prefix="/api/admin/analytics", tags=["Analytics & Leaderboard"])
-app.include_router(poc_router, prefix="/api/admin/poc", tags=["POC Operations"])
+# POC Operations router removed per requirements
 app.include_router(demo_router, prefix="/api/demo", tags=["Demo"])

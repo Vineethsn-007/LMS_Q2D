@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Shield, Building, GraduationCap, UploadCloud, BarChart3, Plus, Trash2, Edit,
-  RefreshCw, X, Check, Lock, Key, Download, AlertCircle, Search, Filter,
+  RefreshCw, X, Check, Key, Download, AlertCircle, Search, Filter,
   CheckCircle, FileText, Users, Sliders, Megaphone, Ticket, CalendarDays, CreditCard
 } from 'lucide-react';
 import './AdminPanel.css';
@@ -103,6 +103,7 @@ export default function SubAdminConsole({ user }) {
         .then(data => { if (data?.privileges) setMyPrivileges(data.privileges); })
         .catch(err => console.error(err));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const hasPriv = (key) => {
@@ -216,12 +217,32 @@ export default function SubAdminConsole({ user }) {
       if (reportSpec) params.append('specialization', reportSpec);
       if (reportProgram) params.append('program', reportProgram);
 
-      const resEngage = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/reports/engagement?${params.toString()}`, { headers });
-      if (resEngage.ok) setEngagementReport(await resEngage.json());
+      const queryStr = params.toString() ? `?${params.toString()}` : '';
 
-      const resEnroll = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/reports/enrollment?${params.toString()}`, { headers });
-      if (resEnroll.ok) setEnrollmentReport(await resEnroll.json());
-    } catch (err) { setError(err.message); }
+      const [resEngage, resEnroll] = await Promise.all([
+        fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/reports/engagement${queryStr}`, { headers }),
+        fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/reports/enrollment${queryStr}`, { headers })
+      ]);
+
+      if (resEngage.ok) {
+        setEngagementReport(await resEngage.json());
+      } else {
+        const errData = await resEngage.json().catch(() => ({}));
+        console.error('Engagement report error:', errData);
+        setError(errData.detail || 'Failed to load engagement report');
+      }
+
+      if (resEnroll.ok) {
+        setEnrollmentReport(await resEnroll.json());
+      } else {
+        const errData = await resEnroll.json().catch(() => ({}));
+        console.error('Enrollment report error:', errData);
+        if (!error) setError(errData.detail || 'Failed to load enrollment report');
+      }
+    } catch (err) {
+      console.error('Report fetch error:', err);
+      setError('Network error: Could not fetch analytics reports. Please check your connection and try again.');
+    }
   };
 
   const loadData = async () => {
@@ -239,6 +260,7 @@ export default function SubAdminConsole({ user }) {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // --- Sub-Admin Actions ---
@@ -321,6 +343,14 @@ export default function SubAdminConsole({ user }) {
 
   const handleSaveInst = async (e) => {
     e.preventDefault();
+    // Validate contact email - must be .edu or .edu.in
+    if (instForm.contact_email) {
+      const email = instForm.contact_email.trim().toLowerCase();
+      if (!email.endsWith('.edu') && !email.endsWith('.edu.in')) {
+        setModalError('Contact email must be a valid .edu or .edu.in email address.');
+        return;
+      }
+    }
     try {
       const url = editingInst
         ? `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/institutions/${editingInst.id}`

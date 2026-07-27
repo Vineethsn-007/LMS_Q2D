@@ -151,7 +151,16 @@ def get_system_dashboard(
                 "currency": "INR"
             })
             
+    # 4. Total users and active learner counts
+    total_users = db.query(models.User).count()
+    active_learners = db.query(models.User).filter(
+        models.User.role == "learner",
+        models.User.is_active == True
+    ).count()
+
     return {
+        "total_users": total_users,
+        "active_learners": active_learners,
         "batch_analytics": batch_analytics,
         "progression": progression,
         "revenue": revenue

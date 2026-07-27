@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertCircle, Clock, ShieldCheck, PlayCircle, Loader2, Save, Send, Eye, ShieldAlert, FileText, Maximize2, AlertTriangle, UserCheck, Volume2, VolumeX, Camera, RefreshCw, Smartphone } from 'lucide-react';
+import { AlertCircle, Clock, ShieldCheck, PlayCircle, Loader2, Save, Send, ShieldAlert, AlertTriangle, UserCheck, Volume2, VolumeX, Camera, RefreshCw } from 'lucide-react';
 
 const enterFullScreen = () => {
   try {
@@ -35,7 +35,7 @@ const ExamPortal = ({ credentialId }) => {
   const [examData, setExamData] = useState(null);
   
   const [examState, setExamState] = useState('compliance'); // 'compliance', 'taking', 'suspended', 'completed'
-  const [sessionInfo, setSessionInfo] = useState(null);
+  const [, setSessionInfo] = useState(null);
   const [questions, setQuestions] = useState([]);
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -193,6 +193,7 @@ const ExamPortal = ({ credentialId }) => {
       }, 1000);
     }
     return () => clearInterval(timerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examState, timeLeft]);
 
   // Tab switch & Fullscreen logic
@@ -303,6 +304,7 @@ const ExamPortal = ({ credentialId }) => {
       window.removeEventListener('popstate', handlePopState);
       if (tabCountdownIntervalRef.current) clearInterval(tabCountdownIntervalRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examState]);
 
   // Video AI monitoring
@@ -337,6 +339,7 @@ const ExamPortal = ({ credentialId }) => {
       if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach(track => track.stop());
       if (monitorInterval) clearInterval(monitorInterval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examState]);
 
   const analyzeVideoFrame = async () => {
@@ -482,6 +485,7 @@ const ExamPortal = ({ credentialId }) => {
       pollInterval = setInterval(pollForResume, 5000);
     }
     return () => clearInterval(pollInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examState]);
 
   const handleSelectAnswer = async (qId, optIndex) => {

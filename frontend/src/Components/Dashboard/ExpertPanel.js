@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE } from '../../config/api';
 import {
-  BookOpen, Video, FileText, Image, File, Upload,
-  ExternalLink, Sparkles, RefreshCw, CheckCircle, AlertCircle, Plus, X, Trash2, Edit, Star, LayoutGrid, Check, PlayCircle, Users, Clock
+  BookOpen, Video, FileText, Image, File,
+  Sparkles, RefreshCw, CheckCircle, AlertCircle, Plus, X, Trash2, Edit, LayoutGrid, Check, PlayCircle, Users, Clock
 } from 'lucide-react';
 import LearnerPerformance from './LearnerPerformance';
 
@@ -14,7 +14,7 @@ export default function ExpertPanel({ user }) {
   // Loading & states
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
+  const [successMsg] = useState(null);
 
   const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
   const [currentCourse, setCurrentCourse] = useState(null);

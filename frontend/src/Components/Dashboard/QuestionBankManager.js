@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Upload, Plus, Trash2, List, FileText, CheckCircle, AlertCircle, RefreshCw, 
-  Search, Check, HelpCircle, Eye, ChevronLeft, ChevronRight, Layers, Tag 
+  Upload, Plus, Trash2, List, FileText, CheckCircle, AlertCircle, RefreshCw,
+  Search, Check, HelpCircle, ChevronLeft, ChevronRight, Layers, Tag
 } from 'lucide-react';
 
 const QuestionBankManager = () => {

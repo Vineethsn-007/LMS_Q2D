@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, DollarSign, Edit3, Save, RefreshCw, CheckCircle2, AlertCircle, TrendingUp, Search, Filter } from 'lucide-react';
+import { CreditCard, DollarSign, Save, RefreshCw, CheckCircle2, AlertCircle, TrendingUp, Search, Filter } from 'lucide-react';
 
 export default function PaymentConfigManager() {
   const [pricingMap, setPricingMap] = useState({

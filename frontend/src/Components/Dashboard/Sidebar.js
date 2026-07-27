@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
+import {
+  LayoutDashboard,
+  BookOpen,
   Shield,
   LogOut,
   Settings,
@@ -11,8 +11,7 @@ import {
   Calendar,
   Video,
   LifeBuoy,
-  Trophy,
-  CheckCircle
+  Trophy
 } from 'lucide-react';
 import logoImg from '../../logo.png';
 
@@ -96,15 +95,10 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
             {user?.role === 'admin' && (
               <SidebarLink icon={Shield} label="Super Admin Panel" isActive={activeView === 'admin-panel'} onClick={() => onViewChange('admin-panel')} />
             )}
-            {(user?.role === 'admin' || user?.role === 'sub_admin') && (
-              <SidebarLink icon={Shield} label={user?.role === 'admin' ? "Sub-Admin Operations" : "Sub-Admin Console"} isActive={activeView === 'subadmin-console'} onClick={() => onViewChange('subadmin-console')} />
+            {user?.role === 'sub_admin' && (
+              <SidebarLink icon={Shield} label="Sub-Admin Console" isActive={activeView === 'subadmin-console'} onClick={() => onViewChange('subadmin-console')} />
             )}
-            {(user?.role === 'admin' || (myPrivileges && myPrivileges.verify_assessments)) && (
-              <SidebarLink icon={CheckCircle} label="POC Verification" isActive={activeView === 'poc-dashboard'} onClick={() => onViewChange('poc-dashboard')} />
-            )}
-            {(user?.role === 'admin' || user?.role === 'sub_admin') && (
-              <SidebarLink icon={Video} label="Live Class Config" isActive={activeView === 'live-class-config'} onClick={() => onViewChange('live-class-config')} />
-            )}
+            {/* POC Verification removed per requirements */}
           </SidebarSection>
         )}
 
@@ -117,7 +111,9 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
         )}
 
         <SidebarSection title="Analytics">
-          <SidebarLink icon={Trophy} label="Leaderboard" isActive={activeView === 'leaderboard'} onClick={() => onViewChange('leaderboard')} />
+          {user?.role !== 'admin' && user?.role !== 'sub_admin' && (
+            <SidebarLink icon={Trophy} label="Leaderboard" isActive={activeView === 'leaderboard'} onClick={() => onViewChange('leaderboard')} />
+          )}
         </SidebarSection>
 
         <SidebarSection title="Account">

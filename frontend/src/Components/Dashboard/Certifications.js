@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Award, Target, TrendingUp, Trophy, Globe, CheckCircle2, Share2, Download, ShieldCheck, Lock, Trash2, Eye, CreditCard, Sparkles, AlertCircle, Clock, BookOpen, ChevronRight } from 'lucide-react';
+import { Award, Target, Trophy, Globe, CheckCircle2, Download, ShieldCheck, Trash2, Eye, CreditCard, Sparkles, AlertCircle, Clock, BookOpen } from 'lucide-react';
 import { getCertificateHTML } from './certificateTemplate';
 
 const Certifications = ({ user }) => {
@@ -67,6 +67,7 @@ const Certifications = ({ user }) => {
 
   useEffect(() => {
     fetchAllData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleDelete = async (certId) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users, Trash2, Edit, Plus, Shield, RefreshCw, X, ShieldAlert, Check, Mail, BarChart2, FileText, CreditCard
+  Users, Trash2, Plus, Shield, RefreshCw, X, ShieldAlert, Mail, BarChart2, FileText, CreditCard
 } from 'lucide-react';
 import SubAdminConsole from './SubAdminConsole';
 import AdminAnalyticsDashboard from './AdminAnalyticsDashboard';
@@ -10,7 +10,9 @@ import LiveSessionMonitor from './LiveSessionMonitor';
 import PaymentConfigManager from './PaymentConfigManager';
 
 export default function AdminPanel({ user }) {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [, setStatsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -69,9 +71,24 @@ export default function AdminPanel({ user }) {
     }
   };
 
+  const fetchDashboardStats = async () => {
+    try {
+      setStatsLoading(true);
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/reports/system-dashboard`, { headers });
+      if (res.ok) {
+        setDashboardStats(await res.json());
+      }
+    } catch (err) {
+      console.error('Failed to fetch dashboard stats:', err);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
+    if (activeTab === 'dashboard') await fetchDashboardStats();
     if (activeTab === 'users') await fetchUsers();
     if (activeTab === 'subscribers') await fetchSubscribers();
     setLoading(false);
@@ -188,7 +205,13 @@ export default function AdminPanel({ user }) {
           </div>
           
           <div className="inline-flex max-w-full items-center gap-2 p-1.5 bg-slate-200/70 rounded-2xl overflow-x-auto custom-scrollbar">
-            <button 
+            <button
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'dashboard' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
+              onClick={() => setActiveTab('dashboard')}
+            >
+              <BarChart2 size={16} className="text-emerald-500" /> Dashboard
+            </button>
+            <button
               className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'users' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
               onClick={() => setActiveTab('users')}
             >
@@ -239,7 +262,164 @@ export default function AdminPanel({ user }) {
           </div>
         )}
         
-        {activeTab === 'operations' ? (
+        {activeTab === 'dashboard' ? (
+          <div className="flex flex-col gap-6">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Users size={20} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Total Users</span>
+                </div>
+                {dashboardStats ? (
+                  <>
+                    <div className="text-2xl font-bold text-navy-900">{dashboardStats.total_users || 0}</div>
+                    <div className="text-xs text-slate-500 font-medium mt-1">Across all roles</div>
+                  </>
+                ) : (
+                  <div className="text-sm text-slate-400">Loading...</div>
+                )}
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Users size={20} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Active Learners</span>
+                </div>
+                {dashboardStats ? (
+                  <>
+                    <div className="text-2xl font-bold text-emerald-600">{dashboardStats.active_learners || 0}</div>
+                    <div className="text-xs text-slate-500 font-medium mt-1">Currently active</div>
+                  </>
+                ) : (
+                  <div className="text-sm text-slate-400">Loading...</div>
+                )}
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <FileText size={20} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Exam Cycles</span>
+                </div>
+                {dashboardStats ? (
+                  <>
+                    <div className="text-2xl font-bold text-purple-700">{dashboardStats.batch_analytics?.length || 0}</div>
+                    <div className="text-xs text-slate-500 font-medium mt-1">Active cycles</div>
+                  </>
+                ) : (
+                  <div className="text-sm text-slate-400">Loading...</div>
+                )}
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <CreditCard size={20} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Total Revenue</span>
+                </div>
+                {dashboardStats ? (
+                  <>
+                    <div className="text-2xl font-bold text-amber-700">
+                      ₹{dashboardStats.revenue?.reduce((sum, r) => sum + (r.total_revenue || 0), 0).toLocaleString() || 0}
+                    </div>
+                    <div className="text-xs text-slate-500 font-medium mt-1">Across all tiers</div>
+                  </>
+                ) : (
+                  <div className="text-sm text-slate-400">Loading...</div>
+                )}
+              </div>
+            </div>
+
+            {/* Batch Analytics Table */}
+            {dashboardStats?.batch_analytics?.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-navy-900 mb-4 flex items-center gap-2">
+                  <BarChart2 size={18} className="text-emerald-600" /> Cycle Performance
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase">
+                        <th className="py-3 px-3">Cycle Year</th>
+                        <th className="py-3 px-3 text-right">Total Students</th>
+                        <th className="py-3 px-3 text-right">Pass Rate</th>
+                        <th className="py-3 px-3 text-right">Avg Score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {dashboardStats.batch_analytics.map((batch, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50">
+                          <td className="py-3 px-3 font-bold text-navy-900">{batch.cycle_year}</td>
+                          <td className="py-3 px-3 text-right font-bold text-slate-700">{batch.total_students}</td>
+                          <td className="py-3 px-3 text-right font-bold text-emerald-600">{batch.pass_rate}%</td>
+                          <td className="py-3 px-3 text-right font-bold text-purple-700">{batch.avg_score}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Progression Stats */}
+            {dashboardStats?.progression?.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-navy-900 mb-4 flex items-center gap-2">
+                  <Users size={18} className="text-blue-600" /> Student Progression by Tier
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase">
+                        <th className="py-3 px-3">Tier</th>
+                        <th className="py-3 px-3 text-right">Student Count</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {dashboardStats.progression.map((p, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50">
+                          <td className="py-3 px-3 font-bold text-navy-900 capitalize">{p.tier}</td>
+                          <td className="py-3 px-3 text-right font-bold text-blue-700">{p.student_count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-navy-900 mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button onClick={() => setActiveTab('users')} className="p-4 bg-slate-50 hover:bg-blue-50 rounded-xl border border-slate-200 hover:border-blue-200 transition-all text-left">
+                  <Users size={20} className="text-blue-600 mb-2" />
+                  <div className="text-sm font-bold text-navy-900">Manage Users</div>
+                  <div className="text-xs text-slate-500">Add, edit or remove users</div>
+                </button>
+                <button onClick={() => setActiveTab('operations')} className="p-4 bg-slate-50 hover:bg-emerald-50 rounded-xl border border-slate-200 hover:border-emerald-200 transition-all text-left">
+                  <Shield size={20} className="text-emerald-600 mb-2" />
+                  <div className="text-sm font-bold text-navy-900">Sub-Admins</div>
+                  <div className="text-xs text-slate-500">Manage sub-admin operations</div>
+                </button>
+                <button onClick={() => setActiveTab('analytics')} className="p-4 bg-slate-50 hover:bg-purple-50 rounded-xl border border-slate-200 hover:border-purple-200 transition-all text-left">
+                  <BarChart2 size={20} className="text-purple-600 mb-2" />
+                  <div className="text-sm font-bold text-navy-900">Analytics</div>
+                  <div className="text-xs text-slate-500">View system analytics</div>
+                </button>
+                <button onClick={() => setActiveTab('subscribers')} className="p-4 bg-slate-50 hover:bg-amber-50 rounded-xl border border-slate-200 hover:border-amber-200 transition-all text-left">
+                  <Mail size={20} className="text-amber-600 mb-2" />
+                  <div className="text-sm font-bold text-navy-900">Subscribers</div>
+                  <div className="text-xs text-slate-500">Manage email subscribers</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'operations' ? (
           <div className="flex flex-col gap-6">
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
@@ -453,25 +633,40 @@ export default function AdminPanel({ user }) {
 
               {activeTab === 'subscribers' && (
                 <div className="flex flex-col gap-4">
-                  <h3 className="text-lg font-bold text-navy-900 px-2">Newsletter Subscribers</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-navy-900 px-2">Registered Learners</h3>
+                    <span className="text-sm font-bold text-slate-500 px-3 py-1 bg-slate-100 rounded-lg">
+                      Total: {subscribersList.length}
+                    </span>
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Name</th>
                           <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Email</th>
-                          <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Subscribed At</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Status</th>
+                          <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Registered</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {subscribersList.length === 0 ? (
+                        {!subscribersList || subscribersList.length === 0 ? (
                           <tr>
-                            <td colSpan="2" className="px-4 py-8 text-center text-slate-500 font-medium">No subscribers yet.</td>
+                            <td colSpan="4" className="px-4 py-8 text-center text-slate-500 font-medium">No subscribers found.</td>
                           </tr>
                         ) : (
                           subscribersList.map(sub => (
                             <tr key={sub.id} className="hover:bg-slate-50 transition-colors group">
-                              <td className="px-4 py-4 text-sm font-bold text-navy-900 border-b border-slate-50">{sub.email}</td>
-                              <td className="px-4 py-4 text-sm text-slate-500 border-b border-slate-50">{new Date(sub.created_at).toLocaleString()}</td>
+                              <td className="px-4 py-4 text-sm font-bold text-navy-900 border-b border-slate-50">{sub.name}</td>
+                              <td className="px-4 py-4 text-sm text-slate-600 border-b border-slate-50">{sub.email}</td>
+                              <td className="px-4 py-4 border-b border-slate-50">
+                                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${sub.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                                  {sub.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 text-sm text-slate-500 border-b border-slate-50">
+                                {sub.created_at ? new Date(sub.created_at).toLocaleDateString() : 'N/A'}
+                              </td>
                             </tr>
                           ))
                         )}

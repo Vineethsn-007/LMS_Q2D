@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Sparkles } from 'lucide-react';
+import { Bell, Sparkles, LogOut } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DashboardContent from './DashboardContent';
 import MyLearning from './MyLearning';
@@ -25,7 +25,7 @@ import SupportCenter from './SupportCenter';
 import AnnouncementBar from './AnnouncementBar';
 import ForcePasswordChange from './ForcePasswordChange';
 import LeaderboardView from './LeaderboardView';
-import POCDashboard from './POCDashboard';
+// POC removed per requirements
 import './Dashboard.css';
 import './MyLearning.css';
 import './Certifications.css';
@@ -171,6 +171,15 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             >
               {user?.name?.charAt(0) || 'A'}
             </div>
+            {/* Logout Button */}
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:text-coral hover:bg-coral-50 rounded-xl transition-all text-sm font-medium"
+              title="Log Out"
+            >
+              <LogOut size={18} />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
           </div>
         </header>
 
@@ -232,12 +241,8 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
             <SubAdminConsole user={user} />
           </SubAdminProtectedRoute>
         )}
-        {activeView === 'poc-dashboard' && (
-          <SubAdminProtectedRoute user={user} requiredPrivilege="verify_assessments">
-            <POCDashboard user={user} />
-          </SubAdminProtectedRoute>
-        )}
-        {activeView === 'expert-panel' && (
+        {/* POC Dashboard removed per requirements */}
+{activeView === 'expert-panel' && (
           <ExpertProtectedRoute user={user}>
             <ExpertPanel user={user} />
           </ExpertProtectedRoute>

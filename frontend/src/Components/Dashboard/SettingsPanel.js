@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Clock, Shield, Flame, Trophy, Eye, EyeOff, Settings } from 'lucide-react';
-import PaymentHistory from './PaymentHistory';
+import { User, Mail, Clock, Shield, Eye, EyeOff, Settings } from 'lucide-react';
 
 export default function SettingsPanel({ user, onUserUpdate }) {
   const [name, setName] = useState('');
@@ -144,11 +143,11 @@ export default function SettingsPanel({ user, onUserUpdate }) {
                 </label>
                 <input
                   type="email"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all disabled:opacity-50"
+                  className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-sm font-medium text-slate-500 cursor-not-allowed"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  readOnly
+                  disabled={true}
                   placeholder="Email Address"
-                  disabled={loading}
                 />
               </div>
 
@@ -214,9 +213,7 @@ export default function SettingsPanel({ user, onUserUpdate }) {
           {/* Right Column: Profile Summary / Info card */}
           <div className="col-span-1 flex flex-col gap-6">
             <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm flex flex-col">
-              <h2 className="text-lg font-bold text-navy-900 mb-8 pb-4 border-b border-slate-100">Learning Stats Summary</h2>
-              
-              <div className="flex items-center gap-4 mb-8">
+              <div className="flex items-center gap-4 mb-6">
                 <div className="w-16 h-16 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 text-white flex items-center justify-center text-2xl font-bold shadow-sm">
                   {user?.name?.charAt(0) || 'A'}
                 </div>
@@ -227,49 +224,12 @@ export default function SettingsPanel({ user, onUserUpdate }) {
                   </div>
                 </div>
               </div>
-
-              <div className="flex flex-col gap-6 pt-6 border-t border-slate-100">
-                
-                <div className="flex items-center gap-4 group">
-                  <div className="w-12 h-12 shrink-0 rounded-xl bg-orange-50 border border-orange-100 text-orange-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Flame size={20} className="fill-orange-500/20" />
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="text-base font-bold text-navy-900">{user?.streak || 0} Days</div>
-                    <div className="text-xs font-semibold text-slate-400 mt-0.5">Current Streak</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 group">
-                  <div className="w-12 h-12 shrink-0 rounded-xl bg-amber-50 border border-amber-100 text-amber-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Trophy size={20} className="fill-amber-500/20" />
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="text-base font-bold text-navy-900">{user?.xp_points?.toLocaleString() || 0} XP</div>
-                    <div className="text-xs font-semibold text-slate-400 mt-0.5">Total Points</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 group">
-                  <div className="w-12 h-12 shrink-0 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-500 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Shield size={20} className="fill-emerald-500/20" />
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="text-base font-bold text-navy-900">
-                      {user?.role === 'admin' ? 'Super Admin' : user?.role === 'expert' ? 'Expert review' : user?.role === 'reviewer' ? 'Reviewer' : 'Standard Learner'}
-                    </div>
-                    <div className="text-xs font-semibold text-slate-400 mt-0.5">Account Privilege</div>
-                  </div>
-                </div>
-
-              </div>
             </div>
           </div>
           
         </div>
 
-        {/* Payment History Section */}
-        <PaymentHistory />
+        {/* Payment History Section - Removed per requirements */}
       </div>
     </div>
   );

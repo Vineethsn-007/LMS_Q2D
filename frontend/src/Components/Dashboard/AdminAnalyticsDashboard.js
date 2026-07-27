@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, 
-  LineChart, Line, PieChart, Pie, Cell 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+  LineChart, Line
 } from 'recharts';
-import { 
-  Activity, TrendingUp, DollarSign, RefreshCw, AlertCircle, Users, 
-  ShieldAlert, Settings, FileText, CheckCircle, Search, Filter, Clock 
+import {
+  TrendingUp, DollarSign, RefreshCw, AlertCircle, Users,
+  ShieldAlert, CheckCircle, Clock
 } from 'lucide-react';
-
-const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
 
 export default function AdminAnalyticsDashboard() {
   const [activeTab, setActiveTab] = useState('batch'); // batch, progression, payments, access
@@ -24,9 +22,7 @@ export default function AdminAnalyticsDashboard() {
   const [timeToCertStats, setTimeToCertStats] = useState([]);
 
   // Filters
-  const [institutionId, setInstitutionId] = useState('');
-  const [batchName, setBatchName] = useState('');
-  
+
   // Override Modal
   const [overrideModal, setOverrideModal] = useState({ open: false, record: null, action: 'activate', reason: '' });
 

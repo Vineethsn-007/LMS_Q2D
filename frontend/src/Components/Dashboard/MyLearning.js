@@ -1,15 +1,197 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Play, CheckCircle2, FileText, ChevronDown, ChevronUp, Image, Video, HelpCircle } from 'lucide-react';
+import { Play, CheckCircle2, FileText, ChevronDown, ChevronUp, Image, Video, HelpCircle, BookOpen, Clock, RefreshCw, ArrowLeft } from 'lucide-react';
 import './MyLearning.css';
 
 import CourseQuiz from './CourseQuiz';
 
+const CourseListView = ({ onSelectCourse, completedCourses, onBack }) => {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('sf_token');
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+        // Fetch all courses
+        const res = await fetch(`${apiUrl}/api/courses`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCourses(Array.isArray(data) ? data : []);
+        } else {
+          setError('Failed to load courses');
+        }
+      } catch (err) {
+        console.error('Error fetching courses:', err);
+        setError('Could not load courses. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  const totalCourses = courses.length;
+
+  if (loading) {
+    return (
+      <div className="flex-1 overflow-y-auto p-8 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-navy" />
+          <p className="text-slate-500 font-medium">Loading your courses...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="p-6 bg-red-50 border border-red-200 rounded-2xl text-red-700 font-medium">
+            {error}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold border border-blue-100 uppercase tracking-wider mb-3">
+            <BookOpen size={14} /> My Learning
+          </div>
+          <h1 className="text-3xl font-bold text-navy-900 mb-2">Learning Portal</h1>
+          <p className="text-slate-500">Access all your courses, expert-curated content, and learning materials in one place.</p>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Total Courses</div>
+            <div className="text-2xl font-bold text-navy-900">{totalCourses}</div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Completed</div>
+            <div className="text-2xl font-bold text-emerald-600">{completedCourses.length}</div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">In Progress</div>
+            <div className="text-2xl font-bold text-amber-600">{Math.max(0, totalCourses - completedCourses.length)}</div>
+          </div>
+        </div>
+
+        {/* Course Grid */}
+        {courses.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center shadow-sm">
+            <BookOpen size={48} className="mx-auto mb-4 text-slate-300" />
+            <h3 className="text-lg font-bold text-slate-700 mb-2">No courses available</h3>
+            <p className="text-sm text-slate-500">Courses assigned to you will appear here once they are configured by your institution.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map(course => {
+              const isCompleted = completedCourses.includes(course.id);
+              return (
+                <div
+                  key={course.id}
+                  onClick={() => onSelectCourse(course)}
+                  className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-navy/20 transition-all cursor-pointer group overflow-hidden flex flex-col"
+                >
+                  {/* Card Thumbnail */}
+                  <div className="h-40 bg-gradient-to-br from-navy-800 to-navy-900 relative flex items-center justify-center">
+                    {course.image_url ? (
+                      <img src={course.image_url} alt={course.title} className="w-full h-full object-cover absolute inset-0" />
+                    ) : (
+                      <BookOpen size={48} className="text-white/30" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute bottom-3 left-4 right-4">
+                      <span className="text-xs font-semibold text-white/80 bg-white/20 px-2.5 py-1 rounded-full backdrop-blur-sm">
+                        {course.category || 'General'}
+                      </span>
+                    </div>
+                    {isCompleted && (
+                      <div className="absolute top-3 right-3 bg-emerald-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
+                        ✓ Completed
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-5 flex flex-col flex-1">
+                    <h3 className="font-bold text-navy-900 mb-2 line-clamp-2 group-hover:text-navy transition-colors">
+                      {course.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 mb-4 line-clamp-2 flex-1">
+                      {course.description || 'No description available'}
+                    </p>
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <Clock size={14} />
+                        <span>{course.hours || 0}h</span>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onSelectCourse(course); }}
+                        className="px-4 py-2 bg-navy text-white text-xs font-bold rounded-lg hover:bg-navy-800 transition-colors"
+                      >
+                        {isCompleted ? 'Review' : 'Start Learning'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
   const [shuffledLessonsMap, setShuffledLessonsMap] = useState({});
+  const [selectedCourse, setSelectedCourse] = useState(rawCourse || null);
+  const [completedCourses, setCompletedCourses] = useState([]);
 
+  // Load completed courses list
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('sf_completed_courses') || '[]');
+    setCompletedCourses(saved);
+    const handleUpdate = () => {
+      setCompletedCourses(JSON.parse(localStorage.getItem('sf_completed_courses') || '[]'));
+    };
+    window.addEventListener('progress_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('progress_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  // Handle course selection from list view
+  const handleSelectCourse = (course) => {
+    setSelectedCourse(course);
+  };
+
+  // Handle going back to course list
+  const handleBackToList = () => {
+    setSelectedCourse(null);
+    if (onBack) onBack();
+  };
+
+  // ---- COURSE DETAIL VIEW HOOKS (called unconditionally) ----
   const course = useMemo(() => {
-    if (!rawCourse || !rawCourse.modules_data) return rawCourse;
-    const newModules = rawCourse.modules_data.map((mod, mIndex) => {
+    if (!selectedCourse || !selectedCourse.modules_data) return selectedCourse;
+    const newModules = selectedCourse.modules_data.map((mod, mIndex) => {
       if (!mod.lessons) return mod;
       let modHasQuiz = false;
       let lastLessonWithQuizIdx = -1;
@@ -45,8 +227,8 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
       });
       return { ...mod, lessons: newLessons };
     });
-    return { ...rawCourse, modules_data: newModules };
-  }, [rawCourse, shuffledLessonsMap]);
+    return { ...selectedCourse, modules_data: newModules };
+  }, [selectedCourse, shuffledLessonsMap]);
 
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeContentIndex, setActiveContentIndex] = useState(0);
@@ -54,7 +236,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
   const [showQuiz, setShowQuiz] = useState(false);
   const [completedItems, setCompletedItems] = useState([]);
   const [selectedAnswers, setSelectedAnswers] = useState({});
-  
+
   useEffect(() => {
     if (course && course.modules_data && course.modules_data.length > 0) {
       setExpandedModules({ 0: true });
@@ -97,11 +279,19 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
     setExpandedModules(prev => ({ ...prev, [mIndex]: !prev[mIndex] }));
   };
 
-  if (!course) {
-    return <div style={{ padding: '4rem', textAlign: 'center', color: '#64748b' }}>No course selected. Please select a subject course from your Dashboard or Registered Subjects.</div>;
+  // If no course is selected, show the course list view (after all hooks)
+  if (!selectedCourse) {
+    return (
+      <CourseListView
+        onSelectCourse={handleSelectCourse}
+        completedCourses={completedCourses}
+        onBack={onBack}
+      />
+    );
   }
 
-  const hasModules = course.modules_data && course.modules_data.length > 0;
+  // Course exists - render the detail view
+  const hasModules = course?.modules_data && course.modules_data.length > 0;
 
   const flattenedItems = [];
   if (course && course.modules_data) {
@@ -119,7 +309,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
       }
     });
   }
-  
+
   const getItemId = (lesson, content, cIndex) => {
     if (!lesson) return '';
     return content ? `${lesson.id || lesson.title}_c${content.id || cIndex}` : `${lesson.id || lesson.title}_l0`;
@@ -215,16 +405,16 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
     setSelectedAnswers(prevAnswers => {
       const nextAnswers = { ...prevAnswers };
       itemIdsToRemove.forEach(id => delete nextAnswers[id]);
-      if (rawCourse && rawCourse.id) {
-        localStorage.setItem(`sf_answers_${rawCourse.id}`, JSON.stringify(nextAnswers));
+      if (selectedCourse && selectedCourse.id) {
+        localStorage.setItem(`sf_answers_${selectedCourse.id}`, JSON.stringify(nextAnswers));
       }
       return nextAnswers;
     });
 
     setCompletedItems(prevCompleted => {
       const nextCompleted = prevCompleted.filter(id => !itemIdsToRemove.includes(id));
-      if (rawCourse && rawCourse.id) {
-        localStorage.setItem(`sf_progress_${rawCourse.id}`, JSON.stringify(nextCompleted));
+      if (selectedCourse && selectedCourse.id) {
+        localStorage.setItem(`sf_progress_${selectedCourse.id}`, JSON.stringify(nextCompleted));
         window.dispatchEvent(new Event('progress_updated'));
       }
       return nextCompleted;
@@ -234,13 +424,13 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
       if (!q.quiz_data || !q.quiz_data.options) return q;
       const oldOptions = [...q.quiz_data.options];
       const correctStr = oldOptions[q.quiz_data.answer];
-      
+
       const newOptions = [...oldOptions];
       for (let i = newOptions.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [newOptions[i], newOptions[j]] = [newOptions[j], newOptions[i]];
       }
-      
+
       const newAnswerIdx = newOptions.indexOf(correctStr);
       return {
         ...q,
@@ -304,7 +494,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
       window.dispatchEvent(new Event('progress_updated'));
     }
     if (onComplete) onComplete();
-    else if (onBack) onBack();
+    else handleBackToList();
   };
 
   const handleNext = () => {
@@ -329,24 +519,24 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
   if (showQuiz) {
     return (
       <div className="flex-1 w-full bg-slate-50 overflow-y-auto p-8">
-        <CourseQuiz 
-          courseId={course.id} 
+        <CourseQuiz
+          courseId={course.id}
           courseName={course.title}
-          onComplete={completeCourse} 
-          onCancel={() => setShowQuiz(false)} 
+          onComplete={completeCourse}
+          onCancel={() => setShowQuiz(false)}
         />
       </div>
     );
   }
-  
+
   return (
     <div className="flex h-full flex-1 w-full bg-slate-50 overflow-hidden">
-      
+
       {/* Sidebar: Curriculum */}
       <aside className="curriculum-sidebar" style={{ width: '320px', background: '#f8fafc', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
         <div className="curriculum-header" style={{ padding: '2rem 1.5rem 1rem', borderBottom: '1px solid #e2e8f0' }}>
-          <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', padding: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            ← Back to Courses
+          <button onClick={handleBackToList} style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', padding: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <ArrowLeft size={14} /> Back to Courses
           </button>
           <h2 className="course-title-small" style={{ fontSize: '1.25rem', fontWeight: '800', marginBottom: '0.75rem', color: '#0f172a' }}>{course.title}</h2>
           <div className="curriculum-progress-bg" style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', marginBottom: '0.5rem', width: '100%', overflow: 'hidden' }}>
@@ -364,7 +554,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
               const isExpanded = expandedModules[mIndex];
               return (
                 <div key={mod.id || mIndex} className="module-accordion" style={{ marginBottom: '1rem' }}>
-                  <button 
+                  <button
                     onClick={() => toggleModule(mIndex)}
                     style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #e2e8f0', padding: '0.85rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', color: '#1e293b', fontSize: '0.9rem', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}
                   >
@@ -379,15 +569,15 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                         const isLessonActive = activeLesson?.id === lesson.id;
                         return (
                           <div key={lesson.id || lIndex} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <div style={{ 
-                              padding: '0.5rem 1rem', 
+                            <div style={{
+                              padding: '0.5rem 1rem',
                               color: isLessonActive ? '#0f172a' : '#64748b',
                               fontWeight: '700',
                               fontSize: '0.85rem'
                             }}>
                               {lesson.title}
                             </div>
-                            
+
                             {lesson.contents && lesson.contents.length > 0 ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginLeft: '0.5rem' }}>
                                 {lesson.contents.map((c, cIndex) => {
@@ -398,7 +588,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                                   const canClickSidebarItem = !isAssessmentItem || (cIndex === 0 && !isLessonActive);
 
                                   return (
-                                    <div 
+                                    <div
                                       key={cIndex}
                                       onClick={() => {
                                         if (!canClickSidebarItem) return;
@@ -427,9 +617,9 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                                         fontSize: '0.8rem', fontWeight: isContentActive ? '600' : '500'
                                       }}
                                     >
-                                      {c.type === 'video' ? <Video size={14} /> : 
-                                       c.type === 'pdf' ? <FileText size={14} /> : 
-                                       c.type === 'image' ? <Image size={14} /> : 
+                                      {c.type === 'video' ? <Video size={14} /> :
+                                       c.type === 'pdf' ? <FileText size={14} /> :
+                                       c.type === 'image' ? <Image size={14} /> :
                                        c.type === 'quiz' ? null :
                                        c.type === 'module_results' ? <CheckCircle2 size={14} style={{ color: '#10b981' }} /> :
                                        <FileText size={14} />}
@@ -457,7 +647,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                                 })}
                               </div>
                             ) : (
-                               <div 
+                               <div
                                   onClick={() => {
                                     if (isCurrentQuiz && !canProceed && getItemId(lesson, null, 0) !== currentItemId) {
                                       alert("Please choose an option before proceeding to the next question.");
@@ -515,7 +705,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
       {/* Main Content Area */}
       <main className="learning-content" style={{ flex: 1, padding: '2.5rem 4rem', background: '#fff', overflowY: 'auto' }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          
+
           <h1 style={{ fontSize: '2rem', fontWeight: '800', color: '#0f172a', margin: '0 0 1.5rem 0', textTransform: 'capitalize' }}>
             {activeLesson ? activeLesson.title : course.title}
           </h1>
@@ -526,7 +716,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                 {(() => {
                   const content = activeLesson.contents[activeContentIndex];
                   if (!content) return null;
-                  
+
                   if (content.type === 'video' && content.content_url) {
                     return (
                       <video controls style={{ width: '100%', display: 'block', maxHeight: '600px', backgroundColor: '#000' }}>
@@ -562,11 +752,11 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                           <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b', margin: 0, flex: 1 }}>
                             {content.quiz_data.question}
                           </h3>
-                          <span style={{ 
-                            padding: '0.4rem 0.85rem', 
-                            borderRadius: '20px', 
-                            fontSize: '0.85rem', 
-                            fontWeight: '700', 
+                          <span style={{
+                            padding: '0.4rem 0.85rem',
+                            borderRadius: '20px',
+                            fontSize: '0.85rem',
+                            fontWeight: '700',
                             background: isAnswered ? '#eff6ff' : '#f1f5f9',
                             color: isAnswered ? '#1e40af' : '#64748b',
                             border: `1px solid ${isAnswered ? '#bfdbfe' : '#e2e8f0'}`,
@@ -581,8 +771,8 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                             const isSelectedOpt = userAns === i;
 
                             return (
-                              <button 
-                                key={i} 
+                              <button
+                                key={i}
                                 onClick={() => {
                                   const nextAnswers = { ...selectedAnswers, [currentItemId]: i };
                                   setSelectedAnswers(nextAnswers);
@@ -592,26 +782,26 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                                   }
                                   markCurrentCompleted();
                                 }}
-                                style={{ 
-                                  padding: '1rem 1.5rem', 
-                                  textAlign: 'left', 
-                                  background: isSelectedOpt ? '#eff6ff' : '#f8fafc', 
-                                  border: isSelectedOpt ? '2px solid #3b82f6' : '2px solid #e2e8f0', 
-                                  borderRadius: '12px', 
+                                style={{
+                                  padding: '1rem 1.5rem',
+                                  textAlign: 'left',
+                                  background: isSelectedOpt ? '#eff6ff' : '#f8fafc',
+                                  border: isSelectedOpt ? '2px solid #3b82f6' : '2px solid #e2e8f0',
+                                  borderRadius: '12px',
                                   fontSize: '1.1rem',
-                                  color: isSelectedOpt ? '#1e40af' : '#334155', 
-                                  cursor: 'pointer', 
-                                  transition: 'all 0.2s', 
-                                  fontWeight: isSelectedOpt ? '700' : '500', 
-                                  boxShadow: isSelectedOpt ? '0 0 0 3px rgba(59, 130, 246, 0.15)' : 'none', 
-                                  display: 'flex', 
-                                  justifyContent: 'space-between', 
-                                  alignItems: 'center' 
+                                  color: isSelectedOpt ? '#1e40af' : '#334155',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s',
+                                  fontWeight: isSelectedOpt ? '700' : '500',
+                                  boxShadow: isSelectedOpt ? '0 0 0 3px rgba(59, 130, 246, 0.15)' : 'none',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center'
                                 }}
                               >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                  <div style={{ 
-                                    width: '22px', height: '22px', borderRadius: '4px', 
+                                  <div style={{
+                                    width: '22px', height: '22px', borderRadius: '4px',
                                     background: isSelectedOpt ? '#3b82f6' : '#cbd5e1',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     color: '#fff', fontSize: '0.8rem', fontWeight: 'bold'
@@ -706,11 +896,11 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                                   <h4 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', margin: 0, flex: 1 }}>
                                     {qIndex + 1}. {q.content.quiz_data.question}
                                   </h4>
-                                  <span style={{ 
-                                    padding: '0.4rem 0.85rem', 
-                                    borderRadius: '20px', 
-                                    fontSize: '0.85rem', 
-                                    fontWeight: '700', 
+                                  <span style={{
+                                    padding: '0.4rem 0.85rem',
+                                    borderRadius: '20px',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '700',
                                     background: isAnswered ? (isQCorrect ? '#ecfdf5' : '#fef2f2') : '#f1f5f9',
                                     color: isAnswered ? (isQCorrect ? '#065f46' : '#991b1b') : '#64748b',
                                     border: `1px solid ${isAnswered ? (isQCorrect ? '#a7f3d0' : '#fecaca') : '#e2e8f0'}`,
@@ -724,7 +914,7 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                                   {q.content.quiz_data.options.map((opt, optIndex) => {
                                     const isSelectedOpt = userAns === optIndex;
                                     const isCorrectOpt = optIndex === correctAns;
-                                    
+
                                     let bg = '#f8fafc';
                                     let border = '2px solid #e2e8f0';
                                     let color = '#334155';
@@ -746,14 +936,14 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                                     }
 
                                     return (
-                                      <div 
+                                      <div
                                         key={optIndex}
-                                        style={{ 
-                                          padding: '0.9rem 1.25rem', 
-                                          borderRadius: '10px', 
-                                          background: bg, 
-                                          border: border, 
-                                          color: color, 
+                                        style={{
+                                          padding: '0.9rem 1.25rem',
+                                          borderRadius: '10px',
+                                          background: bg,
+                                          border: border,
+                                          color: color,
                                           fontSize: '1rem',
                                           fontWeight: fontWeight,
                                           display: 'flex',
@@ -763,8 +953,8 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                                         }}
                                       >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                          <div style={{ 
-                                            width: '20px', height: '20px', borderRadius: '4px', 
+                                          <div style={{
+                                            width: '20px', height: '20px', borderRadius: '4px',
                                             background: isSelectedOpt ? (isCorrectOpt ? '#10b981' : '#ef4444') : (isCorrectOpt ? '#10b981' : '#cbd5e1'),
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                             color: '#fff', fontSize: '0.75rem', fontWeight: 'bold'
@@ -808,39 +998,39 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-            <button 
+            <button
               onClick={handlePrev}
               disabled={!prevLessonItem}
-              style={{ 
-                padding: '0.75rem 1.5rem', 
-                background: prevLessonItem ? '#f1f5f9' : '#f8fafc', 
-                color: prevLessonItem ? '#334155' : '#cbd5e1', 
-                border: 'none', 
-                borderRadius: '8px', 
-                fontWeight: '600', 
-                cursor: prevLessonItem ? 'pointer' : 'not-allowed', 
-                display: 'flex', 
-                alignItems: 'center', 
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: prevLessonItem ? '#f1f5f9' : '#f8fafc',
+                color: prevLessonItem ? '#334155' : '#cbd5e1',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: prevLessonItem ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
                 gap: '0.5rem',
                 transition: 'all 0.2s'
               }}
             >
               ← Previous Lesson
             </button>
-            <button 
+            <button
               onClick={handleNext}
               disabled={!canProceed}
-              style={{ 
-                padding: '0.75rem 1.5rem', 
-                background: canProceed ? '#3b82f6' : '#94a3b8', 
-                color: '#fff', 
-                border: 'none', 
-                borderRadius: '8px', 
-                fontWeight: '600', 
-                cursor: canProceed ? 'pointer' : 'not-allowed', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem', 
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: canProceed ? '#3b82f6' : '#94a3b8',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: canProceed ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
                 boxShadow: canProceed ? '0 4px 6px -1px rgba(59, 130, 246, 0.2), 0 2px 4px -1px rgba(59, 130, 246, 0.1)' : 'none',
                 transition: 'all 0.2s',
                 opacity: canProceed ? 1 : 0.7

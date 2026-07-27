@@ -23,7 +23,8 @@ export default function SubjectManager({ user, institutionsList }) {
     code: '',
     description: '',
     specialization_id: '',
-    institution_id: ''
+    institution_id: '',
+    ai_mock_exams_enabled: true
   });
 
   // Specialization Modal State
@@ -95,7 +96,8 @@ export default function SubjectManager({ user, institutionsList }) {
         code: subj.code || '',
         description: subj.description || '',
         specialization_id: subj.specialization_id || (specializations[0]?.id || ''),
-        institution_id: subj.institution_id || ''
+        institution_id: subj.institution_id || '',
+        ai_mock_exams_enabled: subj.ai_mock_exams_enabled !== false
       });
     } else {
       setEditingSubject(null);
@@ -104,7 +106,8 @@ export default function SubjectManager({ user, institutionsList }) {
         code: '',
         description: '',
         specialization_id: specializations[0]?.id || '',
-        institution_id: ''
+        institution_id: '',
+        ai_mock_exams_enabled: true
       });
     }
     setSubjectModalOpen(true);
@@ -121,6 +124,7 @@ export default function SubjectManager({ user, institutionsList }) {
       const payload = { ...subjectForm };
       payload.institution_id = payload.institution_id === '' ? null : parseInt(payload.institution_id);
       payload.specialization_id = parseInt(payload.specialization_id);
+      payload.ai_mock_exams_enabled = !!payload.ai_mock_exams_enabled;
 
       const res = await fetch(url, { method, headers, body: JSON.stringify(payload) });
       if (!res.ok) {
@@ -284,14 +288,15 @@ export default function SubjectManager({ user, institutionsList }) {
                   <th className="py-3 px-4">Subject Name & Code</th>
                   <th className="py-3 px-4">Linked Specialization</th>
                   <th className="py-3 px-4">Institution Scope</th>
+                  <th className="py-3 px-4">AI Mock Exam</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
                 {loadingSubjects ? (
-                  <tr><td colSpan="4" className="py-8 text-center text-slate-400 font-medium">Loading subjects...</td></tr>
+                  <tr><td colSpan="5" className="py-8 text-center text-slate-400 font-medium">Loading subjects...</td></tr>
                 ) : subjects.length === 0 ? (
-                  <tr><td colSpan="4" className="py-8 text-center text-slate-400 font-medium">No subjects found.</td></tr>
+                  <tr><td colSpan="5" className="py-8 text-center text-slate-400 font-medium">No subjects found.</td></tr>
                 ) : (
                   subjects.map(subj => {
                     const inst = subj.institution_id ? (institutionsList || []).find(i => i.id === subj.institution_id) : null;
@@ -315,6 +320,15 @@ export default function SubjectManager({ user, institutionsList }) {
                               {inst ? inst.code || inst.name : `Inst ID ${subj.institution_id}`}
                             </span>
                           )}
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                            subj.ai_mock_exams_enabled !== false
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-slate-100 text-slate-500 border border-slate-200'
+                          }`}>
+                            {subj.ai_mock_exams_enabled !== false ? 'AI Enabled' : 'AI Disabled'}
+                          </span>
                         </td>
                         <td className="py-4 px-4 text-right">
                           <div className="flex justify-end gap-2">
@@ -457,6 +471,26 @@ export default function SubjectManager({ user, institutionsList }) {
                   >
                     {specializations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
+                </div>
+                {/* AI Mock Exam Toggle */}
+                <div className="flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+                  <div>
+                    <label className="text-sm font-bold text-navy-900">AI Mock Exam</label>
+                    <p className="text-xs text-slate-500 mt-0.5">Enable AI-powered mock exam generation for this subject</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubjectForm({...subjectForm, ai_mock_exams_enabled: !subjectForm.ai_mock_exams_enabled})}
+                    className={`relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none ${
+                      subjectForm.ai_mock_exams_enabled ? 'bg-emerald-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-300 ${
+                        subjectForm.ai_mock_exams_enabled ? 'translate-x-6' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
                 <div className="mt-4 flex justify-end gap-3">
                   <button type="button" onClick={() => setSubjectModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>

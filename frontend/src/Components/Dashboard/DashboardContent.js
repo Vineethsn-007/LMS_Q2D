@@ -1,29 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Award, Clock, TrendingUp, Sparkles, RefreshCw } from 'lucide-react';
+import { Play, Award, Clock, RefreshCw } from 'lucide-react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  Radar, RadarChart, PolarGrid, PolarAngleAxis
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
 } from 'recharts';
 import useDynamicGreeting from '../../utils/useDynamicGreeting';
-
-const activityData = [
-  { name: 'W1', hours: 2 },
-  { name: 'W2', hours: 4 },
-  { name: 'W3', hours: 3 },
-  { name: 'W4', hours: 8 },
-  { name: 'W5', hours: 6 },
-  { name: 'W6', hours: 9 },
-  { name: 'W7', hours: 7 },
-  { name: 'W8', hours: 10 },
-];
-
-const skillData = [
-  { subject: 'District Tier', A: 90, fullMark: 100 },
-  { subject: 'State Tier', A: 80, fullMark: 100 },
-  { subject: 'National Tier', A: 65, fullMark: 100 },
-  { subject: 'AI Mock Tests', A: 85, fullMark: 100 },
-  { subject: 'Proctored Exams', A: 75, fullMark: 100 },
-];
 
 const DashboardContent = ({ user, onStartCourse }) => {
   const greeting = useDynamicGreeting();
@@ -32,8 +12,8 @@ const DashboardContent = ({ user, onStartCourse }) => {
   const [completedCourses, setCompletedCourses] = useState([]);
   const [progressTick, setProgressTick] = useState(0);
   const [stats, setStats] = useState(null);
-  const [activityChartData, setActivityChartData] = useState(activityData);
-  const [skillRadarData, setSkillRadarData] = useState(skillData);
+  const [activityChartData, setActivityChartData] = useState([]);
+  // skillRadarData removed per Tier Competency Radar requirement
 
   useEffect(() => {
     const handleProgressChange = () => {
@@ -82,7 +62,7 @@ const DashboardContent = ({ user, onStartCourse }) => {
           const data = await res.json();
           setStats(data);
           if (data.activity_data && data.activity_data.length > 0) setActivityChartData(data.activity_data);
-          if (data.skill_data && data.skill_data.length > 0) setSkillRadarData(data.skill_data);
+          // skill_data removed per Tier Competency Radar requirement
         }
       } catch (err) {
         console.error("Error fetching dashboard stats:", err);
@@ -98,10 +78,10 @@ const DashboardContent = ({ user, onStartCourse }) => {
 
   return (
     <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Column (2/3 width on LG) */}
-        <div className="lg:col-span-2 space-y-8">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 gap-8">
+
+        {/* Full width content */}
+        <div className="space-y-8">
           
           {/* Welcome Banner */}
           <div className="relative bg-gradient-to-br from-navy-800 to-navy-900 rounded-2xl p-8 text-white overflow-hidden shadow-xl">
@@ -118,8 +98,8 @@ const DashboardContent = ({ user, onStartCourse }) => {
               </div>
 
               <div className="flex flex-col items-center bg-white/10 backdrop-blur-md border border-white/20 p-5 rounded-xl shrink-0">
-                <div className="text-2xl font-bold text-white mb-1">Tier Portal</div>
-                <div className="text-xs text-blue-200 font-semibold uppercase tracking-wider mb-2">District / State / National</div>
+                <div className="text-2xl font-bold text-white mb-1">{user?.specialization || 'Academic'} Portal</div>
+                <div className="text-xs text-blue-200 font-semibold uppercase tracking-wider mb-2">{user?.institution_name || 'SkillForge'}</div>
               </div>
             </div>
           </div>
@@ -226,21 +206,6 @@ const DashboardContent = ({ user, onStartCourse }) => {
 
         {/* Right Column (1/3 width on LG) */}
         <div className="space-y-8">
-          {/* Skill Radar */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-            <h2 className="text-base font-bold text-navy-900 mb-6">Tier Competency Radar</h2>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={skillRadarData}>
-                  <PolarGrid stroke="#f1f5f9" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} />
-                  <Radar name="Skills" dataKey="A" stroke="#0B3D91" fill="#0B3D91" fillOpacity={0.15} />
-                  <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}/>
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
         </div>
       </div>
     </div>
