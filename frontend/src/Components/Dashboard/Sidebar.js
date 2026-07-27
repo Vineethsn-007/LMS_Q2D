@@ -11,7 +11,8 @@ import {
   Calendar,
   Video,
   LifeBuoy,
-  Trophy
+  Trophy,
+  Brain
 } from 'lucide-react';
 import logoImg from '../../logo.png';
 
@@ -74,6 +75,7 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
           <SidebarSection title="Learn">
             <SidebarLink icon={LayoutDashboard} label="Dashboard" isActive={activeView === 'dashboard'} onClick={() => onViewChange('dashboard')} />
             <SidebarLink icon={BookOpen} label="My Learning" isActive={activeView === 'mylearning'} onClick={() => onViewChange('mylearning')} />
+            <SidebarLink icon={Brain} label="Mock Tests" isActive={activeView === 'mock-tests'} onClick={() => onViewChange('mock-tests')} />
             <SidebarLink icon={FileText} label="Test" isActive={activeView === 'test' || activeView === 'topic-assessment' || activeView === 'assessment'} onClick={() => onViewChange('test')} />
           </SidebarSection>
         )}

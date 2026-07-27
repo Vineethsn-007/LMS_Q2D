@@ -54,7 +54,7 @@ const exitFullScreen = () => {
   }
 };
 
-const TopicAssessment = ({ user }) => {
+const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
   const [step, setStep] = useState('setup'); // 'setup', 'loading', 'taking', 'report'
   const [topicInput, setTopicInput] = useState('');
   const [difficulty, setDifficulty] = useState('Intermediate');
@@ -100,6 +100,20 @@ const TopicAssessment = ({ user }) => {
     questionsLengthRef.current = questions.length;
     audioEnabledRef.current = audioEnabled;
   }, [elapsedSeconds, currentQIndex, questions.length, audioEnabled]);
+
+  // Auto-start test when navigating from Mock Tests tab
+  useEffect(() => {
+    if (initialTopic && step === 'setup') {
+      setTopicInput(initialTopic);
+      // Delay slightly to allow state to settle
+      const timer = setTimeout(() => {
+        handleStartGeneration(initialTopic);
+        if (onClearTopic) onClearTopic();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTopic]);
 
   const playAudioAlert = (type = 'warn') => {
     if (!audioEnabledRef.current) return;

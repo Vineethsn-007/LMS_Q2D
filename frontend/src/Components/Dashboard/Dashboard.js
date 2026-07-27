@@ -25,6 +25,7 @@ import SupportCenter from './SupportCenter';
 import AnnouncementBar from './AnnouncementBar';
 import ForcePasswordChange from './ForcePasswordChange';
 import LeaderboardView from './LeaderboardView';
+import MockTests from './MockTests';
 // POC removed per requirements
 import './Dashboard.css';
 import './MyLearning.css';
@@ -48,6 +49,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('sf_welcome_shown'));
   const [activeSubject, setActiveSubject] = useState(null);
+  const [mockTestTopic, setMockTestTopic] = useState(null);
   const greeting = useDynamicGreeting();
 
   useEffect(() => {
@@ -203,7 +205,9 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         )}
         {activeView === 'mylearning' && <MyLearning course={activeCourse} onBack={() => setActiveView('dashboard')} />}
         {activeView === 'certifications' && <Certifications user={user} />}
-        {(activeView === 'test' || activeView === 'topic-assessment' || activeView === 'assessment') && <TopicAssessment user={user} />}
+        {(activeView === 'test' || activeView === 'topic-assessment' || activeView === 'assessment') && (
+  <TopicAssessment user={user} initialTopic={mockTestTopic} onClearTopic={() => setMockTestTopic(null)} />
+)}
         {/* My Program Views */}
         {activeView === 'program' && (
           <RegisteredSubjectsDashboard
@@ -257,6 +261,15 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         )}
         {activeView === 'settings' && (
           <SettingsPanel user={user} onUserUpdate={onUserUpdate} />
+        )}
+        {activeView === 'mock-tests' && (
+          <MockTests
+            user={user}
+            onStartTest={(topic) => {
+              setMockTestTopic(topic);
+              setActiveView('test');
+            }}
+          />
         )}
         {activeView === 'leaderboard' && (
           <LeaderboardView user={user} />
