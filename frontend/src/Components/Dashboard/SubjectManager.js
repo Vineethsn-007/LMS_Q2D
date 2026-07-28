@@ -14,6 +14,7 @@ export default function SubjectManager({ user, institutionsList }) {
 
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [subjectError, setSubjectError] = useState(null);
 
   // Subject Modal State
   const [subjectModalOpen, setSubjectModalOpen] = useState(false);
@@ -89,6 +90,7 @@ export default function SubjectManager({ user, institutionsList }) {
 
   // --- SUBJECT HANDLERS ---
   const handleOpenSubjectModal = (subj = null) => {
+    setSubjectError(null);
     if (subj) {
       setEditingSubject(subj);
       setSubjectForm({
@@ -101,12 +103,17 @@ export default function SubjectManager({ user, institutionsList }) {
       });
     } else {
       setEditingSubject(null);
+      // For sub-admins, default to the first institution so the form state
+      // matches the dropdown's visual selection. Admins can choose "Global".
+      const defaultInstitutionId = user?.role === 'admin'
+        ? ''
+        : ((institutionsList && institutionsList.length > 0) ? institutionsList[0].id : '');
       setSubjectForm({
         name: '',
         code: '',
         description: '',
         specialization_id: specializations[0]?.id || '',
-        institution_id: '',
+        institution_id: defaultInstitutionId,
         ai_mock_exams_enabled: true
       });
     }
@@ -115,6 +122,7 @@ export default function SubjectManager({ user, institutionsList }) {
 
   const handleSaveSubject = async (e) => {
     e.preventDefault();
+    setSubjectError(null);
     try {
       const url = editingSubject
         ? `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/subadmins/subjects/${editingSubject.id}`
@@ -132,10 +140,11 @@ export default function SubjectManager({ user, institutionsList }) {
         throw new Error(d.detail || 'Failed to save subject');
       }
       setSubjectModalOpen(false);
+      setSubjectError(null);
       showSuccess(editingSubject ? 'Subject updated' : 'Subject created');
       fetchSubjects();
     } catch (err) {
-      setError(err.message);
+      setSubjectError(err.message);
     }
   };
 
@@ -422,10 +431,15 @@ export default function SubjectManager({ user, institutionsList }) {
           <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h3 className="text-xl font-bold text-navy-900">{editingSubject ? 'Edit Subject' : 'Create Subject'}</h3>
-              <button onClick={() => setSubjectModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+              <button onClick={() => { setSubjectModalOpen(false); setSubjectError(null); }} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <X size={20} />
               </button>
             </div>
+            {subjectError && (
+              <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-semibold flex items-center gap-2">
+                <AlertCircle size={16} /> {subjectError}
+              </div>
+            )}
             <div className="p-6">
               <form onSubmit={handleSaveSubject} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
@@ -493,7 +507,7 @@ export default function SubjectManager({ user, institutionsList }) {
                   </button>
                 </div>
                 <div className="mt-4 flex justify-end gap-3">
-                  <button type="button" onClick={() => setSubjectModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+                  <button type="button" onClick={() => { setSubjectModalOpen(false); setSubjectError(null); }} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
                   <button type="submit" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
                     <Save size={16} /> Save Subject
                   </button>

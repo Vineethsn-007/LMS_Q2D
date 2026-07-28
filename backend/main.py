@@ -252,13 +252,14 @@ def generate_topic_assessment_endpoint(
     else:
         daily_limit = max([s.daily_mock_attempts_limit for s in subjects] + [3])
     
-    # 2. Check today's attempts
-    today = datetime.now().date()
-    today_start = datetime.combine(today, datetime.min.time())
+    # 2. Check today's attempts (use UTC to match stored attempt_date timestamps)
+    import datetime as dt_module
+    now_utc = dt_module.datetime.utcnow()
+    today_utc_start = dt_module.datetime(now_utc.year, now_utc.month, now_utc.day, 0, 0, 0)
     
     attempts_today = db.query(models.MockTestAttempt).filter(
         models.MockTestAttempt.user_id == current_user.id,
-        models.MockTestAttempt.attempt_date >= today_start
+        models.MockTestAttempt.attempt_date >= today_utc_start
     ).count()
     
     if attempts_today >= daily_limit:

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Upload, Plus, Trash2, List, FileText, CheckCircle, AlertCircle, RefreshCw,
-  Search, Check, HelpCircle, ChevronLeft, ChevronRight, Layers, Tag
+  Search, HelpCircle, ChevronLeft, ChevronRight, Layers, Tag, Download
 } from 'lucide-react';
 
 const QuestionBankManager = () => {
@@ -251,6 +251,38 @@ const QuestionBankManager = () => {
     }
   };
 
+  const handleDownloadSample = () => {
+    const sampleQuestions = [
+      {
+        text: "What is the output of print(2 ** 3) in Python?",
+        options: ["6", "8", "9", "5"],
+        correct_answer: 1,
+        explanation: "The ** operator is Python's exponentiation operator. 2 raised to the power 3 equals 8.",
+        topic_tag: "Python Basics"
+      },
+      {
+        text: "Which data structure uses FIFO (First In, First Out) ordering?",
+        options: ["Stack", "Queue", "Tree", "Graph"],
+        correct_answer: 1,
+        explanation: "A Queue follows FIFO — the first element inserted is the first to be removed.",
+        topic_tag: "Data Structures"
+      },
+      {
+        text: "What does SQL stand for?",
+        options: ["Structured Query Language", "Simple Query Language", "Sequential Query Logic", "Standard Query List"],
+        correct_answer: 0,
+        explanation: "SQL stands for Structured Query Language, used to manage relational databases.",
+        topic_tag: "Databases"
+      }
+    ];
+    const blob = new Blob([JSON.stringify(sampleQuestions, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'question_bank_sample.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
   const filteredQuestions = questions.filter(q => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
@@ -445,7 +477,15 @@ const QuestionBankManager = () => {
                       </div>
                     </div>
                     
-                    <form onSubmit={handleFileUpload} className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-col gap-3">
+                      <button
+                        type="button"
+                        onClick={handleDownloadSample}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all shrink-0"
+                      >
+                        <Download size={14} /> Download Sample JSON
+                      </button>
+                      <form onSubmit={handleFileUpload} className="flex flex-wrap items-center gap-3">
                       <label className="cursor-pointer">
                         <input 
                           type="file" 
@@ -459,14 +499,15 @@ const QuestionBankManager = () => {
                         </span>
                       </label>
                       <button 
-                        type="submit" 
-                        disabled={!uploadFile || uploadStatus?.type === 'loading'}
-                        className="bg-indigo-600 text-white px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-sm shadow-indigo-200"
-                      >
-                        {uploadStatus?.type === 'loading' ? <RefreshCw className="animate-spin" size={14} /> : <Upload size={14} />}
-                        {uploadStatus?.type === 'loading' ? 'Processing...' : 'Upload & Import'}
-                      </button>
-                    </form>
+                          type="submit" 
+                          disabled={!uploadFile || uploadStatus?.type === 'loading'}
+                          className="bg-indigo-600 text-white px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-sm shadow-indigo-200"
+                        >
+                          {uploadStatus?.type === 'loading' ? <RefreshCw className="animate-spin" size={14} /> : <Upload size={14} />}
+                          {uploadStatus?.type === 'loading' ? 'Processing...' : 'Upload & Import'}
+                        </button>
+                      </form>
+                    </div>
                   </div>
 
                   {uploadStatus && (

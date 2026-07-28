@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Shield, Building, GraduationCap, UploadCloud, BarChart3, Plus, Trash2, Edit,
+  Shield, Building, GraduationCap, UploadCloud, Plus, Trash2, Edit,
   RefreshCw, X, Check, Key, Download, AlertCircle, Search, Filter,
-  CheckCircle, FileText, Users, Sliders, Megaphone, Ticket, CalendarDays, CreditCard
+  CheckCircle, FileText, Sliders, Megaphone, Ticket, CalendarDays, CreditCard
 } from 'lucide-react';
 import './AdminPanel.css';
 import TicketQueue from './TicketQueue';
@@ -25,8 +25,6 @@ export default function SubAdminConsole({ user }) {
   const [institutionsList, setInstitutionsList] = useState([]);
   const [specializationsList, setSpecializationsList] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
-  const [engagementReport, setEngagementReport] = useState(null);
-  const [enrollmentReport, setEnrollmentReport] = useState(null);
   const [examSubjects, setExamSubjects] = useState([]);
   const [examWindowForms, setExamWindowForms] = useState({});  // { subjectId: { start, end } }
   const [savingWindowId, setSavingWindowId] = useState(null);
@@ -35,9 +33,6 @@ export default function SubAdminConsole({ user }) {
   const [studentSearch, setStudentSearch] = useState('');
   const [filterInstitutionId, setFilterInstitutionId] = useState('');
   const [filterSpecialization, setFilterSpecialization] = useState('');
-  const [reportInstId, setReportInstId] = useState('');
-  const [reportSpec, setReportSpec] = useState('');
-  const [reportProgram, setReportProgram] = useState('');
 
   // Selection for bulk specialization and subjects
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
@@ -210,51 +205,14 @@ export default function SubAdminConsole({ user }) {
     } catch (err) { setError(err.message); }
   };
 
-  const fetchReports = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (reportInstId) params.append('institution_id', reportInstId);
-      if (reportSpec) params.append('specialization', reportSpec);
-      if (reportProgram) params.append('program', reportProgram);
-
-      const queryStr = params.toString() ? `?${params.toString()}` : '';
-
-      const [resEngage, resEnroll] = await Promise.all([
-        fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/reports/engagement${queryStr}`, { headers }),
-        fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/reports/enrollment${queryStr}`, { headers })
-      ]);
-
-      if (resEngage.ok) {
-        setEngagementReport(await resEngage.json());
-      } else {
-        const errData = await resEngage.json().catch(() => ({}));
-        console.error('Engagement report error:', errData);
-        setError(errData.detail || 'Failed to load engagement report');
-      }
-
-      if (resEnroll.ok) {
-        setEnrollmentReport(await resEnroll.json());
-      } else {
-        const errData = await resEnroll.json().catch(() => ({}));
-        console.error('Enrollment report error:', errData);
-        if (!error) setError(errData.detail || 'Failed to load enrollment report');
-      }
-    } catch (err) {
-      console.error('Report fetch error:', err);
-      setError('Network error: Could not fetch analytics reports. Please check your connection and try again.');
-    }
-  };
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     if (activeTab === 'subadmins' && user?.role === 'admin') await fetchSubadmins();
-    if (activeTab === 'institutions' || activeTab === 'students' || activeTab === 'subadmins' || activeTab === 'reports') await fetchInstitutions();
-    if (activeTab === 'students' || activeTab === 'reports') await fetchSpecializations();
+    if (activeTab === 'institutions' || activeTab === 'students' || activeTab === 'subadmins') await fetchInstitutions();
+    if (activeTab === 'students') await fetchSpecializations();
     if (activeTab === 'students') await fetchStudents();
-    if (activeTab === 'reports') {
-      await fetchReports();
-    }
     setLoading(false);
   };
 
@@ -558,14 +516,7 @@ export default function SubAdminConsole({ user }) {
                 <UploadCloud size={16} className="text-blue-500" /> Bulk Upload
               </button>
             )}
-            {(user?.role === 'admin' || hasPriv('view_reports') || hasPriv('custom_reports') || hasPriv('enrollment_reports')) && (
-              <button
-                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'reports' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
-                onClick={() => setActiveTab('reports')}
-              >
-                <BarChart3 size={16} className="text-coral" /> Analytics & Reports
-              </button>
-            )}
+
             {/* Communications Tabs */}
             <button
               className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shrink-0 ${activeTab === 'announcements' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-navy'}`}
@@ -1017,162 +968,6 @@ export default function SubAdminConsole({ user }) {
           </div>
         )}
 
-        {/* --- TAB 5: REPORTS & ANALYTICS DASHBOARD --- */}
-        {activeTab === 'reports' && (
-          <div className="flex flex-col gap-6">
-            {/* Filters Box */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-wrap gap-4 items-center justify-between">
-              <div className="flex flex-wrap gap-3 items-center flex-1">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                  <Filter size={14} /> Report Filters:
-                </span>
-                <select
-                  value={reportInstId}
-                  onChange={e => setReportInstId(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-navy-900 outline-none"
-                >
-                  <option value="">All Colleges / Institutions</option>
-                  {institutionsList.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                </select>
-                <select
-                  value={reportSpec}
-                  onChange={e => setReportSpec(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-navy-900 outline-none w-44"
-                >
-                  <option value="">All Specializations</option>
-                  {specializationsList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                </select>
-                <input
-                  type="text"
-                  placeholder="Program category filter..."
-                  value={reportProgram}
-                  onChange={e => setReportProgram(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none w-44"
-                />
-              </div>
-              <button
-                onClick={fetchReports}
-                className="px-5 py-2 bg-navy text-white text-sm font-bold rounded-xl hover:bg-navy-800 transition-colors flex items-center gap-2"
-              >
-                <RefreshCw size={14} /> Update Telemetry
-              </button>
-            </div>
-
-            {/* Engagement Stats Cards */}
-            {engagementReport && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Learners Scope</span>
-                    <Users className="text-blue-500" size={20} />
-                  </div>
-                  <div className="mt-4">
-                    <div className="text-3xl font-black text-navy-900">{engagementReport.total_students}</div>
-                    <div className="text-xs text-emerald-600 font-bold mt-1">
-                      {engagementReport.active_students} Active ({engagementReport.total_students ? round((engagementReport.active_students / engagementReport.total_students)*100, 1) : 0}%)
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Weekly Goal Progress</span>
-                    <BarChart3 className="text-emerald-500" size={20} />
-                  </div>
-                  <div className="mt-4">
-                    <div className="text-3xl font-black text-navy-900">{engagementReport.total_progress_hours} <span className="text-sm font-normal text-slate-400">hrs</span></div>
-                    <div className="text-xs text-slate-500 font-semibold mt-1">
-                      Target Goal: {engagementReport.total_goal_hours} hrs total
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Completion Rate Est.</span>
-                    <GraduationCap className="text-purple-500" size={20} />
-                  </div>
-                  <div className="mt-4">
-                    <div className="text-3xl font-black text-purple-700">{engagementReport.completion_rate}%</div>
-                    <div className="text-xs text-slate-500 font-semibold mt-1">
-                      Avg Streak: {engagementReport.average_streak} days
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Certificates Issued</span>
-                    <CheckCircle className="text-amber-500" size={20} />
-                  </div>
-                  <div className="mt-4">
-                    <div className="text-3xl font-black text-navy-900">{engagementReport.total_certificates_issued}</div>
-                    <div className="text-xs text-amber-600 font-bold mt-1">
-                      Avg XP: {engagementReport.average_xp} pts
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Enrollment Breakdown Tables */}
-            {enrollmentReport && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* By Institution */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col gap-4">
-                  <h3 className="text-lg font-bold text-navy-900 flex items-center gap-2">
-                    <Building size={18} className="text-blue-600" /> Enrollment by Institution
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase">
-                          <th className="py-2.5 px-3">Institution Name</th>
-                          <th className="py-2.5 px-3 text-right">Registered</th>
-                          <th className="py-2.5 px-3 text-right">Active</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {enrollmentReport.by_institution.map((stat, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50">
-                            <td className="py-3 px-3 font-bold text-navy-900">{stat.institution_name}</td>
-                            <td className="py-3 px-3 text-right font-bold text-slate-700">{stat.registered}</td>
-                            <td className="py-3 px-3 text-right font-bold text-emerald-600">{stat.active}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* By Specialization */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col gap-4">
-                  <h3 className="text-lg font-bold text-navy-900 flex items-center gap-2">
-                    <GraduationCap size={18} className="text-purple-600" /> Enrollment by Specialization
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase">
-                          <th className="py-2.5 px-3">Specialization Track</th>
-                          <th className="py-2.5 px-3 text-right">Learner Count</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {enrollmentReport.by_specialization.map((spec, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50">
-                            <td className="py-3 px-3 font-bold text-navy-900">{spec.specialization}</td>
-                            <td className="py-3 px-3 text-right font-bold text-purple-700">{spec.student_count}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* --- TAB: ANNOUNCEMENTS (Admin Comms) --- */}
         {activeTab === 'announcements' && (
@@ -1676,6 +1471,3 @@ export default function SubAdminConsole({ user }) {
   );
 }
 
-function round(val, decimals) {
-  return Number(Math.round(val + 'e' + decimals) + 'e-' + decimals);
-}
