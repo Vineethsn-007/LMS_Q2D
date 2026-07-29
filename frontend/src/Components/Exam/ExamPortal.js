@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AlertCircle, Clock, ShieldCheck, PlayCircle, Loader2, Save, Send, ShieldAlert, AlertTriangle, UserCheck, Volume2, VolumeX, Camera, RefreshCw } from 'lucide-react';
+import { API_BASE } from '../../config/api';
 
 const enterFullScreen = () => {
   try {
@@ -30,11 +31,14 @@ const exitFullScreen = () => {
 };
 
 const ExamPortal = ({ credentialId }) => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!credentialId);
   const [error, setError] = useState(null);
   const [examData, setExamData] = useState(null);
   
-  const [examState, setExamState] = useState('compliance'); // 'compliance', 'taking', 'suspended', 'completed'
+  const [examState, setExamState] = useState(credentialId ? 'compliance' : 'login'); // 'login', 'scheduled', 'compliance', 'taking', 'suspended', 'completed'
+  const [loginForm, setLoginForm] = useState({ temp_user_id: credentialId || '', temp_password: '' });
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState(null);
   const [, setSessionInfo] = useState(null);
   const [questions, setQuestions] = useState([]);
   
@@ -127,21 +131,92 @@ const ExamPortal = ({ credentialId }) => {
   };
 
   useEffect(() => {
+    const rawId = (credentialId || '').trim();
+    if (!rawId) {
+      setExamState('login');
+      setLoading(false);
+      return;
+    }
+
+    const cleanId = rawId.replace(/\s+/g, '-');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12-second safety timeout
+
     const verifyCredential = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/exam-engine/credentials/${credentialId}`);
+        const res = await fetch(`${API_BASE}/api/v1/exam-engine/credentials/${encodeURIComponent(cleanId)}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
         if (!res.ok) throw new Error('Failed to verify credential. It may be invalid or expired.');
         const data = await res.json();
-        if (!data.is_valid) throw new Error(`Credential status: ${data.status.replace(/_/g, ' ')}`);
         setExamData(data);
+
+        if (data.status === 'not_yet_available') {
+          setExamState('scheduled');
+        } else if (data.is_valid && data.status === 'ready') {
+          setExamState('compliance');
+        } else {
+          throw new Error(`Credential status: ${data.status.replace(/_/g, ' ')}`);
+        }
       } catch (err) {
-        setError(err.message);
+        clearTimeout(timeoutId);
+        const errorMsg = err.name === 'AbortError'
+          ? 'Network timeout while verifying credential. Please check your internet connection or backend server status.'
+          : (err.message || 'Error connecting to exam server.');
+        setError(errorMsg);
       } finally {
         setLoading(false);
       }
     };
     verifyCredential();
+
+    return () => clearTimeout(timeoutId);
   }, [credentialId]);
+
+  const handleCredentialLogin = async (e) => {
+    if (e) e.preventDefault();
+    if (!loginForm.temp_user_id || !loginForm.temp_password) {
+      setLoginError("Please enter both Temporary User ID / Booking Ref and Access Password.");
+      return;
+    }
+    setLoginLoading(true);
+    setLoginError(null);
+    try {
+      const cleanUserId = loginForm.temp_user_id.trim().replace(/\s+/g, '-');
+      const res = await fetch(`${API_BASE}/api/v1/exam-engine/credentials/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          temp_user_id: cleanUserId,
+          temp_password: loginForm.temp_password.trim()
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Invalid Temporary User ID or Access Password.');
+      }
+
+      const data = await res.json();
+      setExamData(data);
+      if (data.status === 'not_yet_available') {
+        setExamState('scheduled');
+      } else if (data.is_valid && data.status === 'ready') {
+        setExamState('compliance');
+      } else {
+        setLoginError(`Credential status: ${data.status.replace(/_/g, ' ')}`);
+      }
+    } catch (err) {
+      setLoginError(err.message);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+
 
   const logViolation = async (type, message, severity = 1) => {
     try {
@@ -534,6 +609,136 @@ const ExamPortal = ({ credentialId }) => {
     if (h > 0) return `${h}h ${m}m ${s}s`;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
+
+  if (examState === 'login') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 select-none">
+        <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-8 border border-slate-200 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
+              <ShieldCheck size={36} />
+            </div>
+            <h1 className="text-2xl font-black text-slate-900">Exam Access Portal</h1>
+            <p className="text-slate-500 text-sm font-medium">
+              Enter the Temporary User ID and Access Password sent to your email to log into your formal examination.
+            </p>
+          </div>
+
+          {loginError && (
+            <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs font-bold flex items-center gap-3">
+              <AlertCircle size={18} className="shrink-0 text-rose-600" />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleCredentialLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-2">
+                Temporary User ID / Booking Ref
+              </label>
+              <input
+                type="text"
+                placeholder="E.g., SF-4A8B9C12 or BKG-123456"
+                value={loginForm.temp_user_id}
+                onChange={(e) => setLoginForm({ ...loginForm, temp_user_id: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-indigo-600 transition-all font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-2">
+                Access Password / Passcode
+              </label>
+              <input
+                type="password"
+                placeholder="Enter access password from email"
+                value={loginForm.temp_password}
+                onChange={(e) => setLoginForm({ ...loginForm, temp_password: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-indigo-600 transition-all font-mono"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 transform active:scale-95 disabled:opacity-50"
+            >
+              {loginLoading ? <Loader2 size={20} className="animate-spin" /> : <PlayCircle size={20} />}
+              <span>Verify & Launch Exam</span>
+            </button>
+          </form>
+
+          <div className="text-center pt-2 border-t border-slate-100">
+            <a href="/" className="text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors">
+              ← Return to SkillForge LMS Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (examState === 'scheduled' || (examData && !examData.is_valid && examData.status === 'not_yet_available')) {
+    const windowStart = examData?.window_start ? new Date(examData.window_start) : null;
+    const windowStartStr = windowStart ? windowStart.toLocaleString() : 'Scheduled Slot Time';
+
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 select-none">
+        <div className="bg-white rounded-3xl shadow-xl max-w-lg w-full p-8 border border-slate-200 text-center space-y-6">
+          <div className="w-20 h-20 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-inner animate-pulse">
+            <Clock size={44} />
+          </div>
+
+          <div className="space-y-2">
+            <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-extrabold uppercase tracking-wider">
+              Exam Window Not Active Yet
+            </span>
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight">
+              {examData?.subject_name || 'Formal Assessment'}
+            </h1>
+            <p className="text-sm font-bold text-indigo-600">
+              Level: {examData?.level || 'District'} · Candidate: {examData?.student_name || 'Student'}
+            </p>
+          </div>
+
+          <div className="bg-slate-50 border-2 border-slate-200 p-6 rounded-2xl space-y-3 text-left">
+            <span className="text-xs font-extrabold uppercase text-slate-500 block text-center">
+              Check-in Window Opens At:
+            </span>
+            <div className="text-lg font-black text-slate-800 text-center font-mono">
+              {windowStartStr}
+            </div>
+            <p className="text-xs font-semibold text-slate-500 leading-relaxed text-center">
+              Check-in opens 30 minutes prior to your scheduled exam slot. Please return at that time to complete pre-exam compliance and start your exam.
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <a
+              href="/"
+              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center"
+            >
+              Return to Dashboard
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                if (credentialId) {
+                  window.location.reload();
+                } else if (loginForm.temp_user_id && loginForm.temp_password) {
+                  handleCredentialLogin();
+                }
+              }}
+              className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
+            >
+              <RefreshCw size={14} />
+              <span>Check Access Status</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && examState === 'compliance') {
     return (

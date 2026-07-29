@@ -427,6 +427,12 @@ class StartMockExamRequest(BaseModel):
     difficulty: Optional[str] = "Intermediate"
     count: Optional[int] = 10
 
+class SubmitMockExamRequest(BaseModel):
+    attempt_id: Optional[int] = None
+    topic: str
+    score: float
+    total_questions: int = 10
+
 
 
 class SubjectResponse(BaseModel):

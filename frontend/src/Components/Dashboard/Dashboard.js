@@ -50,6 +50,7 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
   const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem('sf_welcome_shown'));
   const [activeSubject, setActiveSubject] = useState(null);
   const [mockTestTopic, setMockTestTopic] = useState(null);
+  const [mockTestRefreshKey, setMockTestRefreshKey] = useState(0);
   const greeting = useDynamicGreeting();
 
   useEffect(() => {
@@ -264,10 +265,14 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         )}
         {activeView === 'mock-tests' && (
           <MockTests
+            key={mockTestRefreshKey}
             user={user}
             onStartTest={(topic) => {
               setMockTestTopic(topic);
               setActiveView('test');
+            }}
+            onTestCompleted={() => {
+              setMockTestRefreshKey((prev) => prev + 1);
             }}
           />
         )}

@@ -186,11 +186,12 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
     frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("PORTAL_URL") or default_fe).rstrip("/")
     link = f"{frontend_url}/exam/take/{temp_user_id}"
 
-    # Activate session and make credential immediately accessible.
-    # issued_at is set to now so students can access the exam portal as soon
-    # as they receive the email, without waiting for the 30-min pre-slot window.
-    credential.issued_at = now_utc
-    exam_session.status = "active"
+    if skip_enforcement:
+        credential.issued_at = now_utc
+        exam_session.status = "active"
+    else:
+        credential.issued_at = issued_at
+        exam_session.status = "pending"
     db.commit()
 
     return {
@@ -199,13 +200,46 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
         "exam_engine_session_ref": session_ref,
         "assessment_link": link,
         "link_status": "confirmed",
+        "temp_user_id": temp_user_id,
+        "temp_password": credential.temp_password_hash,
         "message": "Slot booked and exam link is ready." if skip_enforcement else "Slot booked and credential issued.",
     }
+
+class CredentialLoginRequest(BaseModel):
+    temp_user_id: str
+    temp_password: str
+
+@router.post("/credentials/login", response_model=schemas.CredentialVerifyResponse)
+def login_with_credential(req: CredentialLoginRequest, db: Session = Depends(get_db)):
+    """Candidate login with Temp User ID and Password."""
+    user_id_clean = req.temp_user_id.strip()
+    cred = db.query(models.ExamCredential).filter(
+        (models.ExamCredential.temp_user_id == user_id_clean) |
+        (models.ExamCredential.temp_user_id == f"SF-{user_id_clean}")
+    ).first()
+
+    if not cred:
+        session = db.query(models.ExamSession).filter(models.ExamSession.booking_ref == user_id_clean).first()
+        if session:
+            cred = db.query(models.ExamCredential).filter(models.ExamCredential.session_id == session.id).first()
+
+    if not cred:
+        raise HTTPException(status_code=401, detail="Invalid Temp User ID or Booking Reference.")
+
+    if cred.temp_password_hash and cred.temp_password_hash.strip() != req.temp_password.strip():
+        raise HTTPException(status_code=401, detail="Invalid Access Password / Passcode. Please check your exam email.")
+
+    return verify_credential(cred.temp_user_id, db)
 
 @router.get("/credentials/{temp_user_id}", response_model=schemas.CredentialVerifyResponse)
 def verify_credential(temp_user_id: str, db: Session = Depends(get_db)):
     """Verify if a credential is valid, ready, or expired."""
-    cred = db.query(models.ExamCredential).filter(models.ExamCredential.temp_user_id == temp_user_id).first()
+    user_id_clean = temp_user_id.strip().replace(' ', '-')
+    cred = db.query(models.ExamCredential).filter(
+        (models.ExamCredential.temp_user_id == user_id_clean) |
+        (models.ExamCredential.temp_user_id == f"SF-{user_id_clean}") |
+        (models.ExamCredential.temp_user_id == user_id_clean.replace('SF-', ''))
+    ).first()
     
     if not cred:
         raise HTTPException(status_code=404, detail="Credential not found")

@@ -74,8 +74,9 @@ function App() {
     return <MockAssessment bookingRef={bookingRef} />;
   }
 
-  if (pathname.startsWith('/exam/take/')) {
-    const credentialId = decodeURIComponent(pathname.split('/exam/take/')[1] || '');
+  if (pathname.startsWith('/exam/take/') || pathname === '/exam/take' || pathname === '/exam/login' || pathname === '/exam/portal') {
+    const rawId = pathname.startsWith('/exam/take/') ? decodeURIComponent(pathname.split('/exam/take/')[1] || '') : '';
+    const credentialId = rawId.trim().replace(/\s+/g, '-');
     return <ExamPortal credentialId={credentialId} />;
   }
 

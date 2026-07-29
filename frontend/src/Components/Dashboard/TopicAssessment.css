@@ -189,33 +189,34 @@
   50% { transform: scale(1.02); }
 }
 
-/* Floating AI Proctor Camera Dock */
+/* Floating AI Proctor Camera Dock - Positioned at Top Right to NEVER obstruct bottom action buttons */
 .proctor-camera-dock {
   position: fixed;
-  bottom: 24px;
+  top: 90px;
   right: 24px;
-  width: 280px;
+  bottom: auto;
+  width: 260px;
   background: #0f172a;
   border: 2px solid #3b82f6;
   border-radius: 16px;
   box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.5);
-  z-index: 40;
+  z-index: 45;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
 .proctor-camera-dock.minimized {
-  width: 180px;
+  width: 170px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .proctor-camera-dock {
-    bottom: 12px;
+    top: 75px;
     right: 12px;
-    width: 220px;
+    width: 210px;
   }
   .proctor-camera-dock.minimized {
-    width: 140px;
+    width: 130px;
   }
 }
 

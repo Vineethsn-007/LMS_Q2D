@@ -172,6 +172,49 @@ def start_mock_exam(
         "attempts_today": attempts_today + 1
     }
 
+@router.post("/submit-mock-result")
+def submit_mock_result(
+    req: schemas.SubmitMockExamRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Submits or updates a completed mock test attempt with the final score.
+    """
+    attempt = None
+    if req.attempt_id:
+        attempt = db.query(models.MockTestAttempt).filter(
+            models.MockTestAttempt.id == req.attempt_id,
+            models.MockTestAttempt.user_id == current_user.id
+        ).first()
+
+    if not attempt:
+        today = datetime.datetime.utcnow().date()
+        today_start = datetime.datetime.combine(today, datetime.datetime.min.time())
+        attempt = db.query(models.MockTestAttempt).filter(
+            models.MockTestAttempt.user_id == current_user.id,
+            models.MockTestAttempt.attempt_date >= today_start
+        ).order_by(models.MockTestAttempt.id.desc()).first()
+
+    if attempt:
+        attempt.score = req.score
+        attempt.total_questions = req.total_questions
+        attempt.status = "completed"
+    else:
+        attempt = models.MockTestAttempt(
+            user_id=current_user.id,
+            topic=req.topic,
+            attempt_date=datetime.datetime.utcnow(),
+            status="completed",
+            score=req.score,
+            total_questions=req.total_questions
+        )
+        db.add(attempt)
+
+    db.commit()
+    db.refresh(attempt)
+    return {"status": "success", "attempt_id": attempt.id, "score": attempt.score}
+
 # ─── Registered Subjects ────────────────────────────────────────────────────────
 
 @router.get("/my-registration", response_model=Optional[schemas.StudentRegistrationResponse])

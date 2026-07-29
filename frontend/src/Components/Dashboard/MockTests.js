@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Brain, Award, Clock, BookOpen, RefreshCw, AlertCircle, CheckCircle, Play, BarChart3
+  Brain, Clock, RefreshCw, AlertCircle, Play, BarChart3
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
-export default function MockTests({ user, onStartTest }) {
+export default function MockTests({ user, onStartTest, onTestCompleted }) {
   const [subjects, setSubjects] = useState([]);
   const [mockResults, setMockResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,15 +46,29 @@ export default function MockTests({ user, onStartTest }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Calculate attempts per subject from results
+  // Calculate attempts per subject from results (filtered for TODAY's date)
   const getAttemptsForSubject = (subjectName) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return mockResults.filter(r => {
+      if (!r.topic || r.topic.toLowerCase() !== subjectName.toLowerCase()) return false;
+      if (!r.attempt_date) return true; // count if date missing
+      try {
+        const attemptDateStr = new Date(r.attempt_date).toISOString().split('T')[0];
+        return attemptDateStr === todayStr;
+      } catch (e) {
+        return true;
+      }
+    });
+  };
+
+  const getAllSubjectAttempts = (subjectName) => {
     return mockResults.filter(r =>
       r.topic?.toLowerCase() === subjectName.toLowerCase()
     );
   };
 
   const getLatestScore = (subjectName) => {
-    const attempts = getAttemptsForSubject(subjectName);
+    const attempts = getAllSubjectAttempts(subjectName);
     if (attempts.length === 0) return null;
     return attempts[0].score;
   };

@@ -556,87 +556,536 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
     }
   };
 
-  const generateLocalFallback = (topic, count) => {
-    const topic_lower = topic.lower ? topic.lower() : topic.toLowerCase();
-    const isQuant = ['aptitude', 'quant', 'math', 'reasoning', 'logic', 'puzzle', 'probability', 'algebra', 'speed', 'time', 'distance', 'train', 'work', 'percentage', 'ratio', 'number', 'syllogism', 'series'].some(k => topic_lower.includes(k));
-
-    if (isQuant) {
-      const quantPool = [
+  const generateLocalFallback = (topic, count = 10) => {
+    const topic_lower = (topic || '').toLowerCase();
+    
+    // 1. QUANTITATIVE APTITUDE & MATH
+    if (['aptitude', 'quant', 'math', 'speed', 'distance', 'train', 'work', 'percentage', 'ratio', 'number', 'algebra'].some(k => topic_lower.includes(k))) {
+      return [
         {
-          question: "A train 150 meters long is running at a speed of 60 km/hr. In how much time will it pass a person running at 6 km/hr in the direction opposite to that of the train?",
-          options: ["8 seconds", "8.18 seconds", "9.5 seconds", "10 seconds"],
+          question: "Question 1: A train 150 meters long is running at a speed of 60 km/hr. In how much time will it pass a person running at 6 km/hr in the opposite direction?",
+          options: ["8.0 seconds", "8.18 seconds", "9.50 seconds", "10.2 seconds"],
           answer: 1,
-          explanation: "Relative speed = 60 + 6 = 66 km/hr = 66 x (5/18) m/sec = 18.33 m/sec. Time taken to pass = Total length / Relative speed = 150 / 18.33 = 8.18 seconds."
+          explanation: "Relative speed = 60 + 6 = 66 km/hr = 66 * (5/18) m/s = 18.33 m/s. Time = Distance / Speed = 150 / 18.33 = 8.18 seconds."
         },
         {
-          question: "In a certain code language, if 'LOGIC' is coded as 'MOHJD', how would 'REASON' be coded in that same pattern?",
-          options: ["SFBTPM", "SDBTPM", "SFBSPO", "SFBTPO"],
-          answer: 3,
-          explanation: "Each letter in the word is shifted +1 alphabet forward (L->M, O->P, G->H, I->J, C->D). For REASON, shifting each letter +1 gives: R->S, E->F, A->B, S->T, O->P, N->O. Thus REASON becomes SFBTPO."
-        },
-        {
-          question: "Person A can finish a project in 12 days and Person B can finish the same project in 15 days. If they work together for 4 days, what fraction of the total work is left?",
+          question: "Question 2: Person A can finish a project in 12 days and Person B in 15 days. If they work together for 4 days, what fraction of work is left?",
           options: ["3/5", "2/5", "1/5", "4/5"],
           answer: 1,
-          explanation: "A's 1-day work = 1/12, B's 1-day work = 1/15. Together in 1 day = 1/12 + 1/15 = 3/20. In 4 days they complete 4 x (3/20) = 3/5 of the work. Remaining work = 1 - 3/5 = 2/5."
+          explanation: "A's 1-day work = 1/12, B's 1-day work = 1/15. Together in 1 day = 1/12 + 1/15 = 3/20. In 4 days = 4 * (3/20) = 3/5. Remaining = 1 - 3/5 = 2/5."
         },
         {
-          question: "Two cards are drawn together from a standard deck of 52 playing cards. What is the probability that both cards drawn are Kings?",
+          question: "Question 3: Two cards are drawn together from a deck of 52 cards. What is the probability that both cards drawn are Kings?",
           options: ["1/221", "2/221", "1/13", "1/17"],
           answer: 0,
-          explanation: "Total number of ways to draw 2 cards = 52C2 = (52 x 51) / 2 = 1326. Ways to draw 2 Kings from 4 Kings = 4C2 = 6. Probability = 6 / 1326 = 1 / 221."
+          explanation: "Total ways = 52C2 = 1326. Ways to pick 2 Kings = 4C2 = 6. Probability = 6 / 1326 = 1 / 221."
         },
         {
-          question: "If the price of an item increases by 20% and then subsequently decreases by 20%, what is the net percentage change in the final price?",
-          options: ["No change (0%)", "4% decrease", "4% increase", "2% decrease"],
+          question: "Question 4: If an item's price increases by 20% and then decreases by 20%, what is the net percentage change in final price?",
+          options: ["0% (No change)", "4% decrease", "4% increase", "2% decrease"],
           answer: 1,
-          explanation: "Let initial price = 100. After 20% increase, price = 120. After 20% decrease on 120, decrease amount = 24, so new price = 96. Net change = 100 - 96 = 4% decrease."
+          explanation: "Initial = 100 -> +20% = 120 -> -20% of 120 = 96. Net change = 100 - 96 = 4% decrease."
         },
         {
-          question: "Look at this number series: 2, 6, 12, 20, 30, 42, ... What number should come next in the sequence?",
-          options: ["54", "56", "60", "62"],
+          question: "Question 5: What is the next number in the sequence: 2, 6, 12, 20, 30, 42, ...?",
+          options: ["54", "56", "60", "64"],
           answer: 1,
-          explanation: "The pattern is n(n+1) or adding successive even numbers: +4, +6, +8, +10, +12. The next difference is +14. Thus 42 + 14 = 56."
+          explanation: "Differences are +4, +6, +8, +10, +12. Next difference is +14, so 42 + 14 = 56."
         },
         {
-          question: "A bag contains 6 red balls, 4 blue balls, and 5 green balls. If one ball is chosen at random, what is the probability that it is NOT green?",
+          question: "Question 6: A bag contains 6 red, 4 blue, and 5 green balls. If one ball is drawn at random, what is the probability it is NOT green?",
           options: ["2/3", "1/3", "3/5", "4/5"],
           answer: 0,
-          explanation: "Total balls = 6 + 4 + 5 = 15. Number of balls that are NOT green (red + blue) = 6 + 4 = 10. Probability = 10 / 15 = 2 / 3."
+          explanation: "Total balls = 15. Non-green (red + blue) = 10. Probability = 10/15 = 2/3."
         },
         {
-          question: "If 15 workers can build a wall 35 meters long in 6 days, how many days will 25 workers take to build a similar wall 50 meters long?",
-          options: ["5 days", "5.14 days", "6 days", "4.5 days"],
+          question: "Question 7: If 15 workers build a 35m wall in 6 days, how many days will 25 workers take for a 50m wall?",
+          options: ["5.00 days", "5.14 days", "6.00 days", "4.50 days"],
           answer: 1,
-          explanation: "Using M1 * D1 / W1 = M2 * D2 / W2 -> (15 * 6) / 35 = (25 * D2) / 50 -> 90 / 35 = D2 / 2 -> D2 = 180 / 35 = 5.14 days."
+          explanation: "(M1 * D1)/W1 = (M2 * D2)/W2 -> (15 * 6)/35 = (25 * D2)/50 -> D2 = 180 / 35 = 5.14 days."
         },
         {
-          question: "An item is bought for $400 and sold at a profit of 25%. What would have been the profit percentage if it had been sold for $550?",
-          options: ["35%", "37.5%", "40%", "42.5%"],
+          question: "Question 8: An item bought for $400 is sold at 25% profit. What would be the profit percentage if sold for $550?",
+          options: ["35.0%", "37.5%", "40.0%", "42.5%"],
           answer: 1,
-          explanation: "Cost Price = $400. If Selling Price = $550, Profit = $550 - $400 = $150. Profit percentage = (150 / 400) * 100 = 37.5%."
+          explanation: "Cost Price = $400. SP = $550 -> Profit = $150. Profit % = (150/400)*100 = 37.5%."
         },
         {
-          question: "In a class of 60 students, 35 like Mathematics, 30 like Science, and 10 like neither. How many students like both Mathematics and Science?",
+          question: "Question 9: Out of 60 students, 35 like Math, 30 like Science, and 10 like neither. How many students like both?",
           options: ["10", "15", "20", "25"],
           answer: 1,
-          explanation: "Total students liking at least one subject = 60 - 10 = 50. Using Set Theory: n(M U S) = n(M) + n(S) - n(M ∩ S) -> 50 = 35 + 30 - n(M ∩ S) -> n(M ∩ S) = 65 - 50 = 15."
+          explanation: "Students liking at least one = 50. n(M U S) = n(M) + n(S) - n(M ∩ S) -> 50 = 35 + 30 - X -> X = 15."
+        },
+        {
+          question: "Question 10: What principal amount will earn $120 in simple interest over 2 years at an annual interest rate of 6%?",
+          options: ["$800", "$1,000", "$1,200", "$1,500"],
+          answer: 1,
+          explanation: "SI = (P * R * T) / 100 -> 120 = (P * 6 * 2) / 100 -> P = 12000 / 12 = $1,000."
         }
-      ];
-      return quantPool.slice(0, count);
+      ].slice(0, count);
     }
 
-    return Array.from({ length: count }, (_, idx) => ({
-      question: `Question ${idx + 1}: In the context of ${topic}, which architectural best practice ensures scalability and resilience?`,
-      options: [
-        `Decoupling components with asynchronous non-blocking event handling and retry policies.`,
-        `Hardcoding configuration parameters directly into monolithic production source files.`,
-        `Disabling all network encryption protocols to maximize raw data throughput.`,
-        `Bypassing unit testing pipelines to speed up continuous integration builds.`
-      ],
-      answer: 0,
-      explanation: `${topic} architectures rely heavily on decoupled asynchronous processing and robust fault-tolerance rather than rigid synchronous bottlenecks.`
-    }));
+    // 2. AI / FEDERATED LEARNING / EDGE AI / ML / DATA SCIENCE
+    if (['federated', 'edge', 'ai', 'learning', 'machine', 'deep', 'model', 'neural', 'vision', 'llm'].some(k => topic_lower.includes(k))) {
+      return [
+        {
+          question: `Question 1: In ${topic}, what is the primary advantage of Federated Averaging (FedAvg) over centralized data aggregation?`,
+          options: [
+            "Raw client data never leaves local devices, enhancing privacy and data security.",
+            "Central servers bypass neural network backpropagation completely.",
+            "Device batteries are completely insulated from gradient calculations.",
+            "Network bandwidth is reduced to zero during training rounds."
+          ],
+          answer: 0,
+          explanation: "FedAvg transmits model weight/gradient updates to a central server while keeping raw telemetry on local edge devices."
+        },
+        {
+          question: `Question 2: How does Differential Privacy mitigate data leakage in edge-based ${topic}?`,
+          options: [
+            "By encrypting all database indexes with AES-256 keys.",
+            "By injecting controlled Gaussian/Laplacian noise into gradient updates before transmission.",
+            "By converting continuous weights into binary floating point values.",
+            "By restricting server access exclusively to hardware security modules."
+          ],
+          answer: 1,
+          explanation: "Differential Privacy introduces calibrated noise into parameters to prevent adversaries from inferring individual training samples."
+        },
+        {
+          question: `Question 3: Which technique addresses Non-IID (Non-Identically & Independently Distributed) client data in ${topic}?`,
+          options: [
+            "FedProx with a proximal term to penalize local weight divergence from the global model.",
+            "Disabling local gradient updates on high-latency edge nodes.",
+            "Replacing Stochastic Gradient Descent with deterministic linear regression.",
+            "Forcing all edge nodes to execute identical batch sizes simultaneously."
+          ],
+          answer: 0,
+          explanation: "FedProx adds a proximal regularization term to the local objective function to keep local models close to the global model."
+        },
+        {
+          question: `Question 4: What is the main purpose of Model Quantization (e.g. FP32 to INT8) on edge AI devices?`,
+          options: [
+            "Increases model parameter precision to eliminate rounding errors.",
+            "Reduces memory footprint and accelerates matrix operations on resource-constrained hardware.",
+            "Eliminates the requirement for activation functions in convolutional layers.",
+            "Automates real-time hyperparameter tuning during deployment."
+          ],
+          answer: 1,
+          explanation: "Quantization converts floating-point weights to lower precision integers, dramatically shrinking memory usage and speeding up inference."
+        },
+        {
+          question: `Question 5: In secure aggregation protocols for ${topic}, what prevents the central coordinator from reading individual client updates?`,
+          options: [
+            "Pairwise secret sharing masks that cancel out when all client updates are summed.",
+            "Running inference inside isolated Docker containers.",
+            "Hashing parameter names with SHA-256 before gradient calculation.",
+            "Filtering out gradient vectors whose L2 norm exceeds a set threshold."
+          ],
+          answer: 0,
+          explanation: "Secure Aggregation uses cryptographic secret sharing masks between pairs of clients so individual updates are hidden while aggregate sums remain readable."
+        },
+        {
+          question: `Question 6: Which metric evaluates communication efficiency in constrained edge deployments?`,
+          options: [
+            "Number of communication rounds required to reach target global model accuracy.",
+            "Total disk space used by central server logging databases.",
+            "Frequency of GPU fan spin cycles per training epoch.",
+            "Ratio of HTML DOM elements rendered on the management portal."
+          ],
+          answer: 0,
+          explanation: "Communication efficiency measures how quickly a federated system reaches convergence with minimal network rounds."
+        },
+        {
+          question: `Question 7: What phenomenon occurs when edge devices drop offline mid-epoch during training rounds?`,
+          options: [
+            "Client Straggler & Dropout Problem.",
+            "Vanishing Gradient Disruption.",
+            "Deadlock Synchronization Crash.",
+            "Zero-Day Buffer Overflow."
+          ],
+          answer: 0,
+          explanation: "Edge nodes often experience power/connectivity loss, causing stragglers or missing updates that servers must accommodate gracefully."
+        },
+        {
+          question: `Question 8: What is Knowledge Distillation in the context of edge model optimization?`,
+          options: [
+            "Training a compact 'student' model to mimic the predictions of a complex 'teacher' model.",
+            "Extracting raw SQL queries directly from neural network attention layers.",
+            "Compressing text logs into gzip archives before uploading to S3 buckets.",
+            "Merging multiple database tables into a single denormalized schema."
+          ],
+          answer: 0,
+          explanation: "Knowledge distillation transfers the learned representations of a large teacher network into a lightweight student model suitable for edge hardware."
+        },
+        {
+          question: `Question 9: Which hardware accelerator is specifically engineered for low-power edge tensor computations?`,
+          options: [
+            "NPU (Neural Processing Unit) / Edge TPU",
+            "SATA RAID Controller",
+            "PCIe Ethernet Adapter",
+            "Virtual Display Adapter"
+          ],
+          answer: 0,
+          explanation: "NPUs and Edge TPUs provide hardware acceleration for matrix math while operating within tight thermal/power envelopes."
+        },
+        {
+          question: `Question 10: How does Split Learning differ from standard Federated Learning?`,
+          options: [
+            "The neural network model is split across layers: client computes early layers, server computes deeper layers.",
+            "Data is split into CSV columns and distributed across remote FTP servers.",
+            "Training is divided evenly between day shifts and night shifts.",
+            "Code files are split across separate GitHub repositories."
+          ],
+          answer: 0,
+          explanation: "Split learning splits network architecture so the edge node only processes the first few layers and transmits activation vectors to the server."
+        }
+      ].slice(0, count);
+    }
+
+    // 3. PYTHON / BACKEND / CONCURRENCY / FRAMEWORKS
+    if (['python', 'async', 'backend', 'api', 'fastapi', 'node', 'django', 'express'].some(k => topic_lower.includes(k))) {
+      return [
+        {
+          question: `Question 1: In ${topic}, what is the fundamental difference between 'asyncio.create_task()' and directly awaiting a coroutine?`,
+          options: [
+            "create_task() schedules the coroutine to run concurrently in the event loop, returning a Task object.",
+            "create_task() runs the coroutine in a separate OS process completely bypassing the GIL.",
+            "awaiting directly converts the coroutine into synchronous C++ thread execution.",
+            "create_task() permanently disables exception handling for that execution path."
+          ],
+          answer: 0,
+          explanation: "asyncio.create_task wraps a coroutine into a Task and registers it for non-blocking concurrent execution in the event loop."
+        },
+        {
+          question: `Question 2: What is the Python GIL (Global Interpreter Lock) and how does it impact multi-threaded CPU-bound programs?`,
+          options: [
+            "A mutex that prevents multiple native threads from executing Python bytecodes simultaneously.",
+            "A database lock mechanism that prevents race conditions in PostgreSQL transactions.",
+            "A memory garbage collector that frees unused RAM every 15 minutes.",
+            "A security module that verifies API key JWT signatures."
+          ],
+          answer: 0,
+          explanation: "The GIL ensures only one thread executes CPython bytecode at a time, making multiprocessing necessary for multi-core CPU-bound parallelism."
+        },
+        {
+          question: `Question 3: How does FastAPI achieve high performance for asynchronous HTTP handlers?`,
+          options: [
+            "Built on Starlette and Pydantic utilizing Python asyncio event loops and ASGI web servers.",
+            "By converting Python code into static Java bytecode at startup.",
+            "By storing all API payloads in browser LocalStorage before rendering.",
+            "By disabling TCP handshake validation on incoming client connections."
+          ],
+          answer: 0,
+          explanation: "FastAPI relies on Starlette for high-speed ASGI async routing and Pydantic for fast JSON serialization/validation."
+        },
+        {
+          question: `Question 4: What is the primary purpose of context managers (the 'with' statement) in backend code?`,
+          options: [
+            "Guarantees resource setup and teardown (e.g. closing files or DB sessions) even if exceptions occur.",
+            "Automatically scales server CPU cores when memory usage exceeds 80%.",
+            "Encrypts request parameters before sending responses across HTTP.",
+            "Caches API responses in Redis memory for 24 hours."
+          ],
+          answer: 0,
+          explanation: "Context managers use __enter__ and __exit__ methods to ensure setup and cleanup tasks execute deterministically."
+        },
+        {
+          question: `Question 5: What occurs when an unhandled exception is raised inside an asyncio background Task?`,
+          options: [
+            "The exception is stored on the Task object and raised when awaited or logged when garbage collected.",
+            "The entire operating system kernel halts immediately.",
+            "The Python interpreter automatically retries the task 10 times.",
+            "The database connection pool is dropped and re-initialized."
+          ],
+          answer: 0,
+          explanation: "Unhandled task exceptions are held until task.result() or await task is called, or logged as 'Task exception was never retrieved'."
+        },
+        {
+          question: `Question 6: Which HTTP status code represents a client request rate limit breach?`,
+          options: [
+            "429 Too Many Requests",
+            "401 Unauthorized",
+            "403 Forbidden",
+            "502 Bad Gateway"
+          ],
+          answer: 0,
+          explanation: "HTTP 429 Too Many Requests indicates the client has exceeded rate limits in a given time window."
+        },
+        {
+          question: `Question 7: What is the difference between shallow copy and deep copy in Python?`,
+          options: [
+            "Shallow copy constructs a new object but inserts references to original nested objects; deep copy recursively copies everything.",
+            "Shallow copy works on strings; deep copy works only on integers.",
+            "Shallow copy writes to disk; deep copy stores in CPU cache.",
+            "Shallow copy is async; deep copy is synchronous."
+          ],
+          answer: 0,
+          explanation: "copy.copy() creates a shallow copy sharing nested child references; copy.deepcopy() recursively copies all nested objects."
+        },
+        {
+          question: `Question 8: In RESTful API design, why is idempotency important for PUT and DELETE requests?`,
+          options: [
+            "Executing the identical request multiple times yields the exact same server state as a single invocation.",
+            "It speeds up network packet transmission over TLS connections.",
+            "It forces client browsers to refresh their HTML DOM tree.",
+            "It prevents CORS headers from blocking cross-origin requests."
+          ],
+          answer: 0,
+          explanation: "Idempotency ensures duplicate requests (e.g. retries after network disconnect) produce identical side effects."
+        },
+        {
+          question: `Question 9: What is the function of dependency injection in FastAPI handlers?`,
+          options: [
+            "Allows reusable setup logic (like database sessions and security checks) to be injected automatically.",
+            "Compiles Python functions into native assembly code.",
+            "Translates JSON request bodies into XML formats.",
+            "Deletes orphan temporary files from disk on every HTTP request."
+          ],
+          answer: 0,
+          explanation: "Depends() allows FastAPI to resolve and pass dependencies like DB sessions and auth guards seamlessly to endpoint handlers."
+        },
+        {
+          question: `Question 10: Which database connection strategy prevents connection creation overhead on every HTTP request?`,
+          options: [
+            "Database Connection Pooling",
+            "Static File Mounting",
+            "DNS Round-Robin",
+            "B-Tree Indexing"
+          ],
+          answer: 0,
+          explanation: "Connection pools maintain a warm pool of active database connections, reusing them across incoming HTTP requests."
+        }
+      ].slice(0, count);
+    }
+
+    // 4. REACT / FRONTEND / WEB DEVELOPMENT
+    if (['react', 'frontend', 'js', 'javascript', 'css', 'dom', 'component', 'web'].some(k => topic_lower.includes(k))) {
+      return [
+        {
+          question: `Question 1: In ${topic}, what is the main purpose of the 'useMemo' hook?`,
+          options: [
+            "Memoizes expensive calculated values between renders to avoid unnecessary re-computations.",
+            "Forces immediate re-renders of parent components whenever state updates.",
+            "Persists component data into browser IndexedDB storage automatically.",
+            "Bypasses React virtual DOM diffing algorithm entirely."
+          ],
+          answer: 0,
+          explanation: "useMemo caches the result of a calculation between renders until one of its dependencies changes."
+        },
+        {
+          question: `Question 2: What causes an infinite re-render loop in a React component using 'useEffect'?`,
+          options: [
+            "Updating state inside useEffect without providing a dependency array or including the updated state in dependencies.",
+            "Using inline CSS styles on JSX elements.",
+            "Rendering more than 10 child components in a single JSX parent container.",
+            "Wrapping component handlers inside useCallback."
+          ],
+          answer: 0,
+          explanation: "Setting state in useEffect triggers a render, which re-executes useEffect if dependencies are missing or change on every render."
+        },
+        {
+          question: `Question 3: How does React Virtual DOM improve browser UI performance?`,
+          options: [
+            "By computing minimum required DOM mutations using diffing algorithms before updating real DOM nodes.",
+            "By running component JavaScript on web worker threads.",
+            "By converting HTML tags directly into WebGL canvas objects.",
+            "By caching CSS stylesheet rules inside LocalStorage."
+          ],
+          answer: 0,
+          explanation: "The Virtual DOM computes the minimal set of changes (diffing) needed to bring the actual DOM into sync with updated state."
+        },
+        {
+          question: `Question 4: What is the key advantage of React 19 Server Components?`,
+          options: [
+            "Render on the server before sending HTML to client, reducing client bundle size and initial load time.",
+            "Eliminate the need for CSS styling files in web applications.",
+            "Replace JavaScript with WebAssembly binaries in all browsers.",
+            "Allow client components to read local file system directories directly."
+          ],
+          answer: 0,
+          explanation: "Server Components execute on the server, avoiding sending component code to the client bundle."
+        },
+        {
+          question: `Question 5: What is event delegation in modern web development?`,
+          options: [
+            "Attaching a single event listener to a parent element to handle events on descendant elements via event bubbling.",
+            "Delegating API fetch calls to background service workers.",
+            "Forwarding React props from parent to child components.",
+            "Passing state mutations through Redux middleware."
+          ],
+          answer: 0,
+          explanation: "Event delegation leverages event bubbling to handle events on multiple child nodes with a single parent listener."
+        },
+        {
+          question: `Question 6: Which CSS layout module is optimized for two-dimensional grid layouts?`,
+          options: [
+            "CSS Grid Layout",
+            "CSS Flexbox",
+            "Float Layout",
+            "Inline-Block Positioning"
+          ],
+          answer: 0,
+          explanation: "CSS Grid is designed for 2D (rows and columns) layouts, whereas Flexbox is primarily 1D (rows OR columns)."
+        },
+        {
+          question: `Question 7: What does the React 'key' prop do when rendering dynamic lists?`,
+          options: [
+            "Helps React identify which items have changed, been added, or removed during DOM reconciliation.",
+            "Sets unique HTML element id attributes for CSS styling.",
+            "Encrypts item text content for security compliance.",
+            "Triggers automatic sorting of list elements in ascending order."
+          ],
+          answer: 0,
+          explanation: "Unique keys enable React to track list item identity during reconciliation, preserving local state and DOM integrity."
+        },
+        {
+          question: `Question 8: How does 'useCallback' differ from 'useMemo'?`,
+          options: [
+            "useCallback memoizes callback function instances; useMemo memoizes the returned result value of a function.",
+            "useCallback runs on server; useMemo runs on client.",
+            "useCallback handles state updates; useMemo handles API calls.",
+            "useCallback returns a Promise; useMemo returns an object."
+          ],
+          answer: 0,
+          explanation: "useCallback(fn, deps) is equivalent to useMemo(() => fn, deps), caching function references between renders."
+        },
+        {
+          question: `Question 9: What is the purpose of the 'aria-label' attribute in accessible web applications?`,
+          options: [
+            "Provides an explicit text alternative for screen readers when visible text is absent.",
+            "Specifies custom font families for elements.",
+            "Controls element visibility during animations.",
+            "Defines URL routing path parameters."
+          ],
+          answer: 0,
+          explanation: "aria-label defines an accessible string for assistive technologies like screen readers."
+        },
+        {
+          question: `Question 10: Which strategy prevents layout shifts (CLS) when loading web images dynamically?`,
+          options: [
+            "Specifying explicit width and height aspect-ratio attributes on image elements.",
+            "Using JPEG format instead of PNG.",
+            "Disabling image lazy loading.",
+            "Applying CSS grayscale filters."
+          ],
+          answer: 0,
+          explanation: "Providing explicit width and height dimensions allows the browser to reserve space before image assets load, preventing CLS."
+        }
+      ].slice(0, count);
+    }
+
+    // 5. DEFAULT / GENERAL TECH / SYSTEM DESIGN / OTHER TOPICS
+    return [
+      {
+        question: `Question 1: In ${topic}, which architectural pattern decouples producers and consumers using asynchronous messaging?`,
+        options: [
+          "Event-Driven Architecture (Publish-Subscribe)",
+          "Monolithic Synchronous Procedure Calls",
+          "Hardcoded Direct Memory Pointers",
+          "Polling Loop Architecture"
+        ],
+        answer: 0,
+        explanation: `${topic} systems utilize event-driven pub-sub queues to ensure loose coupling, asynchronous resilience, and independent scalability.`
+      },
+      {
+        question: `Question 2: What is the primary purpose of implementing a Circuit Breaker pattern in ${topic}?`,
+        options: [
+          "Prevents cascading failures by failing fast when a remote dependency is overloaded or unresponsive.",
+          "Encrypts network payloads with 512-bit RSA public key pairs.",
+          "Deletes temporary cache records every 60 seconds.",
+          "Forces database queries to bypass indexed columns."
+        ],
+        answer: 0,
+        explanation: "Circuit breakers intercept failing remote requests, preventing application thread pool exhaustion during downstream outages."
+      },
+      {
+        question: `Question 3: In system design for ${topic}, what does the CAP Theorem state about distributed data stores?`,
+        options: [
+          "A system can guarantee at most two of Consistency, Availability, and Partition Tolerance simultaneously.",
+          "CPU utilization, Memory usage, and Network bandwidth are always equal.",
+          "All API endpoints must complete responses within 100 milliseconds.",
+          "Database backup tables must be stored across three separate continents."
+        ],
+        answer: 0,
+        explanation: "CAP Theorem proves that under a network partition, a distributed system must trade off between strict consistency and high availability."
+      },
+      {
+        question: `Question 4: Which caching strategy updates the cache and underlying database simultaneously in write operations?`,
+        options: [
+          "Write-Through Caching",
+          "Cache-Aside (Lazy Loading)",
+          "Write-Behind (Write-Back)",
+          "Refresh-Ahead Caching"
+        ],
+        answer: 0,
+        explanation: "Write-Through caching writes data to the cache and database synchronously, guaranteeing consistency at the cost of write latency."
+      },
+      {
+        question: `Question 5: What is database sharding and why is it applied to large scale ${topic} data architectures?`,
+        options: [
+          "Horizontal partitioning of database rows across multiple independent physical database instances.",
+          "Compressing table data into ZIP archives on cloud object storage.",
+          "Creating duplicate copies of secondary indexes on single SSD drives.",
+          "Converting relational SQL tables into static CSV text files."
+        ],
+        answer: 0,
+        explanation: "Sharding splits large database datasets horizontally across separate nodes to scale read/write throughput beyond single server limits."
+      },
+      {
+        question: `Question 6: How does horizontal scaling (scaling out) differ from vertical scaling (scaling up)?`,
+        options: [
+          "Horizontal scaling adds more machine instances; vertical scaling adds CPU/RAM resources to an existing single machine.",
+          "Horizontal scaling increases network cable thickness; vertical scaling upgrades disk firmware.",
+          "Horizontal scaling applies to databases only; vertical scaling applies to frontends only.",
+          "Horizontal scaling reduces server count; vertical scaling doubles machine count."
+        ],
+        answer: 0,
+        explanation: "Horizontal scaling adds new nodes to a distributed pool, whereas vertical scaling upgrades the specs of an existing server."
+      },
+      {
+        question: `Question 7: What role does a Reverse Proxy (e.g. NGINX) play in modern ${topic} infrastructures?`,
+        options: [
+          "Handles SSL/TLS termination, load balancing, compression, and request routing in front of backend servers.",
+          "Compiles client React code into browser executable binaries.",
+          "Monitors developer git commits for syntax errors.",
+          "Generates automated user passwords upon registration."
+        ],
+        answer: 0,
+        explanation: "Reverse proxies sit in front of application servers to handle SSL termination, load distribution, security filtering, and static caching."
+      },
+      {
+        question: `Question 8: In API architecture, what is Rate Limiting used for?`,
+        options: [
+          "Protects backend services from denial-of-service attacks and resource exhaustion by capping request volume per client.",
+          "Slows down database query execution to conserve electricity.",
+          "Restricts user login attempts to daytime office hours only.",
+          "Truncates long text strings in JSON API responses."
+        ],
+        answer: 0,
+        explanation: "Rate limiting throttles incoming requests per IP/user to prevent system overload and ensure fair resource distribution."
+      },
+      {
+        question: `Question 9: What is the main benefit of immutable infrastructure deployments in ${topic}?`,
+        options: [
+          "Servers are replaced with clean new images rather than modified in-place, eliminating configuration drift.",
+          "Server IP addresses never change for the entire lifecycle of the company.",
+          "Database passwords are hardcoded into compiled C libraries.",
+          "Source code files are locked against edits by software engineers."
+        ],
+        answer: 0,
+        explanation: "Immutable infrastructure deploys pre-tested, immutable container/VM images, making environments completely deterministic and reproducible."
+      },
+      {
+        question: `Question 10: Which metric represents the 99th percentile (p99) latency of an application endpoint?`,
+        options: [
+          "The maximum response time experienced by 99% of requests (only 1% of requests were slower).",
+          "The average response time calculated across 99 total web servers.",
+          "The percentage of HTTP requests that resulted in 200 OK status codes.",
+          "The time taken to run unit tests 99 times in CI pipelines."
+        ],
+        answer: 0,
+        explanation: "p99 latency indicates the threshold under which 99% of requests complete, capturing tail latency experienced by worst-case requests."
+      }
+    ].slice(0, count);
   };
 
   const handleSelectOption = (optionIndex) => {
@@ -667,6 +1116,27 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
     });
 
     const passRate = Math.round((correctCount / questions.length) * 100);
+
+    // Also submit result to backend DB so attempt & score are tracked
+    try {
+      const url = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/learning/submit-mock-result`;
+      const token = localStorage.getItem('sf_token');
+      if (token) {
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            topic: topicInput,
+            score: passRate,
+            total_questions: questions.length
+          })
+        }).catch(err => console.error("Error submitting mock result to backend:", err));
+      }
+    } catch (e) {}
+
     const newRecord = {
       id: Date.now(),
       topic: topicInput,
@@ -683,6 +1153,7 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
     localStorage.setItem('sf_topic_assessment_history', JSON.stringify(updatedHistory));
     setStep('report');
   };
+
 
   const currentQ = questions[currentQIndex];
   const totalQuestions = questions.length;
@@ -1015,7 +1486,7 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
             </div>
 
             {/* Bottom Nav Bar */}
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-2 pb-16">
               <button
                 onClick={() => setCurrentQIndex(prev => Math.max(0, prev - 1))}
                 disabled={currentQIndex === 0}
