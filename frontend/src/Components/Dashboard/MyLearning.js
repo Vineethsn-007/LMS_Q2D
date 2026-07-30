@@ -4,6 +4,31 @@ import './MyLearning.css';
 
 import CourseQuiz from './CourseQuiz';
 
+const DEFAULT_TECH_IMAGES = [
+  'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600',
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=600',
+  'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=600',
+  'https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=600',
+  'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=600',
+  'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&q=80&w=600'
+];
+
+export const getCourseImageUrl = (course) => {
+  if (!course) return DEFAULT_TECH_IMAGES[0];
+  const url = course.image_url;
+  if (url && typeof url === 'string' && url.trim().length > 0) {
+    const trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:')) {
+      return trimmed;
+    }
+    const baseUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    return `${baseUrl}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  }
+  const idVal = typeof course.id === 'number' ? course.id : (course.title || '').length;
+  const index = Math.abs(idVal) % DEFAULT_TECH_IMAGES.length;
+  return DEFAULT_TECH_IMAGES[index];
+};
+
 const CourseListView = ({ onSelectCourse, completedCourses, onBack }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -100,6 +125,7 @@ const CourseListView = ({ onSelectCourse, completedCourses, onBack }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map(course => {
               const isCompleted = completedCourses.includes(course.id);
+              const imgSrc = getCourseImageUrl(course);
               return (
                 <div
                   key={course.id}
@@ -107,15 +133,19 @@ const CourseListView = ({ onSelectCourse, completedCourses, onBack }) => {
                   className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-navy/20 transition-all cursor-pointer group overflow-hidden flex flex-col"
                 >
                   {/* Card Thumbnail */}
-                  <div className="h-40 bg-gradient-to-br from-navy-800 to-navy-900 relative flex items-center justify-center">
-                    {course.image_url ? (
-                      <img src={course.image_url} alt={course.title} className="w-full h-full object-cover absolute inset-0" />
-                    ) : (
-                      <BookOpen size={48} className="text-white/30" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  <div className="h-40 bg-gradient-to-br from-navy-800 to-navy-900 relative flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={imgSrc} 
+                      alt={course.title} 
+                      className="w-full h-full object-cover absolute inset-0 transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = DEFAULT_TECH_IMAGES[0];
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                     <div className="absolute bottom-3 left-4 right-4">
-                      <span className="text-xs font-semibold text-white/80 bg-white/20 px-2.5 py-1 rounded-full backdrop-blur-sm">
+                      <span className="text-xs font-semibold text-white/90 bg-black/40 px-2.5 py-1 rounded-full backdrop-blur-md border border-white/10">
                         {course.category || 'General'}
                       </span>
                     </div>
@@ -978,18 +1008,10 @@ const MyLearning = ({ course: rawCourse, onBack, onComplete }) => {
                   return null;
                 })()}
               </div>
-            ) : course.image_url ? (
-              <div className="video-player-mock" style={{ backgroundImage: `url(${process.env.REACT_APP_API_URL}${course.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', paddingBottom: '56.25%', position: 'relative' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <Play size={32} fill="#fff" color="#fff" style={{ marginLeft: '4px' }} />
-                  </div>
-                </div>
-              </div>
             ) : (
-              <div className="video-player-mock" style={{ background: '#1e293b', paddingBottom: '56.25%', position: 'relative' }}>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="video-player-mock" style={{ backgroundImage: `url(${getCourseImageUrl(course)})`, backgroundSize: 'cover', backgroundPosition: 'center', paddingBottom: '56.25%', position: 'relative' }}>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                     <Play size={32} fill="#fff" color="#fff" style={{ marginLeft: '4px' }} />
                   </div>
                 </div>

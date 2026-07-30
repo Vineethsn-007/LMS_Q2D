@@ -207,8 +207,14 @@ const Dashboard = ({ user, onLogout, onUserUpdate }) => {
         {activeView === 'mylearning' && <MyLearning course={activeCourse} onBack={() => setActiveView('dashboard')} />}
         {activeView === 'certifications' && <Certifications user={user} />}
         {(activeView === 'test' || activeView === 'topic-assessment' || activeView === 'assessment') && (
-  <TopicAssessment user={user} initialTopic={mockTestTopic} onClearTopic={() => setMockTestTopic(null)} />
-)}
+          <TopicAssessment
+            user={user}
+            initialTopic={mockTestTopic}
+            onClearTopic={() => setMockTestTopic(null)}
+            onBack={() => setActiveView('mock-tests')}
+            onTestCompleted={() => setMockTestRefreshKey((prev) => prev + 1)}
+          />
+        )}
         {/* My Program Views */}
         {activeView === 'program' && (
           <RegisteredSubjectsDashboard

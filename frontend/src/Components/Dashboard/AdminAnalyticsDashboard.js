@@ -26,13 +26,21 @@ export default function AdminAnalyticsDashboard() {
   // Override Modal
   const [overrideModal, setOverrideModal] = useState({ open: false, record: null, action: 'activate', reason: '' });
 
-  const token = localStorage.getItem('sf_token');
-  const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const getHeaders = () => {
+    const token = localStorage.getItem('sf_token') || localStorage.getItem('token');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
 
   const fetchBatchStats = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/batch-stats`, { headers });
-      if (!res.ok) throw new Error('Failed to fetch batch stats');
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/batch-stats`, { headers: getHeaders() });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Failed to fetch batch stats');
+      }
       const json = await res.json();
       setBatchStats(json.batches || []);
     } catch (err) { setError(err.message); }
@@ -41,8 +49,11 @@ export default function AdminAnalyticsDashboard() {
   const fetchProgressionStats = async () => {
     try {
       let url = `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/progression`;
-      const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error('Failed to fetch progression stats');
+      const res = await fetch(url, { headers: getHeaders() });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Failed to fetch progression stats');
+      }
       const json = await res.json();
       setProgressionStats(json.tiers || []);
     } catch (err) { setError(err.message); }
@@ -50,8 +61,11 @@ export default function AdminAnalyticsDashboard() {
 
   const fetchPaymentStats = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/payments`, { headers });
-      if (!res.ok) throw new Error('Failed to fetch payment stats');
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/payments`, { headers: getHeaders() });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Failed to fetch payment stats');
+      }
       const json = await res.json();
       setPaymentStats(json.tiers || []);
     } catch (err) { setError(err.message); }
@@ -59,8 +73,11 @@ export default function AdminAnalyticsDashboard() {
 
   const fetchAccessStatus = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/access-status`, { headers });
-      if (!res.ok) throw new Error('Failed to fetch access statuses');
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/access-status`, { headers: getHeaders() });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Failed to fetch access statuses');
+      }
       const json = await res.json();
       setAccessRecords(json.records || []);
     } catch (err) { setError(err.message); }
@@ -68,8 +85,11 @@ export default function AdminAnalyticsDashboard() {
 
   const fetchCompletionMetrics = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/completion-metrics`, { headers });
-      if (!res.ok) throw new Error('Failed to fetch completion metrics');
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/completion-metrics`, { headers: getHeaders() });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Failed to fetch completion metrics');
+      }
       const json = await res.json();
       setCompletionStats(json.tiers || []);
     } catch (err) { setError(err.message); }
@@ -77,8 +97,11 @@ export default function AdminAnalyticsDashboard() {
 
   const fetchTimeToCertification = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/time-to-certification`, { headers });
-      if (!res.ok) throw new Error('Failed to fetch time-to-certification');
+      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/time-to-certification`, { headers: getHeaders() });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Failed to fetch time-to-certification');
+      }
       const json = await res.json();
       setTimeToCertStats(json.tiers || []);
     } catch (err) { setError(err.message); }
@@ -111,7 +134,7 @@ export default function AdminAnalyticsDashboard() {
     try {
       const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/analytics/access-status/${overrideModal.record.registration_id}/override`, {
         method: 'POST',
-        headers,
+        headers: getHeaders(),
         body: JSON.stringify({ action: overrideModal.action, reason: overrideModal.reason })
       });
       if (!res.ok) throw new Error('Override failed');

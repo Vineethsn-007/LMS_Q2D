@@ -54,7 +54,7 @@ const exitFullScreen = () => {
   }
 };
 
-const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
+const TopicAssessment = ({ user, initialTopic, onClearTopic, onBack, onTestCompleted }) => {
   const [step, setStep] = useState('setup'); // 'setup', 'loading', 'taking', 'report'
   const [topicInput, setTopicInput] = useState('');
   const [difficulty, setDifficulty] = useState('Intermediate');
@@ -528,31 +528,34 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
         }
       } else if (res.status === 429) {
         const errorData = await res.json();
-        throw new Error(errorData.detail || "Daily mock test limit exceeded.");
+        const limitMsg = errorData.detail || "Daily mock test limit reached. Please try again tomorrow.";
+        setError(limitMsg);
+        setStep('setup');
+        exitFullScreen();
+        return;
       }
       throw new Error("Could not synthesize test questions");
     } catch (err) {
       console.error("Test generation failed:", err);
-      setError(err.message || "Unable to generate test from server. Using local practice problem set.");
-      
-      // If it's a rate limit error, do NOT fallback
-      if (err.message && err.message.includes("limit exceeded")) {
-        setStep('setup');
-        return;
-      }
-      
-      // Fallback local generation if server is offline
-      setTimeout(() => {
+      const msg = err.message || "Unable to generate test from server.";
+      if (!msg.toLowerCase().includes("limit")) {
         const fallback = generateLocalFallback(targetTopic, 10);
-        setQuestions(fallback);
-        setSelectedAnswers({});
-        setCurrentQIndex(0);
-        setElapsedSeconds(0);
-        setTimerActive(true);
-        resetProctoringState();
-        enterFullScreen();
-        setStep('taking');
-      }, 1200);
+        if (fallback && fallback.length > 0) {
+          setQuestions(fallback);
+          setSelectedAnswers({});
+          setCurrentQIndex(0);
+          setElapsedSeconds(0);
+          setTimerActive(true);
+          resetProctoringState();
+          enterFullScreen();
+          setStep('taking');
+          return;
+        }
+      }
+      setError(msg);
+      setStep('setup');
+      exitFullScreen();
+      return;
     }
   };
 
@@ -1133,7 +1136,11 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
             score: passRate,
             total_questions: questions.length
           })
-        }).catch(err => console.error("Error submitting mock result to backend:", err));
+        })
+          .then(() => {
+            if (onTestCompleted) onTestCompleted();
+          })
+          .catch(err => console.error("Error submitting mock result to backend:", err));
       }
     } catch (e) {}
 
@@ -1188,7 +1195,17 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
         
         {/* PHASE 1: TOPIC SELECTION & SETUP */}
         {step === 'setup' && (
-          <div className="space-y-8 animate-in fade-in">
+          <div className="space-y-6 animate-in fade-in">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-navy transition-colors cursor-pointer bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm"
+              >
+                <ChevronLeft size={18} />
+                <span>Back to Mock Tests</span>
+              </button>
+            )}
             
             {/* Hero Banner */}
             <div className="assessment-hero-gradient p-8 md:p-10 rounded-3xl shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -1734,6 +1751,15 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic }) => {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center justify-center gap-3 pt-4 border-t border-slate-100">
+                {onBack && (
+                  <button
+                    onClick={() => { exitFullScreen(); onBack(); }}
+                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-xl shadow-md transition-all cursor-pointer"
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Back to Mock Tests</span>
+                  </button>
+                )}
                 <button
                   onClick={() => handleStartGeneration(topicInput)}
                   className="flex items-center gap-2 px-6 py-3 bg-blue-100 hover:bg-blue-200 text-blue-900 font-extrabold text-sm rounded-xl transition-all"

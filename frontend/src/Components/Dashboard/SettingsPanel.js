@@ -31,25 +31,37 @@ export default function SettingsPanel({ user, onUserUpdate }) {
 
     // Validation
     const trimmedName = name.trim();
+    const nameRegex = /^[A-Za-z\s.'-]{2,50}$/;
+
     if (!trimmedName) {
       setError('Name is required.');
       return;
     }
 
+    if (trimmedName.length < 2 || trimmedName.length > 50 || !nameRegex.test(trimmedName) || !/[a-zA-Z]/.test(trimmedName)) {
+      setError('Please enter a valid name (2-50 characters, letters, spaces, dots, hyphens, and apostrophes only; no numbers or special symbols).');
+      return;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email.trim())) {
       setError('Please enter a valid email address.');
       return;
     }
 
     let hours = parseFloat(weeklyGoalHours);
     if (isLearner) {
-      if (isNaN(hours) || hours <= 0) {
-        setError('Weekly study goal must be a positive number.');
+      if (isNaN(hours) || hours < 0.5 || hours > 168) {
+        setError('Weekly study goal must be between 0.5 and 168 hours.');
         return;
       }
     } else {
       hours = user?.weekly_goal_hours || 8;
+    }
+
+    if (password && password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
     }
 
     setLoading(true);
@@ -131,7 +143,7 @@ export default function SettingsPanel({ user, onUserUpdate }) {
                   type="text"
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all disabled:opacity-50"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => { setName(e.target.value); setError(''); setSuccess(false); }}
                   placeholder="Full Name"
                   disabled={loading}
                 />
@@ -162,7 +174,7 @@ export default function SettingsPanel({ user, onUserUpdate }) {
                     min="0.5"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all disabled:opacity-50"
                     value={weeklyGoalHours}
-                    onChange={(e) => setWeeklyGoalHours(e.target.value)}
+                    onChange={(e) => { setWeeklyGoalHours(e.target.value); setError(''); setSuccess(false); }}
                     placeholder="Weekly Goal Hours"
                     disabled={loading}
                   />
@@ -181,7 +193,7 @@ export default function SettingsPanel({ user, onUserUpdate }) {
                     type={showPassword ? "text" : "password"}
                     className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-navy/20 focus:border-navy shadow-inner transition-all disabled:opacity-50"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); setError(''); setSuccess(false); }}
                     placeholder="Leave blank to keep current password"
                     disabled={loading}
                   />
@@ -198,13 +210,38 @@ export default function SettingsPanel({ user, onUserUpdate }) {
                 </span>
               </div>
 
-              <div className="mt-4">
+              {error && (
+                <div className="p-4 bg-coral-50 border border-coral-200 text-coral-600 rounded-xl text-sm font-bold flex items-center shadow-sm">
+                  ⚠️ {error}
+                </div>
+              )}
+              
+              {success && (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-xl text-sm font-bold flex items-center shadow-sm">
+                  ✓ Profile settings updated successfully!
+                </div>
+              )}
+
+              <div className="mt-4 flex flex-col sm:flex-row items-center gap-4">
                 <button 
                   type="submit" 
-                  className="px-8 py-3.5 bg-navy hover:bg-navy-800 text-white font-bold rounded-xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-50 w-full sm:w-auto"
+                  className={`px-8 py-3.5 font-bold rounded-xl shadow-sm hover:shadow-md transition-all w-full sm:w-auto flex items-center justify-center gap-2 ${
+                    success 
+                      ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                      : 'bg-navy hover:bg-navy-800 text-white hover:-translate-y-0.5'
+                  } disabled:opacity-50`}
                   disabled={loading}
                 >
-                  {loading ? 'Saving Changes...' : 'Save Settings'}
+                  {loading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      Saving Changes...
+                    </>
+                  ) : success ? (
+                    '✓ Settings Saved!'
+                  ) : (
+                    'Save Settings'
+                  )}
                 </button>
               </div>
             </form>

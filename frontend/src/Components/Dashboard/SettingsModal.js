@@ -34,25 +34,37 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
 
     // Validation
     const trimmedName = name.trim();
+    const nameRegex = /^[A-Za-z\s.'-]{2,50}$/;
+
     if (!trimmedName) {
       setError('Name is required.');
       return;
     }
 
+    if (trimmedName.length < 2 || trimmedName.length > 50 || !nameRegex.test(trimmedName) || !/[a-zA-Z]/.test(trimmedName)) {
+      setError('Please enter a valid name (2-50 characters, letters, spaces, dots, hyphens, and apostrophes only; no numbers or special symbols).');
+      return;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email.trim())) {
       setError('Please enter a valid email address.');
       return;
     }
 
     let hours = parseFloat(weeklyGoalHours);
     if (isLearner) {
-      if (isNaN(hours) || hours <= 0) {
-        setError('Weekly study goal must be a positive number.');
+      if (isNaN(hours) || hours < 0.5 || hours > 168) {
+        setError('Weekly study goal must be between 0.5 and 168 hours.');
         return;
       }
     } else {
       hours = user?.weekly_goal_hours || 8;
+    }
+
+    if (password && password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
     }
 
     setLoading(true);
@@ -198,6 +210,9 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
             </span>
           </div>
 
+          {error && <div className="settings-modal-error">⚠️ {error}</div>}
+          {success && <div className="settings-modal-success">✓ Profile settings updated successfully!</div>}
+
           <div className="settings-modal-footer">
             <button
               type="button"
@@ -210,9 +225,10 @@ export default function SettingsModal({ isOpen, onClose, user, onUserUpdate }) {
             <button
               type="submit"
               className="settings-submit-btn"
+              style={{ backgroundColor: success ? '#059669' : undefined }}
               disabled={loading || success}
             >
-              {loading ? 'Saving...' : success ? 'Saved!' : 'Save Changes'}
+              {loading ? 'Saving...' : success ? '✓ Saved!' : 'Save Changes'}
             </button>
           </div>
         </form>

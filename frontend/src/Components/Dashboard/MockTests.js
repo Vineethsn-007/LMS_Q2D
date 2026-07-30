@@ -48,13 +48,18 @@ export default function MockTests({ user, onStartTest, onTestCompleted }) {
 
   // Calculate attempts per subject from results (filtered for TODAY's date)
   const getAttemptsForSubject = (subjectName) => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const todayYMD = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const cleanSubj = (subjectName || '').trim().toLowerCase();
+
     return mockResults.filter(r => {
-      if (!r.topic || r.topic.toLowerCase() !== subjectName.toLowerCase()) return false;
+      const cleanTopic = (r.topic || '').trim().toLowerCase();
+      if (!cleanTopic || cleanTopic !== cleanSubj) return false;
       if (!r.attempt_date) return true; // count if date missing
       try {
-        const attemptDateStr = new Date(r.attempt_date).toISOString().split('T')[0];
-        return attemptDateStr === todayStr;
+        const d = new Date(r.attempt_date);
+        const dYMD = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return dYMD === todayYMD;
       } catch (e) {
         return true;
       }
@@ -62,8 +67,9 @@ export default function MockTests({ user, onStartTest, onTestCompleted }) {
   };
 
   const getAllSubjectAttempts = (subjectName) => {
+    const cleanSubj = (subjectName || '').trim().toLowerCase();
     return mockResults.filter(r =>
-      r.topic?.toLowerCase() === subjectName.toLowerCase()
+      (r.topic || '').trim().toLowerCase() === cleanSubj
     );
   };
 
@@ -162,17 +168,19 @@ export default function MockTests({ user, onStartTest, onTestCompleted }) {
                   <div className="p-5 pt-3 mt-auto">
                     <button
                       onClick={() => onStartTest && onStartTest(subject.name)}
-                      disabled={!isAiEnabled}
+                      disabled={!isAiEnabled || attemptsCount >= dailyLimit}
                       className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                        isAiEnabled
+                        isAiEnabled && attemptsCount < dailyLimit
                           ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow-md'
-                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                       }`}
                     >
-                      {isAiEnabled ? (
-                        <><Play size={16} fill="currentColor" /> Start Mock Test</>
-                      ) : (
+                      {!isAiEnabled ? (
                         <><Clock size={16} /> AI Tests Disabled</>
+                      ) : attemptsCount >= dailyLimit ? (
+                        <><AlertCircle size={16} /> Limit Reached ({attemptsCount}/{dailyLimit})</>
+                      ) : (
+                        <><Play size={16} fill="currentColor" /> Start Mock Test</>
                       )}
                     </button>
                   </div>

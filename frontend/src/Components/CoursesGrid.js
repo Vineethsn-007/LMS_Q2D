@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Star, Clock, Users, Sparkles, CheckCircle2 } from 'lucide-react';
+import { getCourseImageUrl } from './Dashboard/MyLearning';
 
 export default function CoursesGrid({ 
   courses, 
@@ -56,9 +57,13 @@ export default function CoursesGrid({
                 {/* Image Cover */}
                 <div style={styles.cardImageContainer}>
                   <img 
-                    src={course.image_url ? (course.image_url.startsWith('http') ? course.image_url : `${process.env.REACT_APP_API_URL}${course.image_url}`) : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=400'} 
+                    src={getCourseImageUrl(course)} 
                     alt={course.title} 
-                    style={styles.cardImage} 
+                    style={styles.cardImage}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=400';
+                    }}
                   />
                   <span style={styles.categoryBadge}>{course.category}</span>
                 </div>
