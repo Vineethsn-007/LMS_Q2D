@@ -235,9 +235,9 @@ def generate_topic_assessment_endpoint(
     if not subjects:
         raise HTTPException(status_code=403, detail="No subjects assigned for mock tests.")
         
-    subject = next((s for s in subjects if s.name.lower() == req.topic.lower()), None)
+    subject = next((s for s in subjects if s.name.lower().strip() == req.topic.lower().strip()), None)
     if not subject:
-        subject = subjects[0]
+        subject = db.query(models.Subject).filter(models.Subject.name.ilike(req.topic.strip())).first()
         
     config = None
     if subject:
@@ -246,26 +246,29 @@ def generate_topic_assessment_endpoint(
             models.ExamConfig.level == registration.current_tier
         ).first()
 
-    # Get max daily limit from config, fallback to subject or 3
+    # Get max daily limit for this specific subject/config
     if config and config.per_day_ai_limit is not None:
         daily_limit = config.per_day_ai_limit
+    elif subject and subject.daily_mock_attempts_limit is not None:
+        daily_limit = subject.daily_mock_attempts_limit
     else:
-        daily_limit = max([s.daily_mock_attempts_limit for s in subjects] + [3])
+        daily_limit = 3
     
-    # 2. Check today's attempts (use UTC to match stored attempt_date timestamps)
+    # 2. Check today's attempts for this topic (use UTC date boundaries)
     import datetime as dt_module
     now_utc = dt_module.datetime.utcnow()
     today_utc_start = dt_module.datetime(now_utc.year, now_utc.month, now_utc.day, 0, 0, 0)
     
     attempts_today = db.query(models.MockTestAttempt).filter(
         models.MockTestAttempt.user_id == current_user.id,
+        models.MockTestAttempt.topic.ilike(req.topic.strip()),
         models.MockTestAttempt.attempt_date >= today_utc_start
     ).count()
     
     if attempts_today >= daily_limit:
         raise HTTPException(
             status_code=429, 
-            detail=f"Daily mock test limit ({daily_limit}) exceeded. Please try again tomorrow."
+            detail=f"Daily mock test limit ({daily_limit}) reached for '{req.topic}'. Please try again tomorrow."
         )
         
     # 3. Generate questions

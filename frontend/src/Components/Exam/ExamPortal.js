@@ -680,7 +680,11 @@ const ExamPortal = ({ credentialId }) => {
 
   if (examState === 'scheduled' || (examData && !examData.is_valid && examData.status === 'not_yet_available')) {
     const windowStart = examData?.window_start ? new Date(examData.window_start) : null;
-    const windowStartStr = windowStart ? windowStart.toLocaleString() : 'Scheduled Slot Time';
+    const windowStartStr = windowStart ? windowStart.toLocaleString([], { dateStyle: 'medium', timeStyle: 'medium' }) : 'Scheduled Check-in Time';
+
+    const bookedSlotText = examData?.slot_date && examData?.slot_time
+      ? `${examData.slot_date} (${examData.slot_time})`
+      : (examData?.slot_datetime ? new Date(examData.slot_datetime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Scheduled Exam Slot Time');
 
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 select-none">
@@ -701,13 +705,25 @@ const ExamPortal = ({ credentialId }) => {
             </p>
           </div>
 
-          <div className="bg-slate-50 border-2 border-slate-200 p-6 rounded-2xl space-y-3 text-left">
-            <span className="text-xs font-extrabold uppercase text-slate-500 block text-center">
-              Check-in Window Opens At:
-            </span>
-            <div className="text-lg font-black text-slate-800 text-center font-mono">
-              {windowStartStr}
+          <div className="bg-slate-50 border-2 border-slate-200 p-5 rounded-2xl space-y-4 text-left">
+            <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+              <span className="text-xs font-extrabold uppercase text-indigo-700 block text-center mb-1">
+                📅 Scheduled Exam Slot Time
+              </span>
+              <div className="text-base font-black text-indigo-950 text-center font-mono">
+                {bookedSlotText}
+              </div>
             </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-200/60 rounded-xl">
+              <span className="text-xs font-extrabold uppercase text-amber-800 block text-center mb-1">
+                ⏱️ Check-in Window Opens At (30 Mins Prior):
+              </span>
+              <div className="text-sm font-black text-amber-950 text-center font-mono">
+                {windowStartStr}
+              </div>
+            </div>
+
             <p className="text-xs font-semibold text-slate-500 leading-relaxed text-center">
               Check-in opens 30 minutes prior to your scheduled exam slot. Please return at that time to complete pre-exam compliance and start your exam.
             </p>

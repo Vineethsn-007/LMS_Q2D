@@ -280,6 +280,54 @@ def allocate_specialization(
         
     student.specialization = spec_in.specialization
     db.commit()
+
+    # Find specialization model
+    spec = db.query(models.Specialization).filter(models.Specialization.name == spec_in.specialization).first()
+    if spec:
+        active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+        cycle_name = active_cycle.name if active_cycle else "2026-2027"
+
+        # Get or create registration
+        reg = db.query(models.StudentRegistration).filter(
+            models.StudentRegistration.user_id == student.id,
+            models.StudentRegistration.is_archived == False
+        ).order_by(models.StudentRegistration.id.desc()).first()
+
+        if not reg:
+            reg = models.StudentRegistration(
+                user_id=student.id,
+                institution_id=student.institution_id,
+                specialization_id=spec.id,
+                cycle_year=cycle_name,
+                current_tier="District",
+                access_status="active",
+                is_archived=False
+            )
+            db.add(reg)
+            db.commit()
+            db.refresh(reg)
+        else:
+            reg.specialization_id = spec.id
+            db.commit()
+
+        # Auto-assign all subjects of this specialization track to the student
+        spec_subjects = db.query(models.Subject).filter(models.Subject.specialization_id == spec.id).all()
+        new_assigns = []
+        for subj in spec_subjects:
+            existing = db.query(models.StudentSubjectAssignment).filter(
+                models.StudentSubjectAssignment.user_id == student.id,
+                models.StudentSubjectAssignment.subject_id == subj.id
+            ).first()
+            if not existing:
+                new_assigns.append(models.StudentSubjectAssignment(
+                    user_id=student.id,
+                    subject_id=subj.id,
+                    registration_id=reg.id
+                ))
+        if new_assigns:
+            db.bulk_save_objects(new_assigns)
+            db.commit()
+
     db.refresh(student)
     return student
 
@@ -292,14 +340,55 @@ def bulk_allocate_specialization(
     query = db.query(models.User).filter(models.User.id.in_(bulk_in.student_ids), models.User.role == "learner")
     allowed_ids = get_subadmin_allowed_institution_ids(current_user, db)
     if allowed_ids is not None:
-        query = query.filter(models.User.institution_id.in_(allowed_ids))
+        query = query.filter((models.User.institution_id.in_(allowed_ids)) | (models.User.institution_id == None))
         
     students = query.all()
     count = 0
+    
+    spec = db.query(models.Specialization).filter(models.Specialization.name == bulk_in.specialization).first()
+    spec_subjects = db.query(models.Subject).filter(models.Subject.specialization_id == spec.id).all() if spec else []
+    active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+    cycle_name = active_cycle.name if active_cycle else "2026-2027"
+
     for s in students:
         s.specialization = bulk_in.specialization
         count += 1
-        
+
+        if spec:
+            reg = db.query(models.StudentRegistration).filter(
+                models.StudentRegistration.user_id == s.id,
+                models.StudentRegistration.is_archived == False
+            ).order_by(models.StudentRegistration.id.desc()).first()
+
+            if not reg:
+                reg = models.StudentRegistration(
+                    user_id=s.id,
+                    institution_id=s.institution_id,
+                    specialization_id=spec.id,
+                    cycle_year=cycle_name,
+                    current_tier="District",
+                    access_status="active",
+                    is_archived=False
+                )
+                db.add(reg)
+                db.commit()
+                db.refresh(reg)
+            else:
+                reg.specialization_id = spec.id
+
+            # Auto-assign subjects of this specialization
+            for subj in spec_subjects:
+                existing = db.query(models.StudentSubjectAssignment).filter(
+                    models.StudentSubjectAssignment.user_id == s.id,
+                    models.StudentSubjectAssignment.subject_id == subj.id
+                ).first()
+                if not existing:
+                    db.add(models.StudentSubjectAssignment(
+                        user_id=s.id,
+                        subject_id=subj.id,
+                        registration_id=reg.id
+                    ))
+
     db.commit()
     return {
         "message": f"Specialization '{bulk_in.specialization}' allocated to {count} student(s).",
@@ -315,38 +404,75 @@ def bulk_subject_assignment(
     query = db.query(models.User).filter(models.User.id.in_(bulk_in.student_ids), models.User.role == "learner")
     allowed_ids = get_subadmin_allowed_institution_ids(current_user, db)
     if allowed_ids is not None:
-        query = query.filter(models.User.institution_id.in_(allowed_ids))
+        query = query.filter((models.User.institution_id.in_(allowed_ids)) | (models.User.institution_id == None))
         
     students = query.all()
     count = 0
+    already_assigned = 0
     new_assignments = []
+
+    active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+    cycle_name = active_cycle.name if active_cycle else "2026-2027"
+
     for s in students:
-        # Find active registration
+        # Find active or non-archived registration
         reg = db.query(models.StudentRegistration).filter(
             models.StudentRegistration.user_id == s.id,
-            models.StudentRegistration.access_status == "active"
+            models.StudentRegistration.is_archived == False
+        ).order_by(models.StudentRegistration.id.desc()).first()
+
+        if not reg:
+            # Auto-create registration if missing
+            spec = db.query(models.Specialization).filter(models.Specialization.name == s.specialization).first() if s.specialization else None
+            spec_id = spec.id if spec else None
+            reg = models.StudentRegistration(
+                user_id=s.id,
+                institution_id=s.institution_id,
+                specialization_id=spec_id,
+                cycle_year=cycle_name,
+                current_tier="District",
+                access_status="active",
+                is_archived=False
+            )
+            db.add(reg)
+            db.commit()
+            db.refresh(reg)
+
+        # Check if assignment already exists
+        existing = db.query(models.StudentSubjectAssignment).filter(
+            models.StudentSubjectAssignment.user_id == s.id,
+            models.StudentSubjectAssignment.subject_id == bulk_in.subject_id
         ).first()
-        if reg:
-            # Check if assignment already exists
-            existing = db.query(models.StudentSubjectAssignment).filter(
-                models.StudentSubjectAssignment.user_id == s.id,
-                models.StudentSubjectAssignment.subject_id == bulk_in.subject_id
-            ).first()
-            if not existing:
-                new_assignments.append(models.StudentSubjectAssignment(
-                    user_id=s.id,
-                    subject_id=bulk_in.subject_id,
-                    registration_id=reg.id
-                ))
+
+        if not existing:
+            new_assignments.append(models.StudentSubjectAssignment(
+                user_id=s.id,
+                subject_id=bulk_in.subject_id,
+                registration_id=reg.id
+            ))
+            count += 1
+        else:
+            if existing.registration_id != reg.id:
+                existing.registration_id = reg.id
                 count += 1
+            else:
+                already_assigned += 1
                 
     if new_assignments:
         db.bulk_save_objects(new_assignments)
-        db.commit()
+    db.commit()
         
+    if count > 0:
+        msg = f"Subject successfully assigned to {count} student(s)."
+    elif already_assigned > 0:
+        msg = f"Subject is already assigned to the selected student(s)."
+    else:
+        msg = "No eligible students found for subject assignment."
+
     return {
-        "message": f"Subject assigned to {count} student(s).",
-        "assigned_count": count
+        "message": msg,
+        "assigned_count": count,
+        "already_assigned_count": already_assigned
     }
 
 @router.get("/template")

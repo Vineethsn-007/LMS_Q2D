@@ -331,14 +331,14 @@ def get_time_to_certification(
     current_user: models.User = Depends(verifyAdminRole)
 ):
     from models.certificate import Certificate
-    from sqlalchemy.sql import text
+    from sqlalchemy import cast, String
     
     query = db.query(
         models.StudentRegistration.current_tier,
         models.StudentRegistration.created_at.label("reg_date"),
         Certificate.created_at.label("cert_date")
     ).join(
-        Certificate, text("CAST(student_registrations.user_id AS VARCHAR) = certificates.user_id")
+        Certificate, cast(models.StudentRegistration.user_id, String) == Certificate.user_id
     )
     
     if institution_id:

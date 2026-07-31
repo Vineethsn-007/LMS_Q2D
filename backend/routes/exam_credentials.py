@@ -134,10 +134,14 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     expires_at = now_utc + datetime.timedelta(days=1)
     issued_at = now_utc
+    IST_TZ = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
     slot_dt = None
     if request.slot_datetime:
         try:
-            slot_dt = datetime.datetime.fromisoformat(request.slot_datetime.replace('Z', '+00:00'))
+            parsed_dt = datetime.datetime.fromisoformat(request.slot_datetime.replace('Z', '+00:00'))
+            if parsed_dt.tzinfo is None:
+                parsed_dt = parsed_dt.replace(tzinfo=IST_TZ)
+            slot_dt = parsed_dt.astimezone(datetime.timezone.utc)
         except Exception:
             pass
     if not slot_dt and request.slot_date and request.slot_time:
@@ -146,7 +150,8 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
             dt_str = f"{request.slot_date} {time_part}"
             for fmt in ("%Y-%m-%d %I:%M %p", "%Y-%m-%d %I:%M%p", "%Y-%m-%d %H:%M"):
                 try:
-                    slot_dt = datetime.datetime.strptime(dt_str, fmt).replace(tzinfo=datetime.timezone.utc)
+                    local_dt = datetime.datetime.strptime(dt_str, fmt).replace(tzinfo=IST_TZ)
+                    slot_dt = local_dt.astimezone(datetime.timezone.utc)
                     break
                 except ValueError:
                     continue
@@ -154,8 +159,6 @@ def book_slot(request: schemas.SlotBookRequest, db: Session = Depends(get_db)):
             pass
 
     if slot_dt:
-        if slot_dt.tzinfo is None:
-            slot_dt = slot_dt.replace(tzinfo=datetime.timezone.utc)
         if slot_dt <= now_utc:
             return {
                 "success": False,
@@ -289,6 +292,18 @@ def verify_credential(temp_user_id: str, db: Session = Depends(get_db)):
     else:
         is_valid = True
         status_msg = "ready"
+
+    # Fetch corresponding slot booking details for explicit scheduled time display
+    slot_booking = db.query(models.ExamSlotBooking).filter(
+        models.ExamSlotBooking.booking_reference == session.booking_ref
+    ).first()
+    
+    slot_time_val = slot_booking.slot_time if slot_booking else None
+    slot_date_val = slot_booking.slot_date if slot_booking else None
+    slot_dt_val = slot_booking.slot_datetime if slot_booking else None
+
+    if not slot_dt_val and cred_issued:
+        slot_dt_val = cred_issued + datetime.timedelta(minutes=30)
         
     return {
         "is_valid": is_valid,
@@ -296,8 +311,11 @@ def verify_credential(temp_user_id: str, db: Session = Depends(get_db)):
         "student_name": user.name if user else "Unknown",
         "subject_name": subject.name if subject else "Unknown",
         "level": session.level,
-        "window_start": cred.issued_at,
-        "window_end": cred.expires_at,
+        "window_start": cred_issued,
+        "window_end": cred_expires,
+        "slot_time": slot_time_val,
+        "slot_date": slot_date_val,
+        "slot_datetime": slot_dt_val,
         "requires_screenshare": config.requires_screenshare if config else False
     }
 

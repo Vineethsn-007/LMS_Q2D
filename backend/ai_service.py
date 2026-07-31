@@ -24,23 +24,142 @@ except Exception as e:
     logger.error(f"Failed to initialize Groq client: {e}")
     groq_client = None
 
+def sanitize_question_dict(q_item: dict) -> dict:
+    """
+    Validates, normalizes, and fixes AI-generated question dictionaries.
+    Ensures:
+    1. 'question' is a valid non-empty string.
+    2. 'options' is a list of exactly 4 non-empty strings.
+    3. 'answer' is a valid 0-based integer index between 0 and 3.
+    4. If the explanation contains a numerical answer or key result that isn't present in 'options',
+       it updates options[answer] to contain the exact correct answer from explanation.
+    """
+    import re
+
+    if not isinstance(q_item, dict):
+        q_item = {}
+
+    question_text = str(q_item.get("question", "")).strip() or "Question text unavailable"
+    
+    # 1. Clean options
+    raw_options = q_item.get("options", [])
+    if not isinstance(raw_options, list):
+        raw_options = []
+    
+    clean_options = [str(opt).strip() for opt in raw_options if opt is not None and str(opt).strip() != ""]
+    
+    # Ensure exactly 4 options
+    while len(clean_options) < 4:
+        clean_options.append(f"Option {chr(65 + len(clean_options))}")
+    if len(clean_options) > 4:
+        clean_options = clean_options[:4]
+        
+    # 2. Parse and normalize answer index
+    raw_answer = q_item.get("answer", 0)
+    answer_idx = 0
+    
+    if isinstance(raw_answer, bool):
+        answer_idx = 0
+    elif isinstance(raw_answer, int):
+        answer_idx = raw_answer
+    elif isinstance(raw_answer, str):
+        raw_answer_str = raw_answer.strip().upper()
+        if raw_answer_str in ["0", "1", "2", "3"]:
+            answer_idx = int(raw_answer_str)
+        elif raw_answer_str in ["A", "OPTION A", "OPTIONA"]:
+            answer_idx = 0
+        elif raw_answer_str in ["B", "OPTION B", "OPTIONB"]:
+            answer_idx = 1
+        elif raw_answer_str in ["C", "OPTION C", "OPTIONC"]:
+            answer_idx = 2
+        elif raw_answer_str in ["D", "OPTION D", "OPTIOND"]:
+            answer_idx = 3
+        elif raw_answer_str.isdigit():
+            val = int(raw_answer_str)
+            if 1 <= val <= 4:
+                answer_idx = val - 1
+            else:
+                answer_idx = val
+        else:
+            answer_idx = 0
+
+    if answer_idx >= len(clean_options):
+        if answer_idx == len(clean_options) or answer_idx == 4:
+            answer_idx = 3
+        else:
+            answer_idx = answer_idx % len(clean_options)
+            
+    if answer_idx < 0:
+        answer_idx = 0
+
+    explanation_text = str(q_item.get("explanation", "")).strip() or f"Option {chr(65 + answer_idx)} is the correct answer."
+    
+    # 3. Check for numerical/calculated answer consistency between explanation and options
+    matches = re.findall(r'(?:=\s*|is\s*|result\s*is\s*|answer\s*is\s*)([0-9]+(?:\.[0-9]+)?(?:\s*(?:hours?|hrs?|days?|seconds?|secs?|\%|percent|m/s|km/hr|\$|meters?|m))?)', explanation_text, re.IGNORECASE)
+    if matches:
+        extracted_val = matches[-1].strip()
+        if extracted_val:
+            found_idx = -1
+            for opt_i, opt in enumerate(clean_options):
+                if extracted_val.lower() == opt.lower() or (len(extracted_val) > 1 and extracted_val.lower() in opt.lower()):
+                    found_idx = opt_i
+                    break
+            
+            if found_idx != -1:
+                answer_idx = found_idx
+            else:
+                clean_options[answer_idx] = extracted_val
+
+    # 4. Ensure options are unique (deduplicate distractor options)
+    seen = set()
+    unique_options = []
+    correct_opt_text = clean_options[answer_idx]
+
+    for opt in clean_options:
+        if opt not in seen:
+            seen.add(opt)
+            unique_options.append(opt)
+
+    while len(unique_options) < 4:
+        new_distractor = f"Option {chr(65 + len(unique_options))}"
+        if new_distractor not in seen:
+            seen.add(new_distractor)
+            unique_options.append(new_distractor)
+
+    try:
+        answer_idx = unique_options.index(correct_opt_text)
+    except ValueError:
+        answer_idx = 0
+        unique_options[0] = correct_opt_text
+
+    clean_options = unique_options
+
+    return {
+        "question": question_text,
+        "options": clean_options,
+        "answer": answer_idx,
+        "explanation": explanation_text
+    }
+
 def generate_quiz(context, count=5):
     if not groq_client:
         return [
             {
                 "question": f"What is the main topic of this section? (Placeholder {i+1})",
                 "options": ["Option A", "Option B", "Option C", "Option D"],
-                "answer": 0
+                "answer": 0,
+                "explanation": "Option A is the correct answer."
             } for i in range(count)
         ]
 
-    system_prompt = f"""You are a quiz generation assistant.
+    system_prompt = f"""You are an expert quiz generation assistant.
 Based on the provided context, generate exactly {count} multiple-choice questions.
 Return ONLY valid JSON in the form of an object containing a 'questions' array.
-Each question object must have:
+Each question object MUST have:
 - "question": string
 - "options": list of exactly 4 strings
-- "answer": integer (0 to 3) representing the index of the correct option.
+- "answer": integer (0 to 3) representing the zero-based index of the correct option (0 for A, 1 for B, 2 for C, 3 for D).
+- "explanation": string explaining why the correct option is right.
 Do NOT include any markdown formatting or extra text outside the JSON."""
 
     try:
@@ -56,7 +175,6 @@ Do NOT include any markdown formatting or extra text outside the JSON."""
         )
         content = response.choices[0].message.content
         
-        # Handle potential markdown blocks
         if "```" in content:
             parts = content.split("```")
             if len(parts) > 1:
@@ -65,18 +183,21 @@ Do NOT include any markdown formatting or extra text outside the JSON."""
                     content = content[4:]
                     
         data = json.loads(content)
+        raw_qs = []
         if isinstance(data, dict) and "questions" in data:
-            return data["questions"]
+            raw_qs = data["questions"]
         elif isinstance(data, list):
-            return data
-        return []
+            raw_qs = data
+            
+        return [sanitize_question_dict(q) for q in raw_qs]
     except Exception as e:
-        logger.error(f"Error generating quiz via OpenAI: {e}")
+        logger.error(f"Error generating quiz via OpenAI/Groq: {e}")
         return [
             {
                 "question": f"Could not generate questions due to an error: {str(e)}",
                 "options": ["Error", "B", "C", "D"],
-                "answer": 0
+                "answer": 0,
+                "explanation": "An error occurred during quiz generation."
             }
         ]
 
@@ -85,7 +206,17 @@ def generate_topic_assessment(topic: str, difficulty: str = "Intermediate", coun
     if groq_client:
         system_prompt = f"""You are an expert assessment and problem generator across ALL disciplines (Technical, Quantitative Aptitude, Logical Reasoning, Mathematics, Verbal Ability, Business, Science, etc.).
 Generate exactly {count} multiple-choice test questions or practical problems to evaluate a learner on the topic: "{topic}" at "{difficulty}" difficulty level.
-If the topic is Quantitative Aptitude, Math, Logical Reasoning, or analytical, generate actual numerical problems, word problems, logic puzzles, or equations with 4 numerical/logical options and step-by-step mathematical calculations in the explanation!
+
+CRITICAL ACCURACY & MATH RULES:
+1. For word problems, math, quantitative aptitude, logic, or technical questions: compute the step-by-step solution FIRST before populating options.
+2. ONE of the 4 options MUST BE the EXACT correct numerical/logical answer matching your step-by-step solution in explanation.
+3. The "answer" field MUST be an integer from 0 to 3 corresponding to the zero-based index of the correct option:
+   - 0 for Option A (1st option)
+   - 1 for Option B (2nd option)
+   - 2 for Option C (3rd option)
+   - 3 for Option D (4th option)
+4. Do NOT use 1-based indexing (1 to 4) for the answer index.
+
 Return ONLY valid JSON in the form of an object containing a 'questions' array.
 Each question object MUST have:
 - "question": string (the problem or test question)
@@ -113,10 +244,14 @@ Do NOT include any markdown formatting or extra text outside the JSON."""
                     if content.startswith("json"):
                         content = content[4:]
             data = json.loads(content)
+            raw_qs = []
             if isinstance(data, dict) and "questions" in data and len(data["questions"]) > 0:
-                return data["questions"][:count]
+                raw_qs = data["questions"][:count]
             elif isinstance(data, list) and len(data) > 0:
-                return data[:count]
+                raw_qs = data[:count]
+                
+            if raw_qs:
+                return [sanitize_question_dict(q) for q in raw_qs]
         except Exception as e:
             logger.error(f"Groq API assessment generation error for {topic}: {e}")
 

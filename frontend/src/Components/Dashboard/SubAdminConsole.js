@@ -428,6 +428,7 @@ export default function SubAdminConsole({ user }) {
       setSelectedStudentIds([]);
       setBulkSubjValue('');
       showSuccess(d.message || 'Subject assigned');
+      fetchStudents();
     } catch (err) { setError(err.message); }
   };
 

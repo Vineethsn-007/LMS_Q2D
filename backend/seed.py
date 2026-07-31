@@ -100,42 +100,48 @@ def seed_db():
                 description="Harness Rust's safety and speed alongside AI-generated optimization models. Ideal for building backend services and compilers.",
                 hours=40,
                 is_ai_generated=True,
-                is_expert_validated=True
+                is_expert_validated=True,
+                image_url="https://images.unsplash.com/photo-1607799279861-4dd421887fb3?auto=format&fit=crop&q=80&w=400"
             ),
             Course(
                 title="PostgreSQL Advanced Optimization & Architecture",
                 description="Master database sharding, connection pooling, complex query analysis, and schema tuning for hyper-scale PostgreSQL databases.",
                 hours=32,
                 is_ai_generated=False,
-                is_expert_validated=True
+                is_expert_validated=True,
+                image_url="https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&q=80&w=400"
             ),
             Course(
                 title="Neural Networks & Transformers from Scratch",
                 description="Build modern GPT models, learn attention mechanisms, backpropagation calculus, and train text classification networks from first principles.",
                 hours=48,
                 is_ai_generated=True,
-                is_expert_validated=True
+                is_expert_validated=True,
+                image_url="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=400"
             ),
             Course(
                 title="Microservices Architecture with Python & FastAPI",
                 description="Design resilient, distributed RESTful and gRPC microservices. Set up OAuth2, Docker orchestration, and Redis cache clusters.",
                 hours=28,
                 is_ai_generated=True,
-                is_expert_validated=True
+                is_expert_validated=True,
+                image_url="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=400"
             ),
             Course(
                 title="Next.js 15 & React Server Components Deep Dive",
                 description="Understand how server-side rendering, static site generation, and streaming UI work under the hood. Implement beautiful UX interfaces.",
                 hours=36,
                 is_ai_generated=False,
-                is_expert_validated=True
+                is_expert_validated=True,
+                image_url="https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=400"
             ),
             Course(
                 title="Kubernetes Operators and Cloud Native DevOps",
                 description="Build custom Kubernetes controllers using Go and SDK. Master GitOps deployments with ArgoCD and custom autoscaling rules.",
                 hours=30,
                 is_ai_generated=True,
-                is_expert_validated=True
+                is_expert_validated=True,
+                image_url="https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?auto=format&fit=crop&q=80&w=400"
             )
         ]
         db.add_all(courses)

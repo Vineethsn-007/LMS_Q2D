@@ -188,12 +188,15 @@ def submit_mock_result(
             models.MockTestAttempt.user_id == current_user.id
         ).first()
 
-    if not attempt:
+    if not attempt and req.topic:
         today = datetime.datetime.utcnow().date()
         today_start = datetime.datetime.combine(today, datetime.datetime.min.time())
+        # Look for an uncompleted attempt created for THIS topic today
         attempt = db.query(models.MockTestAttempt).filter(
             models.MockTestAttempt.user_id == current_user.id,
-            models.MockTestAttempt.attempt_date >= today_start
+            models.MockTestAttempt.topic.ilike(req.topic.strip()),
+            models.MockTestAttempt.attempt_date >= today_start,
+            (models.MockTestAttempt.status != "completed") | (models.MockTestAttempt.status == None)
         ).order_by(models.MockTestAttempt.id.desc()).first()
 
     if attempt:
@@ -560,7 +563,8 @@ def book_exam_slot(
     if slot_dt <= now_ist:
         raise HTTPException(status_code=400, detail="Requested slot time has already passed or started. Please select an upcoming time slot.")
         
-    slot_dt_iso = slot_dt.isoformat()
+    slot_dt_ist = slot_dt.replace(tzinfo=IST_TZ)
+    slot_dt_iso = slot_dt_ist.isoformat()
     slot_date_obj = slot_dt.date()
     slot_time_obj = slot_dt.time()
     

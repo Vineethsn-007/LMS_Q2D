@@ -486,6 +486,42 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic, onBack, onTestCompl
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const sanitizeFrontendQuestions = (rawList) => {
+    if (!Array.isArray(rawList)) return [];
+    return rawList.map(q => {
+      let opts = Array.isArray(q?.options) ? q.options.map(o => strOrDefault(o, '')) : [];
+      opts = opts.filter(o => o.trim() !== '');
+      while (opts.length < 4) {
+        opts.push(`Option ${String.fromCharCode(65 + opts.length)}`);
+      }
+      if (opts.length > 4) opts = opts.slice(0, 4);
+
+      let ans = 0;
+      if (typeof q?.answer === 'number') {
+        ans = q.answer;
+      } else if (typeof q?.answer === 'string') {
+        const parsed = parseInt(q.answer, 10);
+        ans = isNaN(parsed) ? 0 : parsed;
+      }
+
+      if (ans >= opts.length) {
+        if (ans === opts.length || ans === 4) ans = opts.length - 1;
+        else ans = ans % opts.length;
+      }
+      if (ans < 0) ans = 0;
+
+      return {
+        ...q,
+        question: q?.question || "Question text unavailable",
+        options: opts,
+        answer: ans,
+        explanation: q?.explanation || `Option ${String.fromCharCode(65 + ans)} is correct.`
+      };
+    });
+  };
+
+  const strOrDefault = (val, def) => (val !== null && val !== undefined ? String(val) : def);
+
   const handleStartGeneration = async (customTopic = null) => {
     const targetTopic = customTopic || topicInput;
     if (!targetTopic || !targetTopic.trim()) {
@@ -516,7 +552,8 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic, onBack, onTestCompl
       if (res.ok) {
         const data = await res.json();
         if (data && data.length > 0) {
-          setQuestions(data);
+          const cleanQs = sanitizeFrontendQuestions(data);
+          setQuestions(cleanQs);
           setSelectedAnswers({});
           setCurrentQIndex(0);
           setElapsedSeconds(0);
@@ -541,7 +578,8 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic, onBack, onTestCompl
       if (!msg.toLowerCase().includes("limit")) {
         const fallback = generateLocalFallback(targetTopic, 10);
         if (fallback && fallback.length > 0) {
-          setQuestions(fallback);
+          const cleanQs = sanitizeFrontendQuestions(fallback);
+          setQuestions(cleanQs);
           setSelectedAnswers({});
           setCurrentQIndex(0);
           setElapsedSeconds(0);
@@ -1923,10 +1961,12 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic, onBack, onTestCompl
 
               <div className="space-y-5">
                 {questions.map((q, idx) => {
+                  const safeAnswer = (typeof q.answer === 'number' && q.answer >= 0 && q.answer < (q.options?.length || 4)) ? q.answer : 0;
                   const userAns = selectedAnswers[idx];
-                  const isCorrect = userAns === q.answer;
-                  const userLetter = userAns !== undefined ? String.fromCharCode(65 + userAns) : 'None';
-                  const correctLetter = String.fromCharCode(65 + q.answer);
+                  const isCorrect = userAns === safeAnswer;
+                  const userLetter = userAns !== undefined && userAns >= 0 ? String.fromCharCode(65 + userAns) : 'None';
+                  const correctLetter = String.fromCharCode(65 + safeAnswer);
+                  const correctOptionText = (q.options && q.options[safeAnswer]) ? q.options[safeAnswer] : `Option ${correctLetter}`;
 
                   return (
                     <div
@@ -1957,7 +1997,7 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic, onBack, onTestCompl
                       {/* Options Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs md:text-sm font-semibold">
                         {q.options?.map((opt, optIdx) => {
-                          const isThisCorrect = optIdx === q.answer;
+                          const isThisCorrect = optIdx === safeAnswer;
                           const isThisSelected = optIdx === userAns;
                           const optLetter = String.fromCharCode(65 + optIdx);
                           
@@ -1987,7 +2027,7 @@ const TopicAssessment = ({ user, initialTopic, onClearTopic, onBack, onTestCompl
                         </span>
                         {!isCorrect && (
                           <span className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
-                            Correct Answer: <b>Option {correctLetter} ({q.options[q.answer]})</b>
+                            Correct Answer: <b>Option {correctLetter} ({correctOptionText})</b>
                           </span>
                         )}
                       </div>

@@ -26,12 +26,33 @@ class WebhookSuccessResponse(BaseModel):
     pass_fail: Optional[str] = None
     fsm_transition: Optional[Any] = None
 
+import re
+
+NAME_REGEX = re.compile(r"^[A-Za-z\s\.\'\-]{2,50}$")
+
+def validate_person_name(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return v
+    if not isinstance(v, str):
+        raise ValueError("Name must be a string.")
+    trimmed = v.strip()
+    if len(trimmed) < 2 or len(trimmed) > 50:
+        raise ValueError("Name must be between 2 and 50 characters long.")
+    if not NAME_REGEX.match(trimmed) or not any(c.isalpha() for c in trimmed):
+        raise ValueError("Name can only contain alphabetic letters, spaces, dots, hyphens, and apostrophes.")
+    return trimmed
+
 class UserCreate(BaseModel):
     email: EmailStr
     name: str
     password: str
     institution_id: Optional[int] = None
     specialization: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return validate_person_name(v)
 
 class UserCreateByAdmin(BaseModel):
     email: EmailStr
@@ -40,6 +61,11 @@ class UserCreateByAdmin(BaseModel):
     role: str
     institution_id: Optional[int] = None
     specialization: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return validate_person_name(v)
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -55,6 +81,26 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     institution_id: Optional[int] = None
     specialization: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return validate_person_name(v)
+
+    @field_validator("weekly_goal_hours")
+    @classmethod
+    def validate_hours(cls, v: float) -> float:
+        if v < 0.5 or v > 168.0:
+            raise ValueError("Weekly goal hours must be between 0.5 and 168.")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip() != "":
+            if len(v) < 6:
+                raise ValueError("Password must be at least 6 characters long.")
+        return v
 
 class UserResponse(BaseModel):
     id: int
@@ -269,12 +315,22 @@ class SubAdminCreate(BaseModel):
     privileges: Optional[SubAdminPrivilegeCreateUpdate] = None
     institution_ids: Optional[List[int]] = None
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return validate_person_name(v)
+
 class SubAdminUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
     privileges: Optional[SubAdminPrivilegeCreateUpdate] = None
     institution_ids: Optional[List[int]] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        return validate_person_name(v)
 
 class SubAdminResponse(UserResponse):
     privileges: Optional[SubAdminPrivilegeResponse] = None
@@ -304,6 +360,11 @@ class StudentCreateAdmin(BaseModel):
     institution_id: Optional[int] = None
     specialization: Optional[str] = None
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return validate_person_name(v)
+
 class StudentUpdateAdmin(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -311,6 +372,11 @@ class StudentUpdateAdmin(BaseModel):
     specialization: Optional[str] = None
     weekly_goal_hours: Optional[float] = None
     is_active: Optional[bool] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        return validate_person_name(v)
 
 class StudentPasswordReset(BaseModel):
     new_password: str
@@ -711,6 +777,9 @@ class CredentialVerifyResponse(BaseModel):
     level: str
     window_start: Optional[datetime] = None
     window_end: Optional[datetime] = None
+    slot_time: Optional[str] = None
+    slot_date: Optional[str] = None
+    slot_datetime: Optional[datetime] = None
     requires_screenshare: bool = False
 
 class ExamQuestionPayload(BaseModel):
