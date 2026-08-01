@@ -1,4 +1,4 @@
-# SkillForge LMS — Global Project Context for AI Agents
+# PEARL LMS — Global Project Context for AI Agents
 
 This document is the unified context hub and source of truth for AI agents working in this repository. It defines the system architecture, directory topology, tech stacks, core patterns, auth flows, database models, API routes, and commands across the backend, web frontend, and mobile app.
 
@@ -6,7 +6,7 @@ This document is the unified context hub and source of truth for AI agents worki
 
 ## 1. System Topology & Directory Structure
 
-SkillForge is a full-stack LMS (Learning Management System) with a tiered exam progression engine. The system is organized as a monorepo with three independently deployable layers: a FastAPI Python backend, a React web frontend, and a React Native mobile app.
+PEARL is a full-stack LMS (Learning Management System) with a tiered exam progression engine. The system is organized as a monorepo with three independently deployable layers: a FastAPI Python backend, a React web frontend, and a React Native mobile app.
 
 ```
 skillforge/                            (Root)

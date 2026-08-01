@@ -731,7 +731,7 @@ const LearnerPerformance = ({ user, embedded = false }) => {
             <div className="p-4 bg-white border-t border-slate-200 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold">
                 <HelpCircle size={14} className="text-slate-400" />
-                <span>All assessment scores are cryptographically synced with SkillForge ledger.</span>
+                <span>All assessment scores are cryptographically synced with PEARL ledger.</span>
               </div>
               <button
                 onClick={() => setSelectedLearner(null)}

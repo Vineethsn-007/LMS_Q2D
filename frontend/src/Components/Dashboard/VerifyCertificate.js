@@ -87,7 +87,7 @@ const VerifyCertificate = ({ certId: initialCertId }) => {
           <Award size={22} className="animate-bounce" style={{ animationDuration: '3s' }} />
         </div>
         <span className="text-2xl font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-teal-400 bg-clip-text text-transparent">
-          SKILLFORGE
+          PEARL
         </span>
       </div>
 
@@ -95,7 +95,7 @@ const VerifyCertificate = ({ certId: initialCertId }) => {
         <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-12 max-w-md w-full text-center shadow-2xl backdrop-blur-xl flex flex-col items-center justify-center z-10">
           <Loader2 size={48} className="animate-spin text-teal-400 mb-6" />
           <h2 className="text-xl font-bold text-slate-200 mb-2">Verifying Credential...</h2>
-          <p className="text-slate-400 text-sm">Checking cryptographic signatures and SkillForge ledger records for ID: <span className="text-teal-400 font-mono">{certId}</span></p>
+          <p className="text-slate-400 text-sm">Checking cryptographic signatures and PEARL ledger records for ID: <span className="text-teal-400 font-mono">{certId}</span></p>
         </div>
       ) : error || !certData ? (
         <div className="bg-slate-900/80 border border-slate-700/50 rounded-3xl p-10 max-w-md w-full text-center shadow-2xl backdrop-blur-xl z-10 animate-in zoom-in-95 duration-300">
@@ -135,7 +135,7 @@ const VerifyCertificate = ({ certId: initialCertId }) => {
             href="/"
             className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all border border-slate-700 shadow-md"
           >
-            <ArrowLeft size={18} /> Return to SkillForge Home
+            <ArrowLeft size={18} /> Return to PEARL Home
           </a>
         </div>
       ) : (
@@ -222,7 +222,7 @@ const VerifyCertificate = ({ certId: initialCertId }) => {
 
       {/* Footer */}
       <div className="mt-8 text-center text-xs text-slate-500 z-10">
-        © {new Date().getFullYear()} SkillForge Learning Platforms Inc. • Cryptographically Verified Ledger
+        © {new Date().getFullYear()} PEARL Learning Platforms Inc. • Cryptographically Verified Ledger
       </div>
     </div>
   );

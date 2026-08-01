@@ -1,12 +1,12 @@
-# 🚀 SkillForge LMS — Next-Generation AI-Powered Learning Management System
+# 🚀 PEARL LMS — Next-Generation AI-Powered Learning Management System
 
-![SkillForge LMS Banner](https://img.shields.io/badge/SkillForge-AI%20Powered%20LMS-6366f1?style=for-the-badge&logo=react&logoColor=white)
+![PEARL LMS Banner](https://img.shields.io/badge/PEARL-AI%20Powered%20LMS-6366f1?style=for-the-badge&logo=react&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
 
-**SkillForge LMS** is a state-of-the-art, full-stack Learning Management System and Community Marketplace augmented with real-time Artificial Intelligence. Designed to bridge the gap between self-paced learning, industry mentorship, and crowdsourced curriculum development, SkillForge empowers learners, industry experts, reviewers, and administrators within a unified, interactive platform.
+**PEARL LMS** is a state-of-the-art, full-stack Learning Management System and Community Marketplace augmented with real-time Artificial Intelligence. Designed to bridge the gap between self-paced learning, industry mentorship, and crowdsourced curriculum development, PEARL empowers learners, industry experts, reviewers, and administrators within a unified, interactive platform.
 
 ---
 

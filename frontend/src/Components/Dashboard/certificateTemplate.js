@@ -2,16 +2,16 @@ export const getCertificateHTML = (arg1, courseName, dateString, certId = '', qr
   let certificate = {};
   if (typeof arg1 === 'object' && arg1 !== null) {
     certificate = {
-      learnerName: arg1.learner_name || arg1.learnerName || arg1.name || 'SkillForge Learner',
-      courseName: arg1.course_name || arg1.courseName || arg1.title || 'SkillForge Course',
+      learnerName: arg1.learner_name || arg1.learnerName || arg1.name || 'PEARL Learner',
+      courseName: arg1.course_name || arg1.courseName || arg1.title || 'PEARL Course',
       dateString: arg1.issue_date || arg1.dateString || arg1.date || 'N/A',
       certId: arg1.certificate_id || arg1.certId || arg1.cert_id || '',
       qr_code_path: arg1.qr_code_path || arg1.qrCodeUrl || arg1.qr || ''
     };
   } else {
     certificate = {
-      learnerName: arg1 || 'SkillForge Learner',
-      courseName: courseName || 'SkillForge Course',
+      learnerName: arg1 || 'PEARL Learner',
+      courseName: courseName || 'PEARL Course',
       dateString: dateString || 'N/A',
       certId: certId || '',
       qr_code_path: qrCodeUrl || ''
@@ -31,7 +31,7 @@ export const getCertificateHTML = (arg1, courseName, dateString, certId = '', qr
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>SkillForge Certificate of Completion</title>
+<title>PEARL Certificate of Completion</title>
 <style>
   @page { size: A4 landscape; margin: 0; }
   * { box-sizing: border-box; }
@@ -241,7 +241,7 @@ export const getCertificateHTML = (arg1, courseName, dateString, certId = '', qr
           <rect x="255" y="35" width="16" height="16"/>
         </g>
       </svg>
-      <div class="brand-name">SKILL FORGE</div>
+      <div class="brand-name">PEARL</div>
     </div>
 
     <div class="cert-title">Certificate</div>
@@ -265,8 +265,7 @@ export const getCertificateHTML = (arg1, courseName, dateString, certId = '', qr
       </div>
 
       <div class="seal">
-        <div>SKILL</div>
-        <div>FORGE</div>
+        <div>PEARL</div>
         <div>CERTIFIED</div>
       </div>
 

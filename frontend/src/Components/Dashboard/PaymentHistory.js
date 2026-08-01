@@ -111,7 +111,7 @@ export default function PaymentHistory() {
                               </head>
                               <body>
                                 <div class="header">
-                                  <div class="logo">SkillForge LMS</div>
+                                  <div class="logo">PEARL LMS</div>
                                   <p style="color: #64748b; margin: 5px 0 0 0;">Official Payment Receipt</p>
                                 </div>
                                 <div class="row"><span>Order ID:</span> <strong>${record.gateway_order_id || 'N/A'}</strong></div>
@@ -123,7 +123,7 @@ export default function PaymentHistory() {
                                 <div class="row"><span>Base Amount:</span> <span>${record.currency} ${record.amount}</span></div>
                                 <div class="row"><span>GST (18%):</span> <span>${record.currency} ${record.gst_amount}</span></div>
                                 <div class="row total"><span>Total Amount Paid:</span> <span>${record.currency} ${record.total_amount}</span></div>
-                                <p style="margin-top: 40px; font-size: 12px; color: #94a3b8; text-align: center;">Thank you for investing in your skills with SkillForge LMS!</p>
+                                <p style="margin-top: 40px; font-size: 12px; color: #94a3b8; text-align: center;">Thank you for investing in your skills with PEARL LMS!</p>
                               </body>
                             </html>
                           `;

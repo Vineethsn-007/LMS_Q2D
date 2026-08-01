@@ -78,7 +78,7 @@ export default function CourseQuiz({ courseId, courseName, onComplete, onCancel 
             body: JSON.stringify({
               user_id: user?.id || 1,
               course_id: courseId || 1,
-              course_name: courseName || 'SkillForge Course',
+              course_name: courseName || 'PEARL Course',
               completion_percentage: 100,
               assessment_status: 'passed'
             })

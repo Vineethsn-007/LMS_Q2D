@@ -111,7 +111,7 @@ export default function CertificationsScreen({ navigation }) {
         <View style={styles.infoBox}>
           <Sparkles size={18} color="#818cf8" />
           <Text style={styles.infoText}>
-            All credentials stored in this wallet are blockchain-hashed and verified by the SkillForge Examination Registry. Tap &quot;Verify Digital Credential&quot; to inspect the official PDF verification portal.
+            All credentials stored in this wallet are blockchain-hashed and verified by the PEARL Examination Registry. Tap &quot;Verify Digital Credential&quot; to inspect the official PDF verification portal.
           </Text>
         </View>
 
@@ -146,7 +146,7 @@ export default function CertificationsScreen({ navigation }) {
                 <View style={styles.certFooter}>
                   <View style={styles.sealBox}>
                     <Award size={15} color="#818cf8" />
-                    <Text style={styles.sealText}>SkillForge LMS Authority</Text>
+                    <Text style={styles.sealText}>PEARL LMS Authority</Text>
                   </View>
 
                   <TouchableOpacity

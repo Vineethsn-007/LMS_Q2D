@@ -69,7 +69,7 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <ScreenWrapper>
-        <Header title="SkillForge Portal" subtitle="Learner Dashboard" />
+        <Header title="PEARL Portal" subtitle="Learner Dashboard" />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#4f46e5" />
           <Text style={styles.loadingText}>Syncing academic records...</Text>
@@ -80,7 +80,7 @@ export default function DashboardScreen() {
 
   return (
     <ScreenWrapper>
-      <Header title="SkillForge Portal" subtitle={`Welcome, ${user?.name || 'Learner'}`} />
+      <Header title="PEARL Portal" subtitle={`Welcome, ${user?.name || 'Learner'}`} />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4f46e5" />}

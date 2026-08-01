@@ -88,7 +88,7 @@ def generate_certificate_service(
         course_obj = db.query(models.Course).filter(
             models.Course.id.in_([str_course_id, int(str_course_id) if str_course_id.isdigit() else str_course_id])
         ).first()
-        course_name = course_obj.title if course_obj else "SkillForge Course"
+        course_name = course_obj.title if course_obj else "PEARL Course"
         
     # 3. Generate unique certificate ID format: SF-{PREFIX}-{YEAR}-{RANDOM}
     prefix = extract_course_prefix(course_name)
@@ -186,20 +186,20 @@ def issue_level_certificate_and_badge(
 
     if is_qualifying:
         if tier_normalized == "District":
-            cert_title = "SkillForge District Qualification Certificate"
+            cert_title = "PEARL District Qualification Certificate"
             badge_tier = "Bronze"
         elif tier_normalized == "State":
-            cert_title = "SkillForge State Merit Certificate"
+            cert_title = "PEARL State Merit Certificate"
             badge_tier = "Silver"
         elif tier_normalized == "National":
-            cert_title = "SkillForge National Excellence Certification"
+            cert_title = "PEARL National Excellence Certification"
             badge_tier = "Gold"
         else:
-            cert_title = f"SkillForge {tier_normalized} Certificate"
+            cert_title = f"PEARL {tier_normalized} Certificate"
             badge_tier = "Bronze"
         status_label = "valid"
     else:
-        cert_title = f"SkillForge {tier_normalized} Participation Certificate (Pending IBM Approval)"
+        cert_title = f"PEARL {tier_normalized} Participation Certificate (Pending IBM Approval)"
         badge_tier = None
         status_label = "pending_ibm_confirmation"
 

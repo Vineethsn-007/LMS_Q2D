@@ -12,7 +12,7 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('SkillForge App Error Boundary Caught Error:', error, errorInfo);
+    console.error('PEARL App Error Boundary Caught Error:', error, errorInfo);
   }
 
   handleReset = () => {

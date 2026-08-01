@@ -150,7 +150,7 @@ const Certifications = ({ user }) => {
         key: orderData.key_id || process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_TDQGFCm2xKMtfk',
         amount: orderData.amount * 100, // Amount is in currency subunits (paise)
         currency: orderData.currency || "INR",
-        name: "SkillForge LMS",
+        name: "PEARL LMS",
         description: `Unlock ${targetTier} Level`,
         order_id: orderData.order_id,
         handler: async function (response){
@@ -523,7 +523,7 @@ const Certifications = ({ user }) => {
                   </button>
                 </div>
                 <h3 className="text-lg font-bold mb-1 leading-tight relative z-10">{cert.course_name}</h3>
-                <div className="text-blue-200 text-xs font-medium relative z-10">SkillForge LMS Authority</div>
+                <div className="text-blue-200 text-xs font-medium relative z-10">PEARL LMS Authority</div>
               </div>
               
               <div className="p-6 flex flex-col flex-1">

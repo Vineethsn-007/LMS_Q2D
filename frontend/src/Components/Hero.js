@@ -29,7 +29,7 @@ export default function Hero({ stats, onStartFree, onBrowseCourses }) {
 
         {/* Subtitle */}
         <p style={styles.subtitle}>
-          SkillForge combines AI-generated curricula with human expert validation and community voting 
+          PEARL combines AI-generated curricula with human expert validation and community voting 
           to deliver the most relevant, up-to-date courses for modern professionals.
         </p>
 

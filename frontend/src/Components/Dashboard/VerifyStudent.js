@@ -152,7 +152,7 @@ const VerifyStudent = ({ studentId: initialStudentId }) => {
           </div>
           <div className="mt-6 text-center">
             <a href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
-              <ArrowLeft size={16} /> Back to SkillForge Home
+              <ArrowLeft size={16} /> Back to PEARL Home
             </a>
           </div>
         </div>

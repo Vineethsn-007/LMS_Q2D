@@ -8,7 +8,7 @@ export default function ExpertsList({ experts }) {
       id: 1,
       name: "Dr. Aris Thorne",
       role: "Ex-Google Brain Scientist",
-      bio: "Specializes in deep neural networks and automated curriculum design. Helps SkillForge build adaptive learning paths.",
+      bio: "Specializes in deep neural networks and automated curriculum design. Helps PEARL build adaptive learning paths.",
       avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150",
       courses_validated_count: 18
     },

@@ -38,9 +38,9 @@ export default function Header({ user, onLogout, onOpenAuth, activePage, onNavig
         {/* Logo */}
         <div style={styles.logoContainer} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <div style={styles.logoIcon}>
-            <img src={logoImg} alt="SkillForge Logo" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+            <img src={logoImg} alt="PEARL Logo" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
           </div>
-          <span style={styles.logoText}>SkillForge</span>
+          <span style={styles.logoText}>PEARL</span>
         </div>
 
         {/* Desktop Nav Links */}

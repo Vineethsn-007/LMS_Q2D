@@ -91,7 +91,7 @@ const DashboardContent = ({ user, onStartCourse }) => {
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-blue-200 mb-4 backdrop-blur-sm border border-white/10">
-                  <span>🎓</span> SkillForge Academic Portal
+                  <span>🎓</span> PEARL Academic Portal
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{greeting.text}, {user?.name?.split(' ')[0] || 'Learner'} {greeting.emoji}</h1>
                 <p className="text-blue-100 font-light max-w-md">Access your registered subjects, complete mock assessments, and manage your proctored exam bookings.</p>
@@ -99,7 +99,7 @@ const DashboardContent = ({ user, onStartCourse }) => {
 
               <div className="flex flex-col items-center bg-white/10 backdrop-blur-md border border-white/20 p-5 rounded-xl shrink-0">
                 <div className="text-2xl font-bold text-white mb-1">{user?.specialization || 'Academic'} Portal</div>
-                <div className="text-xs text-blue-200 font-semibold uppercase tracking-wider mb-2">{user?.institution_name || 'SkillForge'}</div>
+                <div className="text-xs text-blue-200 font-semibold uppercase tracking-wider mb-2">{user?.institution_name || 'PEARL'}</div>
               </div>
             </div>
           </div>

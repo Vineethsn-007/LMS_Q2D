@@ -116,7 +116,7 @@ export default function AdminDashboardScreen() {
               <RefreshCw size={16} color="#475569" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.heroTitle}>SkillForge LMS Telemetry</Text>
+          <Text style={styles.heroTitle}>PEARL LMS Telemetry</Text>
           <Text style={styles.heroSubtitle}>Real-time student progress, exam verification, and revenue flow</Text>
 
           {/* Quick Revenue Banner inside Hero */}

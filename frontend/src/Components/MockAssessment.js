@@ -44,7 +44,7 @@ const MockAssessment = ({ bookingRef }) => {
         <div className="bg-indigo-600 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              SkillForge Developer Tools
+              PEARL Developer Tools
             </h1>
             <p className="text-indigo-200 mt-1 text-sm">
               Exam Engine Integration (Demo Mode)
@@ -63,7 +63,7 @@ const MockAssessment = ({ bookingRef }) => {
             <div className="text-sm leading-relaxed">
               <strong className="text-white block mb-1">Demonstration Mode Active</strong>
               In a production environment, this link would redirect the candidate to a secure, proctored external Exam Engine platform (like Mercer Mettl or similar). 
-              For this demo, use the controls below to simulate the exam outcome and trigger the corresponding Webhook back to SkillForge.
+              For this demo, use the controls below to simulate the exam outcome and trigger the corresponding Webhook back to PEARL.
             </div>
           </div>
 
@@ -74,7 +74,7 @@ const MockAssessment = ({ bookingRef }) => {
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">Webhook Sent Successfully</h2>
               <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                The mock Exam Engine has successfully transmitted the simulated results to the SkillForge backend.
+                The mock Exam Engine has successfully transmitted the simulated results to the PEARL backend.
               </p>
               
               <button 

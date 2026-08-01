@@ -18,7 +18,7 @@ export default function RootNavigator() {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4f46e5" />
-          <Text style={styles.loadingText}>Initializing SkillForge...</Text>
+          <Text style={styles.loadingText}>Initializing PEARL...</Text>
         </View>
       );
     }

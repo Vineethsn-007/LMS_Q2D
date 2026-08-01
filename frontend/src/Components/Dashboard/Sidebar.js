@@ -67,8 +67,8 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
   return (
     <aside className="w-64 bg-white border-r border-slate-200 h-screen flex flex-col flex-shrink-0 sticky top-0 overflow-y-auto no-scrollbar font-sans">
       <div className="h-20 flex items-center px-6 border-b border-slate-100 shrink-0">
-        <img src={logoImg} alt="SkillForge Logo" className="w-8 h-8 rounded-lg object-cover mr-3 shadow-sm" />
-        <span className="text-xl font-bold tracking-tight text-navy-900">SkillForge</span>
+        <img src={logoImg} alt="PEARL Logo" className="w-8 h-8 rounded-lg object-cover mr-3 shadow-sm" />
+        <span className="text-xl font-bold tracking-tight text-navy-900">PEARL</span>
       </div>
 
       <div className="flex-1 px-4 py-6">

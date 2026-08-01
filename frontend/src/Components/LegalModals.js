@@ -20,7 +20,7 @@ export function PrivacyModal({ isOpen, onClose }) {
         <div style={styles.content}>
           <p style={styles.intro}>Last updated: June 24, 2026</p>
           <p style={styles.paragraph}>
-            At SkillForge, we value your privacy and are committed to safeguarding the personal information you share with us. This policy describes how we collect, use, and store your data when you use the SkillForge LMS.
+            At PEARL, we value your privacy and are committed to safeguarding the personal information you share with us. This policy describes how we collect, use, and store your data when you use the PEARL LMS.
           </p>
 
           <h3 style={styles.sectionTitle}>1. Information We Collect</h3>
@@ -71,7 +71,7 @@ export function TermsModal({ isOpen, onClose }) {
         <div style={styles.content}>
           <p style={styles.intro}>Last updated: June 24, 2026</p>
           <p style={styles.paragraph}>
-            Welcome to SkillForge. By accessing our platform, catalog, community feeds, or validator panels, you agree to be bound by these Terms of Service.
+            Welcome to PEARL. By accessing our platform, catalog, community feeds, or validator panels, you agree to be bound by these Terms of Service.
           </p>
 
           <h3 style={styles.sectionTitle}>1. Account Responsibility</h3>
@@ -81,7 +81,7 @@ export function TermsModal({ isOpen, onClose }) {
 
           <h3 style={styles.sectionTitle}>2. Code of Conduct</h3>
           <p style={styles.paragraph}>
-            SkillForge is built on peer and expert validation. You agree not to post malicious content, run unauthorized scripts to manipulate study hours or XP metrics, or abuse permission-based administrative review features.
+            PEARL is built on peer and expert validation. You agree not to post malicious content, run unauthorized scripts to manipulate study hours or XP metrics, or abuse permission-based administrative review features.
           </p>
 
           <h3 style={styles.sectionTitle}>3. Intellectual Property</h3>

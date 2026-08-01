@@ -29,4 +29,4 @@ const getDefaultApiUrl = () => {
 };
 
 export const API_BASE_URL = getDefaultApiUrl();
-export const APP_NAME = 'SkillForge LMS';
+export const APP_NAME = 'PEARL LMS';

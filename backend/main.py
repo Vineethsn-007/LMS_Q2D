@@ -74,7 +74,7 @@ except Exception as e_mig2:
 
 
 
-app = FastAPI(title="SkillForge LMS API", version="1.0.0")
+app = FastAPI(title="PEARL LMS API", version="1.0.0")
 
 @app.on_event("startup")
 def ensure_database_seeded():
@@ -156,7 +156,7 @@ def hash_password(password: str) -> str:
 
 @app.get("/", response_model=schemas.MessageResponse)
 def read_root():
-    return {"message": "Welcome to the SkillForge LMS API. Access docs at /docs"}
+    return {"message": "Welcome to the PEARL LMS API. Access docs at /docs"}
 
 @app.get("/api/health/db-status")
 def get_db_status(db: Session = Depends(get_db)):

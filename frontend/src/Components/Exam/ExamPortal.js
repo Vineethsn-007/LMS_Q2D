@@ -63,6 +63,7 @@ const ExamPortal = ({ credentialId }) => {
   const examStateRef = useRef(examState);
   const credentialIdRef = useRef(credentialId);
   const lastWarningTimeRef = useRef(0);
+  const phoneDetectedStreakRef = useRef(0);
   const tabWarningActiveRef = useRef(false);
   const tabCountdownIntervalRef = useRef(null);
   const screenStreamRef = useRef(null);
@@ -71,11 +72,13 @@ const ExamPortal = ({ credentialId }) => {
   const [muteAlerts, setMuteAlerts] = useState(false);
   const muteAlertsRef = useRef(false);
 
+  const activeCredId = (credentialId || examData?.temp_user_id || loginForm.temp_user_id || '').trim().replace(/\s+/g, '-');
+
   useEffect(() => {
     examStateRef.current = examState;
-    credentialIdRef.current = credentialId;
+    credentialIdRef.current = activeCredId;
     muteAlertsRef.current = muteAlerts;
-  }, [examState, credentialId, muteAlerts]);
+  }, [examState, activeCredId, muteAlerts]);
 
   const playAlertSound = (severity = 1) => {
     if (muteAlertsRef.current) return;
@@ -220,7 +223,8 @@ const ExamPortal = ({ credentialId }) => {
 
   const logViolation = async (type, message, severity = 1) => {
     try {
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/exam-engine/sessions/${credentialIdRef.current}/violations`, {
+      const targetId = credentialIdRef.current || activeCredId;
+      await fetch(`${API_BASE}/api/v1/exam-engine/sessions/${targetId}/violations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, message, severity })
@@ -245,7 +249,8 @@ const ExamPortal = ({ credentialId }) => {
     exitFullScreen();
 
     try {
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/exam-engine/sessions/${credentialIdRef.current}/suspend`, {
+      const targetId = credentialIdRef.current || activeCredId;
+      await fetch(`${API_BASE}/api/v1/exam-engine/sessions/${targetId}/suspend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, message })
@@ -442,9 +447,10 @@ const ExamPortal = ({ credentialId }) => {
       const imageData = ctx.getImageData(0, 0, 160, 120).data;
       let glarePixels = 0;
       for (let i = 0; i < imageData.length; i += 4) {
-        if (imageData[i] > 240 && imageData[i+1] > 240 && imageData[i+2] > 240) glarePixels++;
+        if (imageData[i] > 245 && imageData[i+1] > 245 && imageData[i+2] > 245) glarePixels++;
       }
-      if (glarePixels > 300) phoneDetected = true;
+      // Require over 6,000 extreme white pixels (>30% of webcam canvas) to consider screen glare as potential device
+      if (glarePixels > 6000) phoneDetected = true;
     }
 
     if (window.FaceDetector) {
@@ -475,32 +481,43 @@ const ExamPortal = ({ credentialId }) => {
     if (now - lastWarningTimeRef.current < 4000) return; // Debounce
 
     if (phoneDetected) {
+      phoneDetectedStreakRef.current += 1;
       lastWarningTimeRef.current = now;
-      playAlertSound(2);
-      setLiveStatusMessage("⚠️ Unauthorized Phone/Device Detected!");
-      setLiveStatusType('error');
-      triggerSuspension('phone', 'Unauthorized mobile phone or screen detected in camera frame.');
-    } else if (!faceDetected || faceCount === 0) {
-      lastWarningTimeRef.current = now;
-      playAlertSound(1);
-      setLiveStatusMessage("⚠️ Learner Out of Frame");
-      setLiveStatusType('error');
-      logViolation('body', 'Learner out of camera frame.');
-    } else if (faceCount > 1) {
-      lastWarningTimeRef.current = now;
-      playAlertSound(2);
-      setLiveStatusMessage("⚠️ Multiple Faces Detected!");
-      setLiveStatusType('error');
-      triggerSuspension('multi_person', 'Multiple individuals detected in camera frame.');
-    } else if (headTurned) {
-      lastWarningTimeRef.current = now;
-      playAlertSound(1);
-      setLiveStatusMessage("⚠️ Eye/Head deviation detected.");
-      setLiveStatusType('warning');
-      logViolation('eye', 'Eye or head deviation detected.');
+      if (phoneDetectedStreakRef.current >= 3) {
+        playAlertSound(2);
+        setLiveStatusMessage("⚠️ Unauthorized Phone/Device Detected!");
+        setLiveStatusType('error');
+        triggerSuspension('phone', 'Unauthorized mobile phone or screen detected in camera frame.');
+      } else {
+        playAlertSound(1);
+        setLiveStatusMessage("⚠️ Potential Device/Glare Warning");
+        setLiveStatusType('warning');
+        logViolation('phone', 'Potential secondary screen or reflection detected in frame.', 1);
+      }
     } else {
-      setLiveStatusMessage("Proctoring Active - Clean Frame");
-      setLiveStatusType('clean');
+      phoneDetectedStreakRef.current = 0;
+      if (!faceDetected || faceCount === 0) {
+        lastWarningTimeRef.current = now;
+        playAlertSound(1);
+        setLiveStatusMessage("⚠️ Learner Out of Frame");
+        setLiveStatusType('error');
+        logViolation('body', 'Learner out of camera frame.');
+      } else if (faceCount > 1) {
+        lastWarningTimeRef.current = now;
+        playAlertSound(2);
+        setLiveStatusMessage("⚠️ Multiple Faces Detected!");
+        setLiveStatusType('error');
+        triggerSuspension('multi_person', 'Multiple individuals detected in camera frame.');
+      } else if (headTurned) {
+        lastWarningTimeRef.current = now;
+        playAlertSound(1);
+        setLiveStatusMessage("⚠️ Eye/Head deviation detected.");
+        setLiveStatusType('warning');
+        logViolation('eye', 'Eye or head deviation detected.');
+      } else {
+        setLiveStatusMessage("Proctoring Active - Clean Frame");
+        setLiveStatusType('clean');
+      }
     }
   };
 
@@ -520,7 +537,8 @@ const ExamPortal = ({ credentialId }) => {
       }
       
       enterFullScreen(); // Request before API call
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/exam-engine/sessions/${credentialId}/start`, { method: 'POST' });
+      const targetId = credentialIdRef.current || activeCredId;
+      const res = await fetch(`${API_BASE}/api/v1/exam-engine/sessions/${targetId}/start`, { method: 'POST' });
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.detail || 'Failed to start exam session');
@@ -540,7 +558,8 @@ const ExamPortal = ({ credentialId }) => {
 
   const pollForResume = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/exam-engine/sessions/${credentialId}/status`);
+      const targetId = credentialIdRef.current || activeCredId;
+      const res = await fetch(`${API_BASE}/api/v1/exam-engine/sessions/${targetId}/status`);
       if (res.ok) {
         const data = await res.json();
         if (data.status === 'active') {
@@ -567,7 +586,8 @@ const ExamPortal = ({ credentialId }) => {
     setAnswers(prev => ({ ...prev, [qId]: optIndex }));
     setSavingAnswer(true);
     try {
-      await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/exam-engine/sessions/${credentialId}/answers`, {
+      const targetId = credentialIdRef.current || activeCredId;
+      await fetch(`${API_BASE}/api/v1/exam-engine/sessions/${targetId}/answers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question_id: qId, answer: optIndex })
@@ -582,7 +602,8 @@ const ExamPortal = ({ credentialId }) => {
     
     setLoading(true);
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/exam-engine/sessions/${credentialId}/submit`, {
+      const targetId = credentialIdRef.current || activeCredId;
+      const res = await fetch(`${API_BASE}/api/v1/exam-engine/sessions/${targetId}/submit`, {
         method: 'POST'
       });
       const data = await res.json();
@@ -670,7 +691,7 @@ const ExamPortal = ({ credentialId }) => {
 
           <div className="text-center pt-2 border-t border-slate-100">
             <a href="/" className="text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors">
-              ← Return to SkillForge LMS Dashboard
+              ← Return to PEARL LMS Dashboard
             </a>
           </div>
         </div>
@@ -810,7 +831,7 @@ const ExamPortal = ({ credentialId }) => {
             <ShieldCheck size={32} />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">Exam Submitted</h2>
-          <p className="text-slate-600 mb-6">Your answers have been securely submitted and sent back to SkillForge.</p>
+          <p className="text-slate-600 mb-6">Your answers have been securely submitted and sent back to PEARL.</p>
           
           {scoreResult && (
             <div className="mb-8">
@@ -1033,7 +1054,7 @@ const ExamPortal = ({ credentialId }) => {
       <header className="bg-white border-b border-slate-200 py-4 px-6 md:px-12 flex justify-between items-center shadow-sm">
         <div className="font-bold text-xl text-indigo-900 flex items-center gap-2">
           <ShieldCheck className="text-indigo-600" />
-          SkillForge Formal Examination
+          PEARL Formal Examination
         </div>
         <div className="text-sm font-medium text-slate-500 bg-slate-100 py-1.5 px-3 rounded-full flex items-center gap-2">
           <Clock size={14} /> Time Window Strict Enforcement
