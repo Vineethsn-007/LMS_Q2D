@@ -75,6 +75,12 @@ export default function AdminPanel({ user }) {
     try {
       setStatsLoading(true);
       const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/admin/reports/system-dashboard`, { headers });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('sf_token');
+        localStorage.removeItem('sf_user');
+        window.location.reload();
+        return;
+      }
       if (res.ok) {
         setDashboardStats(await res.json());
       }

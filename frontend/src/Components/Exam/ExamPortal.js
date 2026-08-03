@@ -738,15 +738,15 @@ const ExamPortal = ({ credentialId }) => {
 
             <div className="p-3 bg-amber-50 border border-amber-200/60 rounded-xl">
               <span className="text-xs font-extrabold uppercase text-amber-800 block text-center mb-1">
-                ⏱️ Check-in Window Opens At (30 Mins Prior):
+                ⏱️ Check-in & Credentials Window Opens At (30 Mins Prior):
               </span>
               <div className="text-sm font-black text-amber-950 text-center font-mono">
                 {windowStartStr}
               </div>
             </div>
 
-            <p className="text-xs font-semibold text-slate-500 leading-relaxed text-center">
-              Check-in opens 30 minutes prior to your scheduled exam slot. Please return at that time to complete pre-exam compliance and start your exam.
+            <p className="text-xs font-semibold text-slate-600 leading-relaxed text-center">
+              The temporary examination credentials and exam entry window will activate exactly 30 minutes before your scheduled slot. Please return or check back at that time to log in and start your assessment.
             </p>
           </div>
 
@@ -759,6 +759,13 @@ const ExamPortal = ({ credentialId }) => {
             </a>
             <button
               type="button"
+              onClick={() => setExamState('login')}
+              className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center"
+            >
+              Enter Other Credentials
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 if (credentialId) {
                   window.location.reload();
@@ -769,7 +776,7 @@ const ExamPortal = ({ credentialId }) => {
               className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
             >
               <RefreshCw size={14} />
-              <span>Check Access Status</span>
+              <span>Check Status</span>
             </button>
           </div>
         </div>

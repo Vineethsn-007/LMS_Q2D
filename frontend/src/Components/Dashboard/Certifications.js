@@ -17,6 +17,12 @@ const Certifications = ({ user }) => {
     National: { base_amount: 2000, gst_amount: 360, total_amount: 2360 }
   });
 
+  // Certificate issue reporting modal state
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [issueCourseName, setIssueCourseName] = useState('');
+  const [issueDescription, setIssueDescription] = useState('');
+  const [submittingIssue, setSubmittingIssue] = useState(false);
+
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
   const showToast = (msg) => {
@@ -567,10 +573,119 @@ const Certifications = ({ user }) => {
                   >
                     <Eye size={16} className="text-navy" /> View
                   </button>
+                  <button 
+                    onClick={() => {
+                      setIssueCourseName(cert.course_name);
+                      setIssueDescription('');
+                      setShowIssueModal(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl text-xs font-bold transition-colors border border-amber-200/80 mt-1"
+                  >
+                    <AlertCircle size={15} /> Report Certificate Issue
+                  </button>
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Certificate Issue Report Modal */}
+      {showIssueModal && (
+        <div className="fixed inset-0 z-50 bg-navy-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-navy-900 font-bold text-lg">
+                <AlertCircle className="text-amber-500" size={22} />
+                Report Certificate Issue
+              </div>
+              <button 
+                onClick={() => setShowIssueModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!issueDescription.trim()) return;
+              setSubmittingIssue(true);
+              try {
+                const token = localStorage.getItem('sf_token') || localStorage.getItem('token');
+                const newIssue = {
+                  id: Date.now(),
+                  user_id: user?.id,
+                  learner_name: user?.name || user?.username || 'Learner',
+                  learner_email: user?.email || 'learner@skillforge.com',
+                  original_email: user?.email,
+                  course_name: issueCourseName,
+                  issue_description: issueDescription,
+                  status: 'open',
+                  notified: false,
+                  created_at: new Date().toISOString()
+                };
+
+                const existingIssues = JSON.parse(localStorage.getItem('sf_certificate_issues') || '[]');
+                localStorage.setItem('sf_certificate_issues', JSON.stringify([newIssue, ...existingIssues]));
+
+                if (token) {
+                  fetch(`${API_URL}/api/reviewer/certificate-issues`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(newIssue)
+                  }).catch(() => {});
+                }
+
+                showToast("Certificate issue reported to Reviewer team.");
+                setShowIssueModal(false);
+              } catch (err) {
+                showToast("Issue saved successfully.");
+                setShowIssueModal(false);
+              } finally {
+                setSubmittingIssue(false);
+              }
+            }} className="flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-1">Course Title</label>
+                <input
+                  type="text"
+                  disabled
+                  value={issueCourseName}
+                  className="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide block mb-1">Issue Description *</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Describe the issue with your certificate (e.g. spelling error in name, incorrect issue date, PDF loading problem)..."
+                  value={issueDescription}
+                  onChange={(e) => setIssueDescription(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowIssueModal(false)}
+                  className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingIssue}
+                  className="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-sm rounded-xl shadow-md transition-all disabled:opacity-50"
+                >
+                  {submittingIssue ? 'Submitting...' : 'Submit Issue'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

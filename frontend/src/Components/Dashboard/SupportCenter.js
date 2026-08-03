@@ -148,22 +148,57 @@ export default function SupportCenter({ user }) {
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
   const fetchTickets = () => {
-    fetch(`${API}/api/communications/tickets`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : [])
+    const activeToken = localStorage.getItem('sf_token') || localStorage.getItem('token');
+    if (!activeToken) {
+      setLoading(false);
+      return;
+    }
+    fetch(`${API}/api/communications/tickets`, { headers: { Authorization: `Bearer ${activeToken}` } })
+      .then(r => {
+        if (r.status === 401 || r.status === 403) {
+          localStorage.removeItem('sf_token');
+          localStorage.removeItem('token');
+          localStorage.removeItem('sf_user');
+          window.location.reload();
+          return [];
+        }
+        return r.ok ? r.json() : [];
+      })
       .then(setTickets)
       .catch(() => {})
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchTickets(); }, [token]); // eslint-disable-line
+  useEffect(() => { fetchTickets(); }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.subject.trim() || !form.message.trim()) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${API}/api/communications/tickets`, { method: 'POST', headers, body: JSON.stringify(form) });
-      if (!res.ok) throw new Error();
+      const activeToken = localStorage.getItem('sf_token') || localStorage.getItem('token');
+      if (!activeToken) {
+        alert("Session expired. Please log in again.");
+        window.location.reload();
+        return;
+      }
+      const res = await fetch(`${API}/api/communications/tickets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeToken}` },
+        body: JSON.stringify(form)
+      });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('sf_token');
+        localStorage.removeItem('token');
+        localStorage.removeItem('sf_user');
+        alert("Session expired. Please log in again.");
+        window.location.reload();
+        return;
+      }
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'Failed to submit ticket');
+      }
       const ticket = await res.json();
       setTickets(prev => [ticket, ...prev]);
       setSuccess(`Ticket ${ticket.ticket_number} submitted! We'll respond shortly.`);
@@ -171,8 +206,8 @@ export default function SupportCenter({ user }) {
       setSelectedId(ticket.id);
       setForm({ subject: '', category: CATEGORIES[0], message: '', priority: 'medium' });
       setTimeout(() => setSuccess(''), 5000);
-    } catch {
-      alert('Failed to submit ticket. Please try again.');
+    } catch (err) {
+      alert(err.message || 'Failed to submit ticket. Please try again.');
     } finally {
       setSubmitting(false);
     }

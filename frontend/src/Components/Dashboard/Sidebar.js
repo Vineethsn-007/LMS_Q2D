@@ -122,22 +122,23 @@ const Sidebar = ({ user, onLogout, activeView, onViewChange }) => {
 
         <SidebarSection title="Account">
           <SidebarLink icon={Settings} label="Settings" isActive={activeView === 'settings'} onClick={() => onViewChange('settings')} />
+          <SidebarLink icon={LogOut} label="Log Out" isActive={false} onClick={onLogout} />
         </SidebarSection>
       </div>
 
       <div className="p-4 border-t border-slate-100 shrink-0">
         <button 
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors group"
+          onClick={() => onViewChange('settings')}
+          className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors group text-left overflow-hidden"
+          title="View Profile & Settings"
         >
-          <div className="w-10 h-10 rounded-full bg-navy text-white flex items-center justify-center font-bold shadow-sm group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 rounded-full bg-navy text-white flex items-center justify-center font-bold shadow-sm group-hover:scale-105 transition-transform shrink-0">
             {user?.name?.charAt(0) || 'A'}
           </div>
-          <div className="flex-1 text-left overflow-hidden">
+          <div className="flex-1 overflow-hidden">
             <div className="text-sm font-bold text-navy-900 truncate">{user?.name || 'Alex Johnson'}</div>
             <div className="text-xs text-slate-500 truncate">{user?.email || 'alex@company.com'}</div>
           </div>
-          <LogOut size={18} className="text-slate-400 group-hover:text-coral transition-colors" />
         </button>
       </div>
     </aside>

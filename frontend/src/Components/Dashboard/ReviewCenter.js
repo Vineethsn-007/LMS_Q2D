@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Clock, RefreshCw, Award, Edit2, Save, FileText } from 'lucide-react';
+import { CheckCircle, Clock, RefreshCw, Award, Edit2, Save, FileText, ShieldAlert } from 'lucide-react';
 
 const ReviewCenter = ({ user }) => {
   const [certificateIssues, setCertificateIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // States for inline editing certificate issues
   const [editingIssueId, setEditingIssueId] = useState(null);
   const [editForm, setEditForm] = useState({ learner_name: '', learner_email: '', course_name: '' });
 
   const fetchCertificateIssues = async () => {
-    const token = localStorage.getItem('sf_token');
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-
-    setLoading(true);
     try {
+      const token = localStorage.getItem('sf_token');
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
       const res = await fetch(`${apiUrl}/api/reviewer/certificate-issues`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('sf_token');
+        localStorage.removeItem('sf_user');
+        window.location.reload();
+        return;
+      }
       if (res.ok) {
         const issues = await res.json();
         setCertificateIssues(issues);
@@ -54,15 +58,12 @@ const ReviewCenter = ({ user }) => {
   };
 
   const handleSaveIssue = async (id) => {
-    const token = localStorage.getItem('sf_token');
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
     try {
+      const token = localStorage.getItem('sf_token');
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
       await fetch(`${apiUrl}/api/reviewer/certificate-issues/${id}`, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           learner_name: editForm.learner_name,
           learner_email: editForm.learner_email,
@@ -85,15 +86,20 @@ const ReviewCenter = ({ user }) => {
         {/* Header Section */}
         <div className="flex flex-col gap-6 mb-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h1 className="text-3xl font-bold text-navy-900 leading-tight flex items-center gap-3">
-              <CheckCircle className="text-blue-500" size={28} /> Review Center
-            </h1>
+            <div>
+              <h1 className="text-3xl font-bold text-navy-900 leading-tight flex items-center gap-3">
+                <CheckCircle className="text-blue-500" size={28} /> Review Center
+              </h1>
+              <p className="text-slate-500 text-sm font-medium mt-1">
+                Audit learner certificate detail requests, verify credentials, and resolve reported issues.
+              </p>
+            </div>
             
             <div className="flex p-1 bg-slate-200/70 rounded-xl w-max">
               <button 
                 className="px-4 py-2 rounded-lg text-sm font-bold bg-white text-navy-900 shadow-sm"
               >
-                Certificate Issues
+                Certificate Issues ({certificateIssues.length})
               </button>
             </div>
           </div>
@@ -108,7 +114,7 @@ const ReviewCenter = ({ user }) => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400">
             <RefreshCw className="animate-spin mb-4" size={32} />
-            <p className="font-medium">Loading content...</p>
+            <p className="font-medium">Loading certificate issues...</p>
           </div>
         ) : certificateIssues.length === 0 ? (
           <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-sm flex flex-col items-center justify-center">
