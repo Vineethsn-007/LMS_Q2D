@@ -705,6 +705,34 @@ def update_certificate_issue(
     db.refresh(issue)
     return issue
 
+@app.get("/api/reviewer/student-reviews", response_model=List[schemas.StudentReviewResponse])
+def get_student_reviews(
+    current_user: models.User = Depends(verifyReviewerRole),
+    db: Session = Depends(get_db)
+):
+    return db.query(models.StudentReview).order_by(models.StudentReview.id.desc()).all()
+
+@app.post("/api/reviewer/student-reviews", response_model=schemas.StudentReviewResponse, status_code=status.HTTP_201_CREATED)
+def create_student_review(
+    review_in: schemas.StudentReviewCreate,
+    current_user: models.User = Depends(verifyReviewerRole),
+    db: Session = Depends(get_db)
+):
+    review = models.StudentReview(
+        student_id=review_in.student_id,
+        reviewer_id=current_user.id,
+        student_name=review_in.student_name,
+        student_email=review_in.student_email,
+        reviewer_name=current_user.name,
+        rating=review_in.rating or 5,
+        performance_tag=review_in.performance_tag or "Reviewed",
+        comments=review_in.comments
+    )
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+    return review
+
 # Notifications endpoint
 @app.get("/api/notifications", response_model=List[schemas.NotificationResponse])
 def get_notifications(

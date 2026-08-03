@@ -312,6 +312,21 @@ class CertificateIssue(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+class StudentReview(Base):
+    __tablename__ = "student_reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    reviewer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    student_name = Column(String, nullable=False)
+    student_email = Column(String, nullable=False)
+    reviewer_name = Column(String, nullable=True)
+    rating = Column(Integer, default=5)
+    performance_tag = Column(String, default="Reviewed")
+    comments = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
 class UserCourseProgress(Base):
     __tablename__ = "user_course_progress"
 

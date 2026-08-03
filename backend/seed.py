@@ -60,10 +60,39 @@ def seed_db():
                 hashed_password=learner_pwd,
                 role="learner",
                 is_active=True
+            ),
+            User(
+                email="priya.sharma@skillforge.com",
+                name="Priya Sharma",
+                hashed_password=learner_pwd,
+                role="learner",
+                is_active=True
+            ),
+            User(
+                email="rohan.verma@skillforge.com",
+                name="Rohan Verma",
+                hashed_password=learner_pwd,
+                role="learner",
+                is_active=True
+            ),
+            User(
+                email="ananya.patel@skillforge.com",
+                name="Ananya Patel",
+                hashed_password=learner_pwd,
+                role="learner",
+                is_active=True
+            ),
+            User(
+                email="david.chen@skillforge.com",
+                name="David Chen",
+                hashed_password=learner_pwd,
+                role="learner",
+                is_active=True
             )
         ]
         db.add_all(users)
-        
+        db.commit()
+
         # 1. Seed Experts
         logger.info("Seeding domain experts...")
         experts = [
@@ -220,17 +249,18 @@ def seed_db():
         ]
         db.add_all(subjects)
 
-        learner_u = db.query(User).filter(User.email == "learner@skillforge.com").first()
         inst_u = db.query(Institution).first()
-        if learner_u and inst_u:
+        learners_to_register = db.query(User).filter(User.role == "learner").all()
+        tiers_pool = ["District", "State", "National", "District", "State"]
+        for idx, l in enumerate(learners_to_register):
             reg = StudentRegistration(
-                user_id=learner_u.id,
-                institution_id=inst_u.id,
+                user_id=l.id,
+                institution_id=inst_u.id if inst_u else 1,
                 specialization_id=spec.id,
-                registration_number="SF-2026-001",
+                registration_number=f"SF-2026-00{idx+1}",
                 batch_name="2026-A",
                 access_status="active",
-                current_tier="District"
+                current_tier=tiers_pool[idx % len(tiers_pool)]
             )
             db.add(reg)
 

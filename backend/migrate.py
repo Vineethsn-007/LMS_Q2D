@@ -24,6 +24,13 @@ def migrate():
         except Exception as e:
             logger.warning(f"Note dropping table '{table}': {e}")
 
+    # Auto create any missing ORM tables (e.g., student_reviews)
+    try:
+        import models
+        models.Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        logger.warning(f"Note creating tables: {e}")
+
     # Ensure courses table has all columns
     for col_name, col_type in [
         ("category", "VARCHAR DEFAULT 'Software Engineering'"),

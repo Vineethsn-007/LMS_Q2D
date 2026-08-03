@@ -1,3 +1,4 @@
+import datetime
 from typing import List, Optional
 import csv
 import io
@@ -95,12 +96,20 @@ def get_system_dashboard(
     db: Session = Depends(get_db)
 ):
     # 1. Batch-wise analytics (RegistrationCycle -> StudentRegistration -> ExamResult)
-    # We group by cycle_year and calculate total students, pass_rate, avg_score
     batch_analytics = []
     cycles = db.query(models.RegistrationCycle).all()
+    if not cycles:
+        active_cycle = db.query(models.RegistrationCycle).filter(models.RegistrationCycle.is_active == True).first()
+        if not active_cycle:
+            active_cycle = models.RegistrationCycle(name="2026-2027", is_active=True, start_date=datetime.datetime.utcnow())
+            db.add(active_cycle)
+            db.commit()
+            db.refresh(active_cycle)
+        cycles = [active_cycle]
+
     for cycle in cycles:
         students_in_cycle = db.query(models.StudentRegistration).filter(
-            models.StudentRegistration.cycle_year == cycle.name
+            (models.StudentRegistration.cycle_year == cycle.name) | (models.StudentRegistration.batch_name == cycle.name)
         ).all()
         student_ids = [s.user_id for s in students_in_cycle]
         
@@ -111,11 +120,11 @@ def get_system_dashboard(
             total_students = len(student_ids)
             if results:
                 avg_score = sum(r.score for r in results) / len(results)
-                passes = sum(1 for r in results if r.pass_fail == 'Pass')
+                passes = sum(1 for r in results if str(r.pass_fail).strip().lower() in ['pass', 'passed', 'true'])
                 pass_rate = (passes / len(results)) * 100
             else:
-                avg_score = 0
-                pass_rate = 0
+                avg_score = 0.0
+                pass_rate = 0.0
                 
             batch_analytics.append({
                 "cycle_year": cycle.name,
@@ -123,6 +132,24 @@ def get_system_dashboard(
                 "pass_rate": round(pass_rate, 2),
                 "avg_score": round(avg_score, 2)
             })
+        else:
+            # Check all registrations if cycle field was default
+            total_regs = db.query(models.StudentRegistration).count()
+            if total_regs > 0 and len(cycles) == 1:
+                all_results = db.query(models.ExamResult).all()
+                if all_results:
+                    avg_score = sum(r.score for r in all_results) / len(all_results)
+                    passes = sum(1 for r in all_results if str(r.pass_fail).strip().lower() in ['pass', 'passed', 'true'])
+                    pass_rate = (passes / len(all_results)) * 100
+                else:
+                    avg_score = 0.0
+                    pass_rate = 0.0
+                batch_analytics.append({
+                    "cycle_year": cycle.name,
+                    "total_students": total_regs,
+                    "pass_rate": round(pass_rate, 2),
+                    "avg_score": round(avg_score, 2)
+                })
     
     # 2. Progression Tracking (Count of students in each tier)
     progression = []
@@ -130,26 +157,28 @@ def get_system_dashboard(
         models.StudentRegistration.current_tier, 
         func.count(models.StudentRegistration.id)
     ).group_by(models.StudentRegistration.current_tier).all()
-    for tier, count in tiers:
-        if tier:
-            progression.append({
-                "tier": tier,
-                "student_count": count
-            })
+    
+    tier_map = {t: c for t, c in tiers if t}
+    for t_name in ["District", "State", "National"]:
+        progression.append({
+            "tier": t_name,
+            "student_count": tier_map.get(t_name, 0)
+        })
             
     # 3. Payment Tracking (Revenue by tier)
     revenue = []
     rev_tiers = db.query(
         models.PaymentRecord.target_tier,
         func.sum(models.PaymentRecord.total_amount)
-    ).filter(models.PaymentRecord.status.in_(["success", "paid"])).group_by(models.PaymentRecord.target_tier).all()
-    for tier, total in rev_tiers:
-        if tier:
-            revenue.append({
-                "tier": tier,
-                "total_revenue": total or 0.0,
-                "currency": "INR"
-            })
+    ).filter(models.PaymentRecord.status.in_(["success", "paid", "captured"])).group_by(models.PaymentRecord.target_tier).all()
+    rev_map = {t: (tot or 0.0) for t, tot in rev_tiers if t}
+    
+    for t_name in ["State", "National"]:
+        revenue.append({
+            "tier": t_name,
+            "total_revenue": float(rev_map.get(t_name, 0.0)),
+            "currency": "INR"
+        })
             
     # 4. Total users and active learner counts
     total_users = db.query(models.User).count()

@@ -972,6 +972,30 @@ class CertificateIssueResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class StudentReviewCreate(BaseModel):
+    student_id: int
+    student_name: str
+    student_email: str
+    rating: Optional[int] = 5
+    performance_tag: Optional[str] = "Reviewed"
+    comments: str
+
+class StudentReviewResponse(BaseModel):
+    id: int
+    student_id: int
+    reviewer_id: Optional[int] = None
+    student_name: str
+    student_email: str
+    reviewer_name: Optional[str] = None
+    rating: int
+    performance_tag: str
+    comments: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 class UserCourseProgressUpdate(BaseModel):
     completed_items: Optional[List[Any]] = None
     quiz_answers: Optional[Any] = None
